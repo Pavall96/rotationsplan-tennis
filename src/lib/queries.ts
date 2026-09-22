@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, courts, sessions, sessionAssignments, rsvps } from "@/db/schema";
+import { playerLabel } from "@/lib/format";
 
 export type RsvpStatus = "ja" | "nein" | "offen";
 
@@ -58,6 +59,7 @@ export async function getFullSchedule(): Promise<SessionView[]> {
       sessionId: sessionAssignments.sessionId,
       playerId: sessionAssignments.playerId,
       displayName: players.displayName,
+      nickname: players.nickname,
       role: sessionAssignments.role,
       slot: sessionAssignments.slot,
       rsvpStatus: rsvps.status,
@@ -74,7 +76,7 @@ export async function getFullSchedule(): Promise<SessionView[]> {
     if (!bySession.has(a.sessionId)) bySession.set(a.sessionId, []);
     bySession.get(a.sessionId)!.push({
       playerId: a.playerId,
-      displayName: a.displayName,
+      displayName: playerLabel(a),
       role: a.role as "starter" | "ersatz" | "trainer",
       slot: a.slot,
       rsvpStatus: (a.rsvpStatus as RsvpStatus | null) ?? "offen",

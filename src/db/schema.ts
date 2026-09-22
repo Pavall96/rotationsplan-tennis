@@ -16,7 +16,10 @@ import { sql } from "drizzle-orm";
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
+  // Stable key back to the source spreadsheet — never edited by users, so a re-import can still match rows.
   displayName: text("display_name").notNull().unique(),
+  // User-chosen display name (e.g. a preferred nickname); shown everywhere instead of displayName when set.
+  nickname: text("nickname"),
   lk: numeric("lk", { precision: 4, scale: 1 }),
   wantsCoach: boolean("wants_coach").notNull(),
   email: text("email").unique(),

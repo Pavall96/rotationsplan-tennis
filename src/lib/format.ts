@@ -37,3 +37,8 @@ export function formatTimeRange(start: Date | string, end: Date | string): strin
 export function formatDateForFile(d: Date | string): string {
   return dateFileFormatter.format(new Date(d));
 }
+
+/** The name to show for a player: their chosen nickname if set, otherwise the spreadsheet name. */
+export function playerLabel(p: { displayName: string; nickname?: string | null }): string {
+  return p.nickname?.trim() || p.displayName;
+}

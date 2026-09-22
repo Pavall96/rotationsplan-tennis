@@ -3,6 +3,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players } from "@/db/schema";
+import { playerLabel } from "@/lib/format";
 
 export type RegisterResult =
   | { status: "ok"; link: string; displayName: string }
@@ -12,6 +13,7 @@ export type RegisterResult =
 export async function registerEmail(formData: FormData): Promise<RegisterResult> {
   const playerId = Number(formData.get("playerId"));
   const email = String(formData.get("email") ?? "").trim();
+  const nickname = String(formData.get("nickname") ?? "").trim();
 
   if (!playerId || !email || !email.includes("@")) {
     return { status: "invalid" };
@@ -23,11 +25,18 @@ export async function registerEmail(formData: FormData): Promise<RegisterResult>
 
   if (player.email && player.email !== email) {
     // Already registered by someone — don't let a public form silently overwrite it.
-    return { status: "already-registered", displayName: player.displayName };
+    return { status: "already-registered", displayName: playerLabel(player) };
   }
 
-  await db.update(players).set({ email }).where(eq(players.id, playerId));
+  await db
+    .update(players)
+    .set({ email, nickname: nickname || null })
+    .where(eq(players.id, playerId));
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
-  return { status: "ok", link: `${baseUrl}/spieler/${player.token}`, displayName: player.displayName };
+  return {
+    status: "ok",
+    link: `${baseUrl}/spieler/${player.token}`,
+    displayName: nickname || player.displayName,
+  };
 }

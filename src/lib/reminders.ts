@@ -2,7 +2,7 @@ import { getDb } from "@/db";
 import { players, reminderLog } from "@/db/schema";
 import { getFullSchedule } from "@/lib/queries";
 import { sendReminderBatch, type ReminderEmailInput } from "@/lib/email";
-import { formatDateForFile } from "@/lib/format";
+import { formatDateForFile, playerLabel } from "@/lib/format";
 
 export type ReminderRunResult =
   | { date: string; sessions: number; sent: number; skippedNoEmail: number; skippedAlreadySent: number }
@@ -61,7 +61,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
       }
       const input: ReminderEmailInput = {
         to: player.email,
-        playerName: player.displayName,
+        playerName: playerLabel(player),
         role: r.role,
         session,
         token: player.token,

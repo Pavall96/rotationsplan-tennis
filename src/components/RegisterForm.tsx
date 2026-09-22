@@ -73,6 +73,22 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
         />
       </div>
 
+      <div>
+        <label htmlFor="nickname" className="block text-sm font-medium mb-1">
+          Wie sollen wir dich anzeigen? (optional)
+        </label>
+        <input
+          id="nickname"
+          name="nickname"
+          type="text"
+          placeholder="z.B. dein Spitzname"
+          className="w-full rounded-md border border-black/20 dark:border-white/20 bg-transparent px-3 py-2 text-sm"
+        />
+        <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+          Leer lassen, um deinen Namen aus der Liste zu behalten.
+        </p>
+      </div>
+
       <button
         type="submit"
         disabled={pending}

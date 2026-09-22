@@ -6,7 +6,7 @@ import {
   sessionsForPlayer,
   myRoleInSession,
 } from "@/lib/queries";
-import { formatDate, formatTimeRange, formatDateForFile } from "@/lib/format";
+import { formatDate, formatTimeRange, formatDateForFile, playerLabel } from "@/lib/format";
 import { getBaseUrl } from "@/lib/base-url";
 import { RsvpForm } from "@/components/RsvpForm";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
@@ -44,7 +44,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       </Link>
 
       <header className="my-4">
-        <h1 className="text-xl font-bold">Hallo {player.displayName}!</h1>
+        <h1 className="text-xl font-bold">Hallo {playerLabel(player)}!</h1>
         <p className="text-sm text-black/60 dark:text-white/60">
           Du hast {starterSessions.length} Spieltage: {mitCount} mit Trainer, {ohneCount} ohne Trainer.
         </p>

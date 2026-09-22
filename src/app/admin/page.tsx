@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/db";
 import { players } from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
+import { playerLabel } from "@/lib/format";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { TestReminderButton } from "@/components/TestReminderButton";
 
@@ -25,7 +26,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
       {missingEmail.length > 0 && (
         <p className="text-sm text-[var(--color-nein)] mb-4">
-          {missingEmail.length} Spieler ohne E-Mail: {missingEmail.map((p) => p.displayName).join(", ")}
+          {missingEmail.length} Spieler ohne E-Mail: {missingEmail.map((p) => playerLabel(p)).join(", ")}
         </p>
       )}
 
@@ -46,7 +47,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             const link = `${baseUrl}/spieler/${p.token}`;
             return (
               <tr key={p.id} className="border-b border-black/5 dark:border-white/10">
-                <td className="py-2 pr-2">{p.displayName}</td>
+                <td className="py-2 pr-2">
+                  {playerLabel(p)}
+                  {p.nickname && (
+                    <span className="text-black/40 dark:text-white/40"> ({p.displayName})</span>
+                  )}
+                </td>
                 <td className="py-2 pr-2">{p.lk ?? "–"}</td>
                 <td className="py-2 pr-2">{p.wantsCoach ? "ja" : "nein"}</td>
                 <td className="py-2 pr-2">
