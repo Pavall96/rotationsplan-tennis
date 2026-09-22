@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getFullSchedule, getPlayerByToken, sessionsForPlayer } from "@/lib/queries";
+import { getFullSchedule, getPlayerByToken, sessionsForPlayer, myRoleInSession } from "@/lib/queries";
 import { buildIcsCalendar, sessionToIcsEvent } from "@/lib/ics";
 import { getBaseUrl } from "@/lib/base-url";
 
@@ -9,7 +9,10 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   if (!player) notFound();
 
   const schedule = await getFullSchedule();
-  const mine = sessionsForPlayer(schedule, player.id);
+  // Only real playing days, not standby (Ersatz) sessions.
+  const mine = sessionsForPlayer(schedule, player.id).filter(
+    (s) => myRoleInSession(s, player.id) === "starter",
+  );
   const baseUrl = await getBaseUrl();
 
   const events = mine.map((s) => sessionToIcsEvent(s, player, baseUrl));
