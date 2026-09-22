@@ -46,3 +46,10 @@ export function playerLabel(p: { displayName: string; nickname?: string | null }
 export function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
+
+/** Answer-button wording for the reminder email and its confirmation page; Ersatz answers mean "standing by", not "playing". */
+export function rsvpLabels(role: "starter" | "ersatz" | "trainer"): { ja: string; nein: string } {
+  return role === "ersatz"
+    ? { ja: "Ja, ich halte mich bereit", nein: "Nein, heute nicht" }
+    : { ja: "Ja, ich bin dabei", nein: "Nein, ich kann nicht" };
+}
