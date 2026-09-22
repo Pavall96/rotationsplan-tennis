@@ -42,3 +42,7 @@ export function formatDateForFile(d: Date | string): string {
 export function playerLabel(p: { displayName: string; nickname?: string | null }): string {
   return p.nickname?.trim() || p.displayName;
 }
+
+export function mapsUrl(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}

@@ -42,3 +42,4 @@ next-env.d.ts
 
 # private player data
 /data/spieler-emails.csv
+.scratch-email-designs/

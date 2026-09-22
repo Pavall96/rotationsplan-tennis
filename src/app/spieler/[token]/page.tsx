@@ -6,7 +6,7 @@ import {
   sessionsForPlayer,
   myRoleInSession,
 } from "@/lib/queries";
-import { formatDate, formatTimeRange, formatDateForFile, playerLabel } from "@/lib/format";
+import { formatDate, formatTimeRange, formatDateForFile, playerLabel, mapsUrl } from "@/lib/format";
 import { getBaseUrl } from "@/lib/base-url";
 import { RsvpForm } from "@/components/RsvpForm";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
@@ -87,12 +87,24 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
                     {formatTimeRange(s.startsAt, s.endsAt)}
                   </p>
                 </div>
-                <span
-                  className="text-xs font-medium px-2 py-1 rounded-full text-white"
-                  style={{ backgroundColor: courtColor }}
-                >
-                  {s.hallName} · {s.withCoach ? "mit Trainer" : "ohne Trainer"}
-                </span>
+                {s.address ? (
+                  <a
+                    href={mapsUrl(s.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium px-2 py-1 rounded-full text-white underline decoration-white/50 underline-offset-2"
+                    style={{ backgroundColor: courtColor }}
+                  >
+                    {s.hallName} · {s.withCoach ? "mit Trainer" : "ohne Trainer"}
+                  </a>
+                ) : (
+                  <span
+                    className="text-xs font-medium px-2 py-1 rounded-full text-white"
+                    style={{ backgroundColor: courtColor }}
+                  >
+                    {s.hallName} · {s.withCoach ? "mit Trainer" : "ohne Trainer"}
+                  </span>
+                )}
               </div>
 
               {s.note && (

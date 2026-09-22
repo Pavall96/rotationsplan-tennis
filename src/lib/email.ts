@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
-import { formatTimeRange, formatDate } from "@/lib/format";
+import { formatTimeRange, formatDate, mapsUrl } from "@/lib/format";
 
 let resendInstance: Resend | null = null;
 
@@ -46,10 +46,9 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
         ? `Du bist heute als <strong>Trainer</strong> eingeteilt.`
         : `Mit dabei: ${others}`;
 
-  const ersatzHint =
-    role === "starter" && session.ersatz
-      ? `<p style="margin:16px 0 0;color:#444;">Wenn du nicht kannst, kannst du <strong>${session.ersatz.displayName}</strong> direkt fragen.</p>`
-      : "";
+  const routeLine = session.address
+    ? `<p style="margin:0;"><a href="${mapsUrl(session.address)}" style="color:#0e3b2e;">Route öffnen</a></p>`
+    : "";
 
   const html = `
   <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;color:#111;">
@@ -60,7 +59,8 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
       <tr><td style="padding:16px;">
         <p style="margin:0 0 4px;font-weight:600;">${date} · ${time}</p>
         <p style="margin:0 0 4px;">Halle: ${session.hallName} (${withCoach})</p>
-        <p style="margin:0;">${roleLine}</p>
+        <p style="margin:0 0 4px;">${roleLine}</p>
+        ${routeLine}
       </td></tr>
     </table>
     <p>Bist du heute dabei? Bitte abstimmen:</p>
@@ -75,7 +75,6 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
       </tr>
     </table>
     <p style="color:#444;">Deine Antwort sehen alle im gemeinsamen Plan – so weiß die Runde früh genug, ob jemand fehlt.</p>
-    ${ersatzHint}
     <hr style="border:none;border-top:1px solid #ddd;margin:24px 0;" />
     <p style="font-size:13px;color:#666;">
       Ganzer Plan: <a href="${overviewUrl}">${overviewUrl}</a><br/>
@@ -95,12 +94,12 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
       : role === "trainer"
         ? `Du bist heute als Trainer eingeteilt.`
         : `Mit dabei: ${others}`,
+    session.address ? `Route: ${mapsUrl(session.address)}` : ``,
     ``,
     `Bist du heute dabei? Bitte abstimmen:`,
     `Ja: ${yesUrl}`,
     `Nein: ${noUrl}`,
     ``,
-    role === "starter" && session.ersatz ? `Wenn du nicht kannst, frag direkt ${session.ersatz.displayName}.` : ``,
     `Ganzer Plan: ${overviewUrl}`,
     `Dein persönlicher Link: ${personalUrl}`,
   ]

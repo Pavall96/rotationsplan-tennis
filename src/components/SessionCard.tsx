@@ -1,5 +1,5 @@
 import type { SessionView } from "@/lib/queries";
-import { formatDate, formatTimeRange } from "@/lib/format";
+import { formatDate, formatTimeRange, mapsUrl } from "@/lib/format";
 import { RsvpBadge } from "@/components/RsvpBadge";
 
 export function SessionCard({
@@ -19,12 +19,24 @@ export function SessionCard({
             {formatTimeRange(session.startsAt, session.endsAt)}
           </p>
         </div>
-        <span
-          className="text-xs font-medium px-2 py-1 rounded-full text-white"
-          style={{ backgroundColor: courtColor }}
-        >
-          {session.hallName} · {session.withCoach ? "mit Trainer" : "ohne Trainer"}
-        </span>
+        {session.address ? (
+          <a
+            href={mapsUrl(session.address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium px-2 py-1 rounded-full text-white underline decoration-white/50 underline-offset-2"
+            style={{ backgroundColor: courtColor }}
+          >
+            {session.hallName} · {session.withCoach ? "mit Trainer" : "ohne Trainer"}
+          </a>
+        ) : (
+          <span
+            className="text-xs font-medium px-2 py-1 rounded-full text-white"
+            style={{ backgroundColor: courtColor }}
+          >
+            {session.hallName} · {session.withCoach ? "mit Trainer" : "ohne Trainer"}
+          </span>
+        )}
       </div>
 
       {session.note && (
