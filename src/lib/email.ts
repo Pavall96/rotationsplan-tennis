@@ -20,8 +20,18 @@ export type ReminderEmailInput = {
   baseUrl: string;
 };
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
   const { playerName, role, session, token, baseUrl } = input;
+  const playerNameHtml = escapeHtml(playerName);
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const others = session.starters.map((a) => a.displayName).join(", ");
   const time = formatTimeRange(session.startsAt, session.endsAt);
@@ -47,7 +57,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
         : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${session.starters
             .map(
               (a) =>
-                `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${a.displayName}</span>`,
+                `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
             )
             .join("")}</div>`;
 
@@ -67,7 +77,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
     </table>
 
     <div style="padding:32px;">
-      <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Hallo ${playerName}!</p>
+      <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Hallo ${playerNameHtml}!</p>
       <p style="margin:0 0 24px;font-size:15px;color:#4b5563;">Heute ist Wintertraining – bitte kurz abstimmen.</p>
 
       <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px 20px;margin-bottom:24px;">
@@ -77,7 +87,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
             <td style="font-size:13px;color:#6b7280;text-align:right;">${time}</td>
           </tr>
         </table>
-        <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${session.hallName} · ${withCoach}</p>
+        <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${escapeHtml(session.hallName)} · ${withCoach}</p>
         ${roleBody}
         ${routeLine}
       </div>

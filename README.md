@@ -24,6 +24,13 @@ npm install
    npm run db:push       # Schema nach Postgres
    npm run db:seed       # Spieler/Plätze/Termine aus data/seed.json
    ```
+   ⚠️ **Bei `db:push` gegen eine bestehende Datenbank mit echten Daten:** drizzle-kit
+   fragt bei manchen Schema-Änderungen (z.B. neue CHECK-Constraint-Werte) interaktiv,
+   ob es dafür eine Tabelle **truncaten** darf. Diese Frage niemals unbedacht mit
+   Ja/Force beantworten — das hat hier schon einmal gedroht, die `sessions`-Tabelle
+   mit 58 echten Terminen zu leeren. Im Zweifel stattdessen die Änderung manuell per
+   `ALTER TABLE` ausführen (siehe `drizzle/manual-migrations.sql` für bereits so
+   durchgeführte Änderungen) und vorher ein Backup ziehen.
 4. **E-Mail-Adressen ergänzen** (Kopie von `data/spieler-emails.example.csv` nach `data/spieler-emails.csv`, ausfüllen):
    ```bash
    npm run data:emails

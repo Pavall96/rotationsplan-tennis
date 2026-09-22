@@ -30,6 +30,7 @@ const COURTS = [
     withCoach: true,
     startLocal: "20:30",
     endLocal: "22:00",
+    address: "In der Au 3, 74172 Neckarsulm-Obereisesheim",
   },
   {
     slug: "frankenbach" as const,
@@ -38,6 +39,7 @@ const COURTS = [
     withCoach: false,
     startLocal: "20:00",
     endLocal: "21:30",
+    address: "Würzburger Straße 52, 74078 Heilbronn-Frankenbach",
   },
 ];
 

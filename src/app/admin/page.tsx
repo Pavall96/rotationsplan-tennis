@@ -30,7 +30,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         </p>
       )}
 
-      <TestReminderButton />
+      <TestReminderButton adminKey={String(key)} />
 
       <table className="w-full text-sm border-collapse">
         <thead>

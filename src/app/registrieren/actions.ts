@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players } from "@/db/schema";
 import { playerLabel } from "@/lib/format";
@@ -8,6 +8,7 @@ import { playerLabel } from "@/lib/format";
 export type RegisterResult =
   | { status: "ok"; link: string; displayName: string }
   | { status: "already-registered"; displayName: string }
+  | { status: "email-taken" }
   | { status: "invalid" };
 
 export async function registerEmail(formData: FormData): Promise<RegisterResult> {
@@ -26,6 +27,16 @@ export async function registerEmail(formData: FormData): Promise<RegisterResult>
   if (player.email && player.email !== email) {
     // Already registered by someone — don't let a public form silently overwrite it.
     return { status: "already-registered", displayName: playerLabel(player) };
+  }
+
+  const [emailOwner] = await db
+    .select()
+    .from(players)
+    .where(and(eq(players.email, email), ne(players.id, playerId)))
+    .limit(1);
+  if (emailOwner) {
+    // Someone else already registered with this address — don't let players merge accounts by mistake.
+    return { status: "email-taken" };
   }
 
   await db

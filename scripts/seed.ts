@@ -13,6 +13,7 @@ type SeedData = {
     withCoach: boolean;
     startLocal: string;
     endLocal: string;
+    address: string;
   }[];
   players: { displayName: string; lk: number | null; wantsCoach: boolean }[];
   sessions: {
@@ -48,6 +49,7 @@ async function main() {
           withCoach: c.withCoach,
           startLocal: c.startLocal,
           endLocal: c.endLocal,
+          address: c.address,
         },
       });
   }

@@ -103,6 +103,12 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
           hast, melde dich bei einem Mannschaftsführer.
         </p>
       )}
+      {result?.status === "email-taken" && (
+        <p className="text-sm text-[var(--color-nein)]">
+          Diese E-Mail-Adresse ist schon bei jemand anderem eingetragen. Prüf die Adresse oder melde dich bei
+          einem Mannschaftsführer.
+        </p>
+      )}
       {result?.status === "invalid" && (
         <p className="text-sm text-[var(--color-nein)]">Bitte Namen und eine gültige E-Mail-Adresse angeben.</p>
       )}
