@@ -26,8 +26,11 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
   const today = formatDateForFile(new Date());
   const upcoming = mySessions.filter((s) => formatDateForFile(s.startsAt) >= today);
 
-  // "Spieltage" counts starter slots only, matching the workbook's COUNTIF (which excludes Ersatz).
-  const starterSessions = mySessions.filter((s) => myRoleInSession(s, player.id) === "starter");
+  // "Spieltage" counts starter (and trainer) slots, matching the workbook's COUNTIF (which excludes Ersatz).
+  const starterSessions = mySessions.filter((s) => {
+    const role = myRoleInSession(s, player.id);
+    return role === "starter" || role === "trainer";
+  });
   const mitCount = starterSessions.filter((s) => s.withCoach).length;
   const ohneCount = starterSessions.filter((s) => !s.withCoach).length;
 
@@ -70,9 +73,8 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       <div className="space-y-4">
         {upcoming.map((s) => {
           const role = myRoleInSession(s, player.id);
-          const myStatus = role === "starter"
-            ? s.starters.find((a) => a.playerId === player.id)!.rsvpStatus
-            : s.ersatz!.rsvpStatus;
+          const myAssignment = [s.trainer, s.ersatz, ...s.starters].find((a) => a?.playerId === player.id)!;
+          const myStatus = myAssignment.rsvpStatus;
           const others = s.starters.filter((a) => a.playerId !== player.id).map((a) => a.displayName);
           const courtColor = s.courtSlug === "happy-match" ? "var(--color-platz1)" : "var(--color-platz2)";
 
@@ -101,8 +103,13 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
 
               {role === "ersatz" ? (
                 <p className="text-sm font-medium mb-1">Du bist Ersatz an diesem Termin.</p>
+              ) : role === "trainer" ? (
+                <p className="text-sm font-medium mb-1">Du bist als Trainer eingeteilt.</p>
               ) : (
                 <p className="text-sm mb-1">Mit dabei: {others.join(", ")}</p>
+              )}
+              {s.trainer && role !== "trainer" && (
+                <p className="text-sm text-black/60 dark:text-white/60">Trainer: {s.trainer.displayName}</p>
               )}
               {s.ersatz && role !== "ersatz" && (
                 <p className="text-sm text-black/60 dark:text-white/60 mb-2">Ersatz: {s.ersatz.displayName}</p>

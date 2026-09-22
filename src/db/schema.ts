@@ -70,7 +70,7 @@ export const sessionAssignments = pgTable(
   },
   (table) => [
     unique("session_assignments_session_player_unique").on(table.sessionId, table.playerId),
-    check("session_assignments_role_check", sql`${table.role} in ('starter', 'ersatz')`),
+    check("session_assignments_role_check", sql`${table.role} in ('starter', 'ersatz', 'trainer')`),
   ],
 );
 

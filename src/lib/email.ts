@@ -14,7 +14,7 @@ function getResend(): Resend | null {
 export type ReminderEmailInput = {
   to: string;
   playerName: string;
-  role: "starter" | "ersatz";
+  role: "starter" | "ersatz" | "trainer";
   session: SessionView;
   token: string;
   baseUrl: string;
@@ -30,7 +30,9 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
   const subject =
     role === "ersatz"
       ? `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – hältst du dich bereit?`
-      : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
+      : role === "trainer"
+        ? `Training heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`
+        : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
 
   const yesUrl = `${baseUrl}/spieler/${token}?termin=${session.id}&antwort=ja`;
   const noUrl = `${baseUrl}/spieler/${token}?termin=${session.id}&antwort=nein`;
@@ -40,7 +42,9 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
   const roleLine =
     role === "ersatz"
       ? `Du bist heute als <strong>Ersatz</strong> eingetragen.`
-      : `Mit dabei: ${others}`;
+      : role === "trainer"
+        ? `Du bist heute als <strong>Trainer</strong> eingeteilt.`
+        : `Mit dabei: ${others}`;
 
   const ersatzHint =
     role === "starter" && session.ersatz
@@ -86,7 +90,11 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
     `heute ist Wintertraining:`,
     `${date} · ${time}`,
     `Halle: ${session.hallName} (${withCoach})`,
-    role === "ersatz" ? `Du bist heute als Ersatz eingetragen.` : `Mit dabei: ${others}`,
+    role === "ersatz"
+      ? `Du bist heute als Ersatz eingetragen.`
+      : role === "trainer"
+        ? `Du bist heute als Trainer eingeteilt.`
+        : `Mit dabei: ${others}`,
     ``,
     `Bist du heute dabei? Bitte abstimmen:`,
     `Ja: ${yesUrl}`,

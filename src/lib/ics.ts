@@ -94,14 +94,17 @@ export function sessionToIcsEvent(
   const summary = `Tennis · ${session.hallName} (${withCoach})`;
   const descriptionParts = [
     `Mit dabei: ${session.starters.map((a) => a.displayName).join(", ")}`,
+    session.trainer ? `Trainer: ${session.trainer.displayName}` : null,
     session.ersatz ? `Ersatz: ${session.ersatz.displayName}` : null,
     session.note ? `Hinweis: ${session.note}` : null,
     `Rückmeldung: ${baseUrl}/spieler/${player.token}`,
   ].filter((x): x is string => Boolean(x));
 
-  const mySelf = [...session.starters, ...(session.ersatz ? [session.ersatz] : [])].find(
-    (a) => a.playerId === player.id,
-  );
+  const mySelf = [
+    ...session.starters,
+    ...(session.ersatz ? [session.ersatz] : []),
+    ...(session.trainer ? [session.trainer] : []),
+  ].find((a) => a.playerId === player.id);
   const cancelled = mySelf?.rsvpStatus === "nein";
 
   return {

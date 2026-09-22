@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { getDb } from "../src/db";
 import { players, courts, sessions, sessionAssignments } from "../src/db/schema";
 
@@ -109,8 +109,11 @@ async function main() {
 
     sessionCount++;
 
-    // Replace assignments for this session (rsvps/reminder_log are untouched).
-    await db.delete(sessionAssignments).where(eq(sessionAssignments.sessionId, row.id));
+    // Replace starter/ersatz assignments for this session (rsvps/reminder_log are untouched,
+    // and any manually-added 'trainer' assignment is preserved — it isn't in the workbook).
+    await db
+      .delete(sessionAssignments)
+      .where(and(eq(sessionAssignments.sessionId, row.id), inArray(sessionAssignments.role, ["starter", "ersatz"])));
 
     const rows: { sessionId: number; playerId: number; role: "starter" | "ersatz"; slot: number | null }[] = [];
     s.players.forEach((name, idx) => {

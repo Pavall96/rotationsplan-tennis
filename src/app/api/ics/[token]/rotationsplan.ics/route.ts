@@ -9,10 +9,11 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   if (!player) notFound();
 
   const schedule = await getFullSchedule();
-  // Only real playing days, not standby (Ersatz) sessions.
-  const mine = sessionsForPlayer(schedule, player.id).filter(
-    (s) => myRoleInSession(s, player.id) === "starter",
-  );
+  // Only real commitments (playing or coaching), not standby (Ersatz) sessions.
+  const mine = sessionsForPlayer(schedule, player.id).filter((s) => {
+    const role = myRoleInSession(s, player.id);
+    return role === "starter" || role === "trainer";
+  });
   const baseUrl = await getBaseUrl();
 
   const events = mine.map((s) => sessionToIcsEvent(s, player, baseUrl));

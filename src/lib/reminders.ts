@@ -45,6 +45,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
     const recipients = [
       ...session.starters.map((a) => ({ playerId: a.playerId, role: "starter" as const })),
       ...(session.ersatz ? [{ playerId: session.ersatz.playerId, role: "ersatz" as const }] : []),
+      ...(session.trainer ? [{ playerId: session.trainer.playerId, role: "trainer" as const }] : []),
     ];
 
     for (const r of recipients) {

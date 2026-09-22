@@ -31,6 +31,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <p className="text-sm text-black/60 dark:text-white/60">17 Spieler · 2 Hallen · dienstags</p>
       </header>
 
+      <Link
+        href="/registrieren"
+        className="mb-6 flex items-center justify-between rounded-lg border border-black/10 dark:border-white/15 px-4 py-3 text-sm"
+      >
+        <span>Noch keinen persönlichen Link? Hier eintragen →</span>
+      </Link>
+
       {nextSessions.length > 0 && (
         <section className="mb-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50 mb-2">

@@ -47,6 +47,14 @@ export function SessionCard({
         ))}
       </ul>
 
+      {session.trainer && (
+        <p className="text-sm text-black/60 dark:text-white/60">
+          Trainer: <span className={session.trainer.playerId === highlightPlayerId ? "font-semibold" : ""}>{session.trainer.displayName}</span>
+          {" "}
+          <RsvpBadge status={session.trainer.rsvpStatus} />
+        </p>
+      )}
+
       {session.ersatz && (
         <p className="text-sm text-black/60 dark:text-white/60">
           Ersatz: <span className={session.ersatz.playerId === highlightPlayerId ? "font-semibold" : ""}>{session.ersatz.displayName}</span>
