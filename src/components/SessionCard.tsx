@@ -57,7 +57,7 @@ export function SessionCard({
 
       {session.starters.some((a) => a.rsvpStatus === "nein") && session.ersatz && (
         <p className="mt-2 text-xs text-[var(--color-nein)]">
-          Absage – bitte {session.ersatz.displayName} fragen
+          Ersatz gesucht: bitte {session.ersatz.displayName} fragen
         </p>
       )}
     </div>
