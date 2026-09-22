@@ -39,48 +39,68 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
   const overviewUrl = `${baseUrl}/`;
   const personalUrl = `${baseUrl}/spieler/${token}`;
 
-  const roleLine =
+  const roleBody =
     role === "ersatz"
-      ? `Du bist heute als <strong>Ersatz</strong> eingetragen.`
+      ? `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">Du bist heute als Ersatz eingetragen.</p>`
       : role === "trainer"
-        ? `Du bist heute als <strong>Trainer</strong> eingeteilt.`
-        : `Mit dabei: ${others}`;
+        ? `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">Du bist heute als Trainer eingeteilt.</p>`
+        : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${session.starters
+            .map(
+              (a) =>
+                `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${a.displayName}</span>`,
+            )
+            .join("")}</div>`;
 
   const routeLine = session.address
-    ? `<p style="margin:0;"><a href="${mapsUrl(session.address)}" style="color:#0e3b2e;">Route öffnen</a></p>`
+    ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#0e3b2e;font-size:13px;">Route öffnen →</a></p>`
     : "";
 
   const html = `
-  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;color:#111;">
+  <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;border-radius:8px;overflow:hidden;">
     <p style="display:none;max-height:0;overflow:hidden;">Bitte kurz abstimmen: Ja oder Nein.</p>
-    <p>Hallo ${playerName},</p>
-    <p>heute ist Wintertraining:</p>
-    <table role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;background:#f6f8f7;border-radius:8px;">
-      <tr><td style="padding:16px;">
-        <p style="margin:0 0 4px;font-weight:600;">${date} · ${time}</p>
-        <p style="margin:0 0 4px;">Halle: ${session.hallName} (${withCoach})</p>
-        <p style="margin:0 0 4px;">${roleLine}</p>
-        ${routeLine}
-      </td></tr>
-    </table>
-    <p>Bist du heute dabei? Bitte abstimmen:</p>
-    <table role="presentation" style="margin:16px 0;">
+
+    <table role="presentation" width="100%" style="background:#0e3b2e;">
       <tr>
-        <td style="padding-right:8px;">
-          <a href="${yesUrl}" style="display:inline-block;background:#1a7f37;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;">Ja, ich bin dabei</a>
-        </td>
-        <td>
-          <a href="${noUrl}" style="display:inline-block;background:#b42318;color:#fff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;">Nein, ich kann nicht</a>
-        </td>
+        <td style="padding:22px 32px;color:#ffffff;font-weight:700;font-size:15px;letter-spacing:0.02em;">ROTATIONSPLAN TENNIS</td>
+        <td style="padding:22px 32px;color:#a9c9bb;font-size:12px;text-align:right;">Wintertraining 2026/27</td>
       </tr>
     </table>
-    <p style="color:#444;">Deine Antwort sehen alle im gemeinsamen Plan – so weiß die Runde früh genug, ob jemand fehlt.</p>
-    <hr style="border:none;border-top:1px solid #ddd;margin:24px 0;" />
-    <p style="font-size:13px;color:#666;">
-      Ganzer Plan: <a href="${overviewUrl}">${overviewUrl}</a><br/>
-      Dein persönlicher Link: <a href="${personalUrl}">${personalUrl}</a><br/>
-      Diesen Link nicht weitergeben.
-    </p>
+
+    <div style="padding:32px;">
+      <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Hallo ${playerName}!</p>
+      <p style="margin:0 0 24px;font-size:15px;color:#4b5563;">Heute ist Wintertraining – bitte kurz abstimmen.</p>
+
+      <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px 20px;margin-bottom:24px;">
+        <table role="presentation" width="100%">
+          <tr>
+            <td style="font-size:16px;font-weight:700;color:#111827;">${date}</td>
+            <td style="font-size:13px;color:#6b7280;text-align:right;">${time}</td>
+          </tr>
+        </table>
+        <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${session.hallName} · ${withCoach}</p>
+        ${roleBody}
+        ${routeLine}
+      </div>
+
+      <table role="presentation" width="100%" style="margin-bottom:20px;">
+        <tr>
+          <td style="padding-right:6px;width:50%;">
+            <a href="${yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">Ja, ich bin dabei</a>
+          </td>
+          <td style="padding-left:6px;width:50%;">
+            <a href="${noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">Nein, ich kann nicht</a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Deine Antwort sehen alle im gemeinsamen Plan – so weiß die Runde früh genug, ob jemand fehlt.</p>
+    </div>
+
+    <div style="background:#fafaf9;border-top:1px solid #f0f0ef;padding:20px 32px;">
+      <p style="margin:0 0 4px;font-size:12px;"><a href="${overviewUrl}" style="color:#6b7280;">Ganzer Plan</a></p>
+      <p style="margin:0 0 4px;font-size:12px;"><a href="${personalUrl}" style="color:#6b7280;">Dein persönlicher Link</a></p>
+      <p style="margin:0;font-size:12px;color:#9ca3af;">Diesen Link nicht weitergeben.</p>
+    </div>
   </div>`;
 
   const text = [
