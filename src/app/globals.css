@@ -1,37 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --color-platz1: #7c3aed;
-  --color-platz2: #0e7490;
-  --color-ja: #1a7f37;
-  --color-ja-bg: #eafaf0;
-  --color-nein: #b42318;
-  --color-nein-bg: #fdecea;
-  --color-offen: #6b7280;
-  --color-offen-bg: #f3f4f6;
+  --background: #F6F6F1;
+  --foreground: #15201C;
+  --color-card: #ffffff;
+  --color-border: #E6E6DD;
+  --color-border-strong: #D8D8CE;
+  --color-ink-muted: #4B5952;
+  --color-ink-faint: #8B9890;
+  --color-tabs-bg: #EFEFE6;
+
+  --color-brand: #11324E;
+  --color-brand-bg: rgba(17, 50, 78, 0.09);
+
+  --color-platz1: #5B45B8;
+  --color-platz1-bg: rgba(91, 69, 184, 0.12);
+  --color-platz2: #0B6E69;
+  --color-platz2-bg: rgba(11, 110, 105, 0.12);
+
+  --color-ja: #1F8B4C;
+  --color-ja-bg: #E7F5EA;
+  --color-nein: #C43D3D;
+  --color-nein-bg: #FBEAEA;
+  --color-offen: #6B7268;
+  --color-offen-bg: #EFEFE6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-ja-bg: #0f2a1a;
-    --color-nein-bg: #2a1412;
-    --color-offen-bg: #1f2937;
+    --background: #10151A;
+    --foreground: #ECEEF0;
+    --color-card: #1A2229;
+    --color-border: #29333C;
+    --color-border-strong: #38444F;
+    --color-ink-muted: #9BA6AE;
+    --color-ink-faint: #71808A;
+    --color-tabs-bg: #202A32;
+
+    --color-brand: #7FB2E0;
+    --color-brand-bg: rgba(127, 178, 224, 0.16);
+
+    --color-platz1: #A594E8;
+    --color-platz1-bg: rgba(165, 148, 232, 0.16);
+    --color-platz2: #4FC1BA;
+    --color-platz2-bg: rgba(79, 193, 186, 0.16);
+
+    --color-ja: #4ADE80;
+    --color-ja-bg: rgba(74, 222, 128, 0.14);
+    --color-nein: #F27171;
+    --color-nein-bg: rgba(242, 113, 113, 0.14);
+    --color-offen: #9CA8A0;
+    --color-offen-bg: rgba(156, 168, 160, 0.14);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }

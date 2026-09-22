@@ -19,53 +19,55 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
   return (
     <main className="max-w-2xl mx-auto w-full px-4 py-6 flex-1">
-      <h1 className="text-xl font-bold mb-1">Admin – Rotationsplan</h1>
-      <p className="text-sm text-black/60 dark:text-white/60 mb-6">
+      <h1 className="font-display mb-1 text-xl font-bold">Admin – Rotationsplan</h1>
+      <p className="mb-6 text-sm text-[var(--color-ink-muted)]">
         Persönliche Links zum Weitergeben. Diese Seite nicht verlinken oder teilen.
       </p>
 
       {missingEmail.length > 0 && (
-        <p className="text-sm text-[var(--color-nein)] mb-4">
+        <p className="mb-4 text-sm text-[var(--color-nein)]">
           {missingEmail.length} Spieler ohne E-Mail: {missingEmail.map((p) => playerLabel(p)).join(", ")}
         </p>
       )}
 
       <TestReminderButton adminKey={String(key)} />
 
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="text-left border-b border-black/10 dark:border-white/15">
-            <th className="py-2 pr-2">Spieler</th>
-            <th className="py-2 pr-2">LK</th>
-            <th className="py-2 pr-2">Trainer</th>
-            <th className="py-2 pr-2">E-Mail</th>
-            <th className="py-2">Link</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((p) => {
-            const link = `${baseUrl}/spieler/${p.token}`;
-            return (
-              <tr key={p.id} className="border-b border-black/5 dark:border-white/10">
-                <td className="py-2 pr-2">
-                  {playerLabel(p)}
-                  {p.nickname && (
-                    <span className="text-black/40 dark:text-white/40"> ({p.displayName})</span>
-                  )}
-                </td>
-                <td className="py-2 pr-2">{p.lk ?? "–"}</td>
-                <td className="py-2 pr-2">{p.wantsCoach ? "ja" : "nein"}</td>
-                <td className="py-2 pr-2">
-                  {p.email ?? <span className="text-[var(--color-nein)]">E-Mail fehlt</span>}
-                </td>
-                <td className="py-2">
-                  <CopyLinkButton value={link} label="Link kopieren" />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)]">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-[var(--color-border)] bg-[var(--color-tabs-bg)] text-left">
+              <th className="py-2.5 pl-3 pr-2 font-semibold">Spieler</th>
+              <th className="py-2.5 pr-2 font-semibold">LK</th>
+              <th className="py-2.5 pr-2 font-semibold">Trainer</th>
+              <th className="py-2.5 pr-2 font-semibold">E-Mail</th>
+              <th className="py-2.5 pr-3 font-semibold">Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((p) => {
+              const link = `${baseUrl}/spieler/${p.token}`;
+              return (
+                <tr key={p.id} className="border-b border-[var(--color-border)] last:border-b-0">
+                  <td className="py-2.5 pl-3 pr-2">
+                    {playerLabel(p)}
+                    {p.nickname && (
+                      <span className="text-[var(--color-ink-faint)]"> ({p.displayName})</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 pr-2">{p.lk ?? "–"}</td>
+                  <td className="py-2.5 pr-2">{p.wantsCoach ? "ja" : "nein"}</td>
+                  <td className="py-2.5 pr-2">
+                    {p.email ?? <span className="text-[var(--color-nein)]">E-Mail fehlt</span>}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <CopyLinkButton value={link} label="Link kopieren" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }

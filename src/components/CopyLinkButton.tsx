@@ -17,7 +17,7 @@ export function CopyLinkButton({ value, label }: { value: string; label: string 
           // Clipboard API unavailable (e.g. insecure context) — user can still long-press/copy manually.
         }
       }}
-      className="text-sm underline text-black/70 dark:text-white/70"
+      className="text-sm text-[var(--color-ink-muted)] underline underline-offset-2"
     >
       {copied ? "Kopiert!" : label}
     </button>

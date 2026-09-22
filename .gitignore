@@ -43,3 +43,6 @@ next-env.d.ts
 # private player data
 /data/spieler-emails.csv
 .scratch-email-designs/
+
+# original logo source (committed copies live at public/logo.png and src/app/icon.png)
+/TCS-Logo-neu-blue-bg-white.png

@@ -62,17 +62,22 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
             .join("")}</div>`;
 
   const routeLine = session.address
-    ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#0e3b2e;font-size:13px;">Route öffnen →</a></p>`
+    ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#11324e;font-size:13px;">Route öffnen →</a></p>`
     : "";
 
   const html = `
   <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;border-radius:8px;overflow:hidden;">
     <p style="display:none;max-height:0;overflow:hidden;">Bitte kurz abstimmen: Ja oder Nein.</p>
 
-    <table role="presentation" width="100%" style="background:#0e3b2e;">
+    <table role="presentation" width="100%" style="background:#11324e;">
       <tr>
-        <td style="padding:22px 32px;color:#ffffff;font-weight:700;font-size:15px;letter-spacing:0.02em;">ROTATIONSPLAN TENNIS</td>
-        <td style="padding:22px 32px;color:#a9c9bb;font-size:12px;text-align:right;">Wintertraining 2026/27</td>
+        <td style="padding:18px 32px;" valign="middle">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:10px;"><img src="${baseUrl}/logo.png" width="36" height="36" alt="TC Sonnenbrunnen" style="display:block;border-radius:50%;"></td>
+            <td style="color:#ffffff;font-weight:700;font-size:15px;letter-spacing:0.02em;">TC SONNENBRUNNEN</td>
+          </tr></table>
+        </td>
+        <td style="padding:18px 32px;color:#a9c9bb;font-size:12px;text-align:right;" valign="middle">Wintertraining 2026/27</td>
       </tr>
     </table>
 

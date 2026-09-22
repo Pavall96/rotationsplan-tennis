@@ -1,21 +1,53 @@
 import type { SessionView } from "@/lib/queries";
 import { formatDate, formatTimeRange, mapsUrl } from "@/lib/format";
 import { RsvpBadge } from "@/components/RsvpBadge";
+import { PinIcon } from "@/components/icons";
 
 export function SessionCard({
   session,
   highlightPlayerId,
+  variant = "full",
 }: {
   session: SessionView;
   highlightPlayerId?: number;
+  variant?: "full" | "compact";
 }) {
-  const courtColor = session.courtSlug === "happy-match" ? "var(--color-platz1)" : "var(--color-platz2)";
+  const isPlatz1 = session.courtSlug === "happy-match";
+  const chipColorClasses = isPlatz1
+    ? "text-[var(--color-platz1)] bg-[var(--color-platz1-bg)]"
+    : "text-[var(--color-platz2)] bg-[var(--color-platz2-bg)]";
+  const chipLabel = `${session.hallName}${session.withCoach ? " · mit Trainer" : ""}`;
+  const goingCount = session.starters.filter((a) => a.rsvpStatus === "ja").length;
+  const openCount = session.starters.filter((a) => a.rsvpStatus === "offen").length;
+
+  if (variant === "compact") {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{formatDate(session.startsAt)}</p>
+          <p className="text-xs text-[var(--color-ink-muted)]">
+            {formatTimeRange(session.startsAt, session.endsAt)}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${chipColorClasses}`}
+        >
+          {session.hallName}
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-[var(--color-ink-muted)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ja)]" />
+          {goingCount} zugesagt{openCount > 0 ? ` · ${openCount} offen` : ""}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
+    <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]">
+      <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <p className="font-semibold">{formatDate(session.startsAt)}</p>
-          <p className="text-sm text-black/60 dark:text-white/60">
+          <p className="font-display text-lg font-bold">{formatDate(session.startsAt)}</p>
+          <p className="text-sm text-[var(--color-ink-muted)]">
             {formatTimeRange(session.startsAt, session.endsAt)}
           </p>
         </div>
@@ -24,28 +56,30 @@ export function SessionCard({
             href={mapsUrl(session.address)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-medium px-2 py-1 rounded-full text-white underline decoration-white/50 underline-offset-2"
-            style={{ backgroundColor: courtColor }}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-semibold ${chipColorClasses}`}
           >
-            {session.hallName} · {session.withCoach ? "mit Trainer" : "ohne Trainer"}
+            <PinIcon />
+            {chipLabel}
           </a>
         ) : (
           <span
-            className="text-xs font-medium px-2 py-1 rounded-full text-white"
-            style={{ backgroundColor: courtColor }}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-semibold ${chipColorClasses}`}
           >
-            {session.hallName} · {session.withCoach ? "mit Trainer" : "ohne Trainer"}
+            <PinIcon />
+            {chipLabel}
           </span>
         )}
       </div>
 
       {session.note && (
-        <p className="mb-2 inline-block text-xs bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200 rounded px-2 py-0.5">
+        <p className="mb-3 inline-block rounded-lg bg-yellow-100 px-2 py-0.5 text-xs text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200">
           {session.note}
         </p>
       )}
 
-      <ul className="space-y-1 mb-2">
+      <div className="mb-2 h-px bg-[var(--color-border)]" />
+
+      <ul className="mb-2 space-y-1.5">
         {session.starters.map((a) => (
           <li
             key={a.playerId}
@@ -60,23 +94,41 @@ export function SessionCard({
       </ul>
 
       {session.trainer && (
-        <p className="text-sm text-black/60 dark:text-white/60">
-          Trainer: <span className={session.trainer.playerId === highlightPlayerId ? "font-semibold" : ""}>{session.trainer.displayName}</span>
-          {" "}
-          <RsvpBadge status={session.trainer.rsvpStatus} />
-        </p>
+        <div className="flex items-center justify-between py-0.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-faint)]">
+            Trainer
+          </span>
+          <span
+            className={`flex items-center gap-2 text-sm ${
+              session.trainer.playerId === highlightPlayerId ? "font-semibold" : ""
+            }`}
+          >
+            {session.trainer.displayName}
+            <RsvpBadge status={session.trainer.rsvpStatus} />
+          </span>
+        </div>
       )}
 
       {session.ersatz && (
-        <p className="text-sm text-black/60 dark:text-white/60">
-          Ersatz: <span className={session.ersatz.playerId === highlightPlayerId ? "font-semibold" : ""}>{session.ersatz.displayName}</span>
-          {" "}
-          <RsvpBadge status={session.ersatz.rsvpStatus} />
-        </p>
+        <div className="flex items-center justify-between py-0.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-faint)]">
+            Ersatz
+          </span>
+          <span
+            className={`flex items-center gap-2 text-sm ${
+              session.ersatz.playerId === highlightPlayerId ? "font-semibold" : ""
+            }`}
+          >
+            {session.ersatz.displayName}
+            <RsvpBadge status={session.ersatz.rsvpStatus} />
+          </span>
+        </div>
       )}
 
       {session.starters.some((a) => a.rsvpStatus === "nein") && session.ersatz && (
-        <p className="mt-2 text-xs text-[var(--color-nein)]">Ersatz gesucht</p>
+        <p className="mt-2 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs font-medium text-[var(--color-nein)]">
+          Ersatz gesucht: bitte {session.ersatz.displayName} fragen
+        </p>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { formatDate, formatTimeRange, formatDateForFile, playerLabel, mapsUrl } 
 import { getBaseUrl } from "@/lib/base-url";
 import { RsvpForm } from "@/components/RsvpForm";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { ArrowLeftIcon, CalendarIcon, PinIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -39,27 +40,45 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
 
   return (
     <main className="max-w-md mx-auto w-full px-4 py-6 flex-1">
-      <Link href="/" className="text-sm underline text-black/60 dark:text-white/60">
-        ← Zur Gesamtübersicht
+      <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
+        <ArrowLeftIcon className="h-3.5 w-3.5" />
+        Zur Gesamtübersicht
       </Link>
 
       <header className="my-4">
-        <h1 className="text-xl font-bold">Hallo {playerLabel(player)}!</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">
-          Du hast {starterSessions.length} Spieltage: {mitCount} mit Trainer, {ohneCount} ohne Trainer.
-        </p>
+        <h1 className="font-display text-2xl font-bold">Hallo {playerLabel(player)}!</h1>
       </header>
 
-      <section className="mb-8 rounded-lg border border-black/10 dark:border-white/15 p-4">
-        <h2 className="font-semibold mb-1">Kalender abonnieren</h2>
-        <p className="text-sm text-black/60 dark:text-white/60 mb-3">
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+          <p className="font-display text-xl font-bold text-[var(--color-brand)]">{starterSessions.length}</p>
+          <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Spieltage</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+          <p className="font-display text-xl font-bold text-[var(--color-brand)]">{mitCount}</p>
+          <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Mit Trainer</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+          <p className="font-display text-xl font-bold text-[var(--color-brand)]">{ohneCount}</p>
+          <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Ohne Trainer</p>
+        </div>
+      </div>
+
+      <section className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+        <div className="mb-2 flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-bg)] text-[var(--color-brand)]">
+            <CalendarIcon />
+          </span>
+          <h2 className="font-display font-bold">Kalender abonnieren</h2>
+        </div>
+        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
           Abonniere deine Termine als Kalender – neue oder geänderte Termine erscheinen automatisch
           (Aktualisierung je nach Kalender-App alle paar Stunden).
         </p>
-        <div className="flex flex-col gap-2 items-start">
+        <div className="flex flex-wrap items-center gap-3">
           <a
             href={webcalUrl}
-            className="inline-block bg-black text-white dark:bg-white dark:text-black rounded-md px-4 py-2 text-sm font-semibold"
+            className="inline-block rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-sm font-semibold text-white"
           >
             Kalender abonnieren
           </a>
@@ -67,23 +86,31 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
         </div>
       </section>
 
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50 mb-2">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
         Deine nächsten Termine
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-3">
         {upcoming.map((s) => {
           const role = myRoleInSession(s, player.id);
           const myAssignment = [s.trainer, s.ersatz, ...s.starters].find((a) => a?.playerId === player.id)!;
           const myStatus = myAssignment.rsvpStatus;
           const others = s.starters.filter((a) => a.playerId !== player.id).map((a) => a.displayName);
-          const courtColor = s.courtSlug === "happy-match" ? "var(--color-platz1)" : "var(--color-platz2)";
+          const isPlatz1 = s.courtSlug === "happy-match";
+          const chipColorClasses = isPlatz1
+            ? "text-[var(--color-platz1)] bg-[var(--color-platz1-bg)]"
+            : "text-[var(--color-platz2)] bg-[var(--color-platz2-bg)]";
+          const chipLabel = `${s.hallName}${s.withCoach ? " · mit Trainer" : ""}`;
 
           return (
-            <div key={s.id} id={`termin-${s.id}`} className="rounded-lg border border-black/10 dark:border-white/15 p-4">
-              <div className="flex items-center justify-between gap-2 mb-2">
+            <div
+              key={s.id}
+              id={`termin-${s.id}`}
+              className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]"
+            >
+              <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{formatDate(s.startsAt)}</p>
-                  <p className="text-sm text-black/60 dark:text-white/60">
+                  <p className="font-display text-lg font-bold">{formatDate(s.startsAt)}</p>
+                  <p className="text-sm text-[var(--color-ink-muted)]">
                     {formatTimeRange(s.startsAt, s.endsAt)}
                   </p>
                 </div>
@@ -92,46 +119,46 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
                     href={mapsUrl(s.address)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-medium px-2 py-1 rounded-full text-white underline decoration-white/50 underline-offset-2"
-                    style={{ backgroundColor: courtColor }}
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-semibold ${chipColorClasses}`}
                   >
-                    {s.hallName} · {s.withCoach ? "mit Trainer" : "ohne Trainer"}
+                    <PinIcon />
+                    {chipLabel}
                   </a>
                 ) : (
                   <span
-                    className="text-xs font-medium px-2 py-1 rounded-full text-white"
-                    style={{ backgroundColor: courtColor }}
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs font-semibold ${chipColorClasses}`}
                   >
-                    {s.hallName} · {s.withCoach ? "mit Trainer" : "ohne Trainer"}
+                    <PinIcon />
+                    {chipLabel}
                   </span>
                 )}
               </div>
 
               {s.note && (
-                <p className="mb-2 inline-block text-xs bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200 rounded px-2 py-0.5">
+                <p className="mb-2 inline-block rounded-lg bg-yellow-100 px-2 py-0.5 text-xs text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-200">
                   {s.note}
                 </p>
               )}
 
               {role === "ersatz" ? (
-                <p className="text-sm font-medium mb-1">Du bist Ersatz an diesem Termin.</p>
+                <p className="mb-1 text-sm font-medium">Du bist Ersatz an diesem Termin.</p>
               ) : role === "trainer" ? (
-                <p className="text-sm font-medium mb-1">Du bist als Trainer eingeteilt.</p>
+                <p className="mb-1 text-sm font-medium">Du bist als Trainer eingeteilt.</p>
               ) : (
-                <p className="text-sm mb-1">Mit dabei: {others.join(", ")}</p>
+                <p className="text-sm">Mit dabei: {others.join(", ")}</p>
               )}
               {s.trainer && role !== "trainer" && (
-                <p className="text-sm text-black/60 dark:text-white/60">Trainer: {s.trainer.displayName}</p>
+                <p className="text-sm text-[var(--color-ink-muted)]">Trainer: {s.trainer.displayName}</p>
               )}
               {s.ersatz && role !== "ersatz" && (
-                <p className="text-sm text-black/60 dark:text-white/60 mb-2">Ersatz: {s.ersatz.displayName}</p>
+                <p className="mb-1 text-sm text-[var(--color-ink-muted)]">Ersatz: {s.ersatz.displayName}</p>
               )}
 
               <RsvpForm token={token} sessionId={s.id} current={myStatus} />
 
               <a
                 href={`/api/ics/${token}/termin/${s.id}`}
-                className="inline-block mt-2 text-xs underline text-black/60 dark:text-white/60"
+                className="mt-2 inline-block text-xs text-[var(--color-ink-muted)] underline"
               >
                 Diesen Termin als .ics herunterladen
               </a>
@@ -139,7 +166,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
           );
         })}
         {upcoming.length === 0 && (
-          <p className="text-sm text-black/60 dark:text-white/60">Keine weiteren Termine in dieser Saison.</p>
+          <p className="text-sm text-[var(--color-ink-muted)]">Keine weiteren Termine in dieser Saison.</p>
         )}
       </div>
     </main>

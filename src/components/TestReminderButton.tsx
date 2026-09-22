@@ -24,13 +24,13 @@ export function TestReminderButton({ adminKey }: { adminKey: string }) {
             }
           })
         }
-        className="text-sm underline text-black/70 dark:text-white/70 disabled:opacity-50"
+        className="text-sm text-[var(--color-ink-muted)] underline disabled:opacity-50"
       >
         {pending ? "Prüfe …" : "Testerinnerung anzeigen (dryRun, kein Versand)"}
       </button>
       {error && <p className="mt-2 text-sm text-[var(--color-nein)]">{error}</p>}
       {result && (
-        <pre className="mt-2 text-xs bg-black/5 dark:bg-white/10 rounded p-3 overflow-auto">
+        <pre className="mt-2 overflow-auto rounded-xl bg-black/5 p-3 text-xs dark:bg-white/10">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getFullSchedule } from "@/lib/queries";
 import { SessionCard } from "@/components/SessionCard";
 import { formatDateForFile } from "@/lib/format";
+import { ChevronRightIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +19,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const nextDate = upcoming[0] ? formatDateForFile(upcoming[0].startsAt) : null;
   const nextSessions = nextDate ? upcoming.filter((s) => formatDateForFile(s.startsAt) === nextDate) : [];
 
-  const groupedByDate = new Map<string, typeof visible>();
-  for (const s of visible) {
+  // The next session(s) already get their own hero section above — don't repeat them in the list below.
+  const nextIds = new Set(nextSessions.map((s) => s.id));
+  const restVisible = visible.filter((s) => !nextIds.has(s.id));
+
+  const groupedByDate = new Map<string, typeof restVisible>();
+  for (const s of restVisible) {
     const key = formatDateForFile(s.startsAt);
     if (!groupedByDate.has(key)) groupedByDate.set(key, []);
     groupedByDate.get(key)!.push(s);
@@ -26,21 +32,27 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
   return (
     <main className="max-w-md mx-auto w-full px-4 py-6 flex-1">
-      <header className="mb-6">
-        <h1 className="text-xl font-bold">Rotationsplan Wintertraining 2026/27</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">17 Spieler · 2 Hallen · dienstags</p>
+      <header className="mb-6 flex items-center gap-2.5">
+        <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+          <Image src="/logo.png" alt="TC Sonnenbrunnen" width={36} height={36} priority className="h-full w-full object-cover" />
+        </span>
+        <div>
+          <h1 className="font-display text-lg font-bold leading-tight">Rotationsplan</h1>
+          <p className="text-xs text-[var(--color-ink-muted)]">Wintertraining 2026/27 · 17 Spieler · 2 Hallen</p>
+        </div>
       </header>
 
       <Link
         href="/registrieren"
-        className="mb-6 flex items-center justify-between rounded-lg border border-black/10 dark:border-white/15 px-4 py-3 text-sm"
+        className="mb-6 flex items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm font-medium"
       >
-        <span>Noch keinen persönlichen Link? Hier eintragen →</span>
+        Noch keinen persönlichen Link? Hier eintragen
+        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
       </Link>
 
       {nextSessions.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50 mb-2">
+        <section className="mb-6">
+          <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
             Nächster Termin
           </h2>
           <div className="space-y-3">
@@ -51,33 +63,39 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </section>
       )}
 
-      <div className="mb-4 flex gap-2 text-sm">
+      <div className="mb-4 flex gap-1 rounded-full bg-[var(--color-tabs-bg)] p-1 text-sm">
         <Link
           href="/?ansicht=kommend"
-          className={`px-3 py-1 rounded-full border ${!showAll ? "bg-black text-white dark:bg-white dark:text-black" : "border-black/20 dark:border-white/20"}`}
+          className={`flex-1 rounded-full px-3 py-2 text-center font-semibold transition-colors ${
+            !showAll
+              ? "bg-[var(--color-card)] text-[var(--foreground)] shadow-sm"
+              : "text-[var(--color-ink-muted)]"
+          }`}
         >
           Kommende Termine
         </Link>
         <Link
           href="/?ansicht=alle"
-          className={`px-3 py-1 rounded-full border ${showAll ? "bg-black text-white dark:bg-white dark:text-black" : "border-black/20 dark:border-white/20"}`}
+          className={`flex-1 rounded-full px-3 py-2 text-center font-semibold transition-colors ${
+            showAll
+              ? "bg-[var(--color-card)] text-[var(--foreground)] shadow-sm"
+              : "text-[var(--color-ink-muted)]"
+          }`}
         >
           Ganze Saison
         </Link>
       </div>
 
-      <section className="space-y-6">
+      <section className="space-y-3">
         {[...groupedByDate.entries()].map(([date, sessionsOnDate]) => (
-          <div key={date}>
-            <div className="space-y-3">
-              {sessionsOnDate.map((s) => (
-                <SessionCard key={s.id} session={s} />
-              ))}
-            </div>
+          <div key={date} className="space-y-3">
+            {sessionsOnDate.map((s) => (
+              <SessionCard key={s.id} session={s} variant="compact" />
+            ))}
           </div>
         ))}
-        {visible.length === 0 && (
-          <p className="text-sm text-black/60 dark:text-white/60">Keine Termine in dieser Ansicht.</p>
+        {restVisible.length === 0 && nextSessions.length === 0 && (
+          <p className="text-sm text-[var(--color-ink-muted)]">Keine Termine in dieser Ansicht.</p>
         )}
       </section>
     </main>
