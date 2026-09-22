@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
-import { formatTimeRange, formatDate, mapsUrl } from "@/lib/format";
+import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
 
 let resendInstance: Resend | null = null;
 
@@ -44,8 +44,11 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
         ? `Training heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`
         : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
 
-  const yesUrl = `${baseUrl}/spieler/${token}?termin=${session.id}&antwort=ja`;
-  const noUrl = `${baseUrl}/spieler/${token}?termin=${session.id}&antwort=nein`;
+  // Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message.
+  const answerUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=`;
+  const yesUrl = `${answerUrl}ja`;
+  const noUrl = `${answerUrl}nein`;
+  const labels = rsvpLabels(role);
   const overviewUrl = `${baseUrl}/`;
   const personalUrl = `${baseUrl}/spieler/${token}`;
 
@@ -100,10 +103,10 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
       <table role="presentation" width="100%" style="margin-bottom:20px;">
         <tr>
           <td style="padding-right:6px;width:50%;">
-            <a href="${yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">Ja, ich bin dabei</a>
+            <a href="${yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${labels.ja}</a>
           </td>
           <td style="padding-left:6px;width:50%;">
-            <a href="${noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">Nein, ich kann nicht</a>
+            <a href="${noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">${labels.nein}</a>
           </td>
         </tr>
       </table>
