@@ -107,7 +107,8 @@ export function sessionToIcsEvent(
   return {
     uid: `session-${session.id}-player-${player.id}@rotationsplan-tennis`,
     summary,
-    description: descriptionParts.join("\\n"),
+    // A real newline here (not "\\n") so escapeText's \n -> "\\n" pass produces the correct single-backslash ICS escape.
+    description: descriptionParts.join("\n"),
     location: session.address ? `${session.hallName}, ${session.address}` : session.hallName,
     start: session.startsAt,
     end: session.endsAt,

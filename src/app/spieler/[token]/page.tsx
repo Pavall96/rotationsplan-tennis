@@ -26,8 +26,10 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
   const today = formatDateForFile(new Date());
   const upcoming = mySessions.filter((s) => formatDateForFile(s.startsAt) >= today);
 
-  const mitCount = mySessions.filter((s) => s.withCoach).length;
-  const ohneCount = mySessions.filter((s) => !s.withCoach).length;
+  // "Spieltage" counts starter slots only, matching the workbook's COUNTIF (which excludes Ersatz).
+  const starterSessions = mySessions.filter((s) => myRoleInSession(s, player.id) === "starter");
+  const mitCount = starterSessions.filter((s) => s.withCoach).length;
+  const ohneCount = starterSessions.filter((s) => !s.withCoach).length;
 
   const webcalUrl = `${baseUrl.replace(/^https?:/, "webcal:")}/api/ics/${token}/rotationsplan.ics`;
   const httpsIcsUrl = `${baseUrl}/api/ics/${token}/rotationsplan.ics`;
@@ -41,7 +43,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       <header className="my-4">
         <h1 className="text-xl font-bold">Hallo {player.displayName}!</h1>
         <p className="text-sm text-black/60 dark:text-white/60">
-          Du hast {mySessions.length} Spieltage: {mitCount} mit Trainer, {ohneCount} ohne Trainer.
+          Du hast {starterSessions.length} Spieltage: {mitCount} mit Trainer, {ohneCount} ohne Trainer.
         </p>
       </header>
 
