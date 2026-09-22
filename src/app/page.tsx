@@ -93,7 +93,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       <Link
         href="/registrieren"
-        className="mt-6 flex items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm font-medium"
+        className="mt-6 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
       >
         Noch keinen persönlichen Link? Hier eintragen
         <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />

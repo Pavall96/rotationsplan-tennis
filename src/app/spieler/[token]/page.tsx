@@ -50,23 +50,23 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       </header>
 
       <div className="mb-4 grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+        <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-2.5 text-center">
           <p className="font-display text-xl font-bold text-[var(--color-brand)]">{starterSessions.length}</p>
           <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Spieltage</p>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+        <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-2.5 text-center">
           <p className="font-display text-xl font-bold text-[var(--color-brand)]">{mitCount}</p>
           <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Mit Trainer</p>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 text-center">
+        <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-2.5 text-center">
           <p className="font-display text-xl font-bold text-[var(--color-brand)]">{ohneCount}</p>
           <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">Ohne Trainer</p>
         </div>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+      <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
         <div className="mb-2 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-bg)] text-[var(--color-brand)]">
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-brand-bg)] text-[var(--color-brand)]">
             <CalendarIcon />
           </span>
           <h2 className="font-display font-bold">Kalender abonnieren</h2>
@@ -105,7 +105,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
             <div
               key={s.id}
               id={`termin-${s.id}`}
-              className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]"
+              className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px] shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]"
             >
               <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -145,12 +145,16 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
               ) : role === "trainer" ? (
                 <p className="mb-1 text-sm font-medium">Du bist als Trainer eingeteilt.</p>
               ) : (
-                <p className="text-sm">Mit dabei: {others.join(", ")}</p>
+                <p className="text-sm">
+                  Mit dabei: {others.join(", ")}
+                  {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
+                  {s.ersatz && ` · Ersatz: ${s.ersatz.displayName}`}
+                </p>
               )}
-              {s.trainer && role !== "trainer" && (
+              {s.trainer && role === "ersatz" && (
                 <p className="text-sm text-[var(--color-ink-muted)]">Trainer: {s.trainer.displayName}</p>
               )}
-              {s.ersatz && role !== "ersatz" && (
+              {s.ersatz && role === "trainer" && (
                 <p className="mb-1 text-sm text-[var(--color-ink-muted)]">Ersatz: {s.ersatz.displayName}</p>
               )}
 

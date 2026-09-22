@@ -19,7 +19,7 @@ export function RsvpForm({
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="status" value="ja" />
         <SubmitButton
-          className={`flex w-full items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+          className={`flex w-full items-center justify-center gap-1.5 rounded-[14px] px-4 py-3 text-sm font-semibold ${
             current === "ja"
               ? "bg-[var(--color-ja)] text-white"
               : "bg-[var(--color-ja-bg)] text-[var(--color-ja)]"
@@ -34,7 +34,7 @@ export function RsvpForm({
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="status" value="nein" />
         <SubmitButton
-          className={`flex w-full items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+          className={`flex w-full items-center justify-center gap-1.5 rounded-[14px] px-4 py-3 text-sm font-semibold ${
             current === "nein"
               ? "bg-[var(--color-nein)] text-white"
               : "bg-[var(--color-nein-bg)] text-[var(--color-nein)]"

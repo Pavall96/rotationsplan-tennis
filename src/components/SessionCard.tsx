@@ -1,7 +1,7 @@
 import type { SessionView } from "@/lib/queries";
 import { formatDate, formatTimeRange, mapsUrl } from "@/lib/format";
 import { RsvpBadge } from "@/components/RsvpBadge";
-import { PinIcon } from "@/components/icons";
+import { AlertIcon, PinIcon } from "@/components/icons";
 
 export function SessionCard({
   session,
@@ -21,7 +21,7 @@ export function SessionCard({
 
   if (variant === "compact") {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3">
+      <div className="flex items-center justify-between gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{formatDate(session.startsAt)}</p>
           <p className="text-xs text-[var(--color-ink-muted)]">
@@ -42,7 +42,7 @@ export function SessionCard({
   }
 
   return (
-    <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]">
+    <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px] shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-display text-lg font-bold whitespace-nowrap">{formatDate(session.startsAt)}</p>
@@ -125,8 +125,9 @@ export function SessionCard({
       )}
 
       {session.starters.some((a) => a.rsvpStatus === "nein") && session.ersatz && (
-        <p className="mt-2 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs font-medium text-[var(--color-nein)]">
-          Ersatz gesucht
+        <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs font-medium text-[#A6332B]">
+          <AlertIcon className="h-3 w-3 shrink-0" />
+          Ersatz gesucht – bitte {session.ersatz.displayName.split(" ")[0]} fragen
         </p>
       )}
     </div>

@@ -155,6 +155,25 @@ export function ArrowLeftIcon(props: IconProps) {
   );
 }
 
+export function AlertIcon(props: IconProps) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <line x1="12" y1="7" x2="12" y2="13" />
+      <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function MailIcon(props: IconProps) {
   return (
     <svg

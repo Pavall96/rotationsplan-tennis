@@ -13,7 +13,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
 
   if (result?.status === "ok") {
     return (
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+      <div className="rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px]">
         <p className="mb-2 font-display font-bold">Fertig, {result.displayName}!</p>
         <p className="mb-3 text-sm text-[var(--color-ink-muted)]">
           Das ist dein persönlicher Link – speichere ihn dir (Lesezeichen oder zum Home-Bildschirm hinzufügen).
@@ -34,7 +34,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
   return (
     <>
       <form
-        className="space-y-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4"
+        className="space-y-3.5 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px]"
         action={(formData) =>
           startTransition(async () => {
             setResult(await registerEmail(formData));
@@ -49,7 +49,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
             id="playerId"
             name="playerId"
             required
-            className="w-full rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2.5 text-sm"
+            className="w-full rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2.5 text-sm"
           >
             <option value="">– auswählen –</option>
             {playerOptions.map((p) => (
@@ -71,7 +71,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
             type="email"
             required
             placeholder="du@beispiel.de"
-            className="w-full rounded-xl border border-[var(--color-border-strong)] bg-transparent px-3 py-2.5 text-sm"
+            className="w-full rounded-[10px] border border-[var(--color-border-strong)] bg-transparent px-3 py-2.5 text-sm"
           />
         </div>
 
@@ -84,7 +84,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
             name="nickname"
             type="text"
             placeholder="z.B. dein Spitzname"
-            className="w-full rounded-xl border border-[var(--color-border-strong)] bg-transparent px-3 py-2.5 text-sm"
+            className="w-full rounded-[10px] border border-[var(--color-border-strong)] bg-transparent px-3 py-2.5 text-sm"
           />
           <p className="mt-1 text-xs text-[var(--color-ink-faint)]">
             Leer lassen, um deinen Namen aus der Liste zu behalten.
@@ -110,7 +110,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
         )}
       </form>
 
-      <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5">
+      <div className="mt-3 flex items-start gap-2.5 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3">
         <MailIcon className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--color-brand)]" />
         <p className="text-xs text-[var(--color-ink-muted)]">
           Warum die E-Mail? Du bekommst darüber eine Erinnerung vor jedem Termin.
