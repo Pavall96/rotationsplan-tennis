@@ -18,7 +18,6 @@ export function SessionCard({
     : "text-[var(--color-platz2)] bg-[var(--color-platz2-bg)]";
   const chipLabel = `${session.hallName}${session.withCoach ? " · mit Trainer" : ""}`;
   const goingCount = session.starters.filter((a) => a.rsvpStatus === "ja").length;
-  const openCount = session.starters.filter((a) => a.rsvpStatus === "offen").length;
 
   if (variant === "compact") {
     return (
@@ -36,7 +35,7 @@ export function SessionCard({
         </span>
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-[var(--color-ink-muted)]">
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ja)]" />
-          {goingCount} zugesagt{openCount > 0 ? ` · ${openCount} offen` : ""}
+          {goingCount} zugesagt
         </span>
       </div>
     );
@@ -44,9 +43,9 @@ export function SessionCard({
 
   return (
     <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]">
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-display text-lg font-bold">{formatDate(session.startsAt)}</p>
+          <p className="font-display text-lg font-bold whitespace-nowrap">{formatDate(session.startsAt)}</p>
           <p className="text-sm text-[var(--color-ink-muted)]">
             {formatTimeRange(session.startsAt, session.endsAt)}
           </p>
@@ -127,7 +126,7 @@ export function SessionCard({
 
       {session.starters.some((a) => a.rsvpStatus === "nein") && session.ersatz && (
         <p className="mt-2 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs font-medium text-[var(--color-nein)]">
-          Ersatz gesucht: bitte {session.ersatz.displayName} fragen
+          Ersatz gesucht
         </p>
       )}
     </div>

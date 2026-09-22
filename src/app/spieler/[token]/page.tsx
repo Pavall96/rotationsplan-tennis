@@ -107,9 +107,9 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
               id={`termin-${s.id}`}
               className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]"
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-display text-lg font-bold">{formatDate(s.startsAt)}</p>
+                  <p className="font-display text-lg font-bold whitespace-nowrap">{formatDate(s.startsAt)}</p>
                   <p className="text-sm text-[var(--color-ink-muted)]">
                     {formatTimeRange(s.startsAt, s.endsAt)}
                   </p>

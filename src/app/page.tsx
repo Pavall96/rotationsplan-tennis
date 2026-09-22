@@ -38,17 +38,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </span>
         <div>
           <h1 className="font-display text-lg font-bold leading-tight">Rotationsplan</h1>
-          <p className="text-xs text-[var(--color-ink-muted)]">Wintertraining 2026/27 · 17 Spieler · 2 Hallen</p>
+          <p className="text-xs text-[var(--color-ink-muted)]">Wintertraining 2026/27</p>
         </div>
       </header>
-
-      <Link
-        href="/registrieren"
-        className="mb-6 flex items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm font-medium"
-      >
-        Noch keinen persönlichen Link? Hier eintragen
-        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
-      </Link>
 
       {nextSessions.length > 0 && (
         <section className="mb-6">
@@ -98,6 +90,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <p className="text-sm text-[var(--color-ink-muted)]">Keine Termine in dieser Ansicht.</p>
         )}
       </section>
+
+      <Link
+        href="/registrieren"
+        className="mt-6 flex items-center justify-between gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm font-medium"
+      >
+        Noch keinen persönlichen Link? Hier eintragen
+        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
+      </Link>
     </main>
   );
 }
