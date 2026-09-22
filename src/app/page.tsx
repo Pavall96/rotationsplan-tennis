@@ -42,6 +42,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </div>
       </header>
 
+      <Link
+        href="/registrieren"
+        className="mb-6 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
+      >
+        Noch keinen persönlichen Link? Hier eintragen
+        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
+      </Link>
+
       {nextSessions.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
@@ -90,14 +98,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <p className="text-sm text-[var(--color-ink-muted)]">Keine Termine in dieser Ansicht.</p>
         )}
       </section>
-
-      <Link
-        href="/registrieren"
-        className="mt-6 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
-      >
-        Noch keinen persönlichen Link? Hier eintragen
-        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
-      </Link>
     </main>
   );
 }

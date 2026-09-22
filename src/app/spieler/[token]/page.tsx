@@ -25,7 +25,9 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
   const baseUrl = await getBaseUrl();
 
   const today = formatDateForFile(new Date());
-  const upcoming = mySessions.filter((s) => formatDateForFile(s.startsAt) >= today);
+  const upcoming = mySessions.filter(
+    (s) => formatDateForFile(s.startsAt) >= today && myRoleInSession(s, player.id) !== "ersatz",
+  );
 
   // "Spieltage" counts starter (and trainer) slots, matching the workbook's COUNTIF (which excludes Ersatz).
   const starterSessions = mySessions.filter((s) => {
@@ -92,7 +94,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       <div className="space-y-3">
         {upcoming.map((s) => {
           const role = myRoleInSession(s, player.id);
-          const myAssignment = [s.trainer, s.ersatz, ...s.starters].find((a) => a?.playerId === player.id)!;
+          const myAssignment = [s.trainer, ...s.starters].find((a) => a?.playerId === player.id)!;
           const myStatus = myAssignment.rsvpStatus;
           const others = s.starters.filter((a) => a.playerId !== player.id).map((a) => a.displayName);
           const isPlatz1 = s.courtSlug === "happy-match";
@@ -140,18 +142,13 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
                 </p>
               )}
 
-              {role === "ersatz" ? (
-                <p className="mb-1 text-sm font-medium">Du bist Ersatz an diesem Termin.</p>
-              ) : role === "trainer" ? (
+              {role === "trainer" ? (
                 <p className="mb-1 text-sm font-medium">Du bist als Trainer eingeteilt.</p>
               ) : (
                 <p className="text-sm">
                   Mit dabei: {others.join(", ")}
                   {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
                 </p>
-              )}
-              {s.trainer && role === "ersatz" && (
-                <p className="text-sm text-[var(--color-ink-muted)]">Trainer: {s.trainer.displayName}</p>
               )}
 
               <RsvpForm token={token} sessionId={s.id} current={myStatus} />
