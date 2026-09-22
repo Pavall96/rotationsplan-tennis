@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // mail scanners open every link in a message – the answer is only saved when the button here is pressed.
 export default async function AnswerPage({ params, searchParams }: PageProps<"/spieler/[token]/antwort">) {
   const { token } = await params;
-  const { termin, antwort } = await searchParams;
+  const { termin, antwort, gespeichert } = await searchParams;
 
   const player = await getPlayerByToken(token);
   if (!player) notFound();
@@ -51,6 +51,7 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
     (a) => a?.playerId === player.id,
   )!;
   const labels = rsvpLabels(role);
+  const savedStatus = gespeichert && myAssignment.rsvpStatus !== "offen" ? myAssignment.rsvpStatus : null;
   const question =
     role === "ersatz"
       ? "Hältst du dich als Ersatz bereit?"
@@ -79,8 +80,22 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
 
       <header className="my-4">
         <h1 className="font-display text-2xl font-bold">Hallo {playerLabel(player)}!</h1>
-        <p className="text-sm text-[var(--color-ink-muted)]">{question}</p>
+        <p className="text-sm text-[var(--color-ink-muted)]">{savedStatus ? "Danke für deine Antwort!" : question}</p>
       </header>
+
+      {savedStatus && (
+        <p
+          role="status"
+          className={`mb-3 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold ${
+            savedStatus === "ja"
+              ? "bg-[var(--color-ja-bg)] text-[var(--color-ja)]"
+              : "bg-[var(--color-nein-bg)] text-[var(--color-nein)]"
+          }`}
+        >
+          {savedStatus === "ja" ? <CheckIcon className="h-3.5 w-3.5" /> : <XIcon className="h-3.5 w-3.5" />}
+          Gespeichert: {labels[savedStatus]}
+        </p>
+      )}
 
       <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]">
         <p className="font-display text-lg font-bold">{formatDate(session.startsAt)}</p>
@@ -114,7 +129,7 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
         )}
 
         <p className="mt-3 flex items-center gap-2 text-sm text-[var(--color-ink-muted)]">
-          Bisherige Antwort: <RsvpBadge status={myAssignment.rsvpStatus} />
+          Deine Antwort: <RsvpBadge status={myAssignment.rsvpStatus} />
         </p>
 
         <div className="mt-4 flex flex-col gap-2">

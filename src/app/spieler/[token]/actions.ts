@@ -41,7 +41,7 @@ async function saveRsvp(formData: FormData, source: "web" | "email") {
   revalidatePath("/");
   revalidatePath("/spieler/[token]", "page");
 
-  return { token, sessionId };
+  return { token, sessionId, role: assignment.role };
 }
 
 export async function setRsvp(formData: FormData) {
@@ -50,6 +50,12 @@ export async function setRsvp(formData: FormData) {
 
 /** Submitted from the confirmation page the reminder email links to; lands the player on the updated card. */
 export async function confirmRsvpFromEmail(formData: FormData) {
-  const { token, sessionId } = await saveRsvp(formData, "email");
-  redirect(`/spieler/${encodeURIComponent(token)}#termin-${sessionId}`);
+  const { token, sessionId, role } = await saveRsvp(formData, "email");
+  const playerPage = `/spieler/${encodeURIComponent(token)}`;
+  // Ersatz sessions aren't listed on the player page, so confirm on the answer page instead.
+  redirect(
+    role === "ersatz"
+      ? `${playerPage}/antwort?termin=${sessionId}&gespeichert=1`
+      : `${playerPage}#termin-${sessionId}`,
+  );
 }
