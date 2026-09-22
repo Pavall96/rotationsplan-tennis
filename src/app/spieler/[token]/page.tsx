@@ -148,14 +148,10 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
                 <p className="text-sm">
                   Mit dabei: {others.join(", ")}
                   {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
-                  {s.ersatz && ` · Ersatz: ${s.ersatz.displayName}`}
                 </p>
               )}
               {s.trainer && role === "ersatz" && (
                 <p className="text-sm text-[var(--color-ink-muted)]">Trainer: {s.trainer.displayName}</p>
-              )}
-              {s.ersatz && role === "trainer" && (
-                <p className="mb-1 text-sm text-[var(--color-ink-muted)]">Ersatz: {s.ersatz.displayName}</p>
               )}
 
               <RsvpForm token={token} sessionId={s.id} current={myStatus} />

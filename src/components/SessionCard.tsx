@@ -113,21 +113,14 @@ export function SessionCard({
           <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-faint)]">
             Ersatz
           </span>
-          <span
-            className={`flex items-center gap-2 text-sm ${
-              session.ersatz.playerId === highlightPlayerId ? "font-semibold" : ""
-            }`}
-          >
-            {session.ersatz.displayName}
-            <RsvpBadge status={session.ersatz.rsvpStatus} />
-          </span>
+          <RsvpBadge status={session.ersatz.rsvpStatus} />
         </div>
       )}
 
       {session.starters.some((a) => a.rsvpStatus === "nein") && session.ersatz && (
         <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs font-medium text-[#A6332B]">
           <AlertIcon className="h-3 w-3 shrink-0" />
-          Ersatz gesucht – bitte {session.ersatz.displayName.split(" ")[0]} fragen
+          Ersatz gesucht
         </p>
       )}
     </div>
