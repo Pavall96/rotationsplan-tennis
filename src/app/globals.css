@@ -3,6 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-platz1: #7c3aed;
+  --color-platz2: #0e7490;
+  --color-ja: #1a7f37;
+  --color-ja-bg: #eafaf0;
+  --color-nein: #b42318;
+  --color-nein-bg: #fdecea;
+  --color-offen: #6b7280;
+  --color-offen-bg: #f3f4f6;
 }
 
 @theme inline {
@@ -16,6 +24,9 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-ja-bg: #0f2a1a;
+    --color-nein-bg: #2a1412;
+    --color-offen-bg: #1f2937;
   }
 }
 

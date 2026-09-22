@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rotationsplan Tennis – Wintertraining 2026/27
 
-## Getting Started
+Web-App für den Rotationsplan: wer wann und wo spielt, Kalender-Abo, Zu-/Absagen per persönlichem Link und eine Erinnerungs-E-Mail am Trainingstag.
 
-First, run the development server:
+## Setup
+
+```bash
+npm install
+```
+
+1. **Vercel verbinden** (einmalig, interaktiv – kann nicht automatisiert werden):
+   ```bash
+   npx vercel login
+   npx vercel link
+   ```
+2. **Postgres provisionieren** (Neon über den Vercel Marketplace):
+   ```bash
+   npx vercel integration add neon --yes
+   npx vercel env pull .env.local --yes
+   ```
+3. **Schema anlegen und Daten importieren:**
+   ```bash
+   npm run data:parse   # liest ~/Downloads/Rotationsplan_Wintertraining_2026-27.xlsx → data/seed.json
+   npm run db:push       # Schema nach Postgres
+   npm run db:seed       # Spieler/Plätze/Termine aus data/seed.json
+   ```
+4. **E-Mail-Adressen ergänzen** (Kopie von `data/spieler-emails.example.csv` nach `data/spieler-emails.csv`, ausfüllen):
+   ```bash
+   npm run data:emails
+   ```
+5. **E-Mail-Versand provisionieren** (Resend über den Vercel Marketplace):
+   ```bash
+   npx vercel integration add resend --yes
+   npx vercel env pull .env.local --yes
+   ```
+   Zusätzlich per `npx vercel env add` setzen: `MAIL_FROM`, `REPLY_TO`, `CRON_SECRET` (zufälliger Wert), `ADMIN_TOKEN` (zufälliger Wert), `NEXT_PUBLIC_BASE_URL` (die Produktions-URL).
+6. **Deployen:**
+   ```bash
+   npx vercel --prod
+   ```
+7. **Links verteilen:** `/admin?key=<ADMIN_TOKEN>` zeigt alle persönlichen Links zum Kopieren.
+
+## Entwicklung
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ohne `RESEND_API_KEY` werden E-Mails nur in die Konsole geloggt, nicht verschickt.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struktur
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/db/schema.ts` – Datenmodell (players, courts, sessions, session_assignments, rsvps, reminder_log)
+- `scripts/parse-xlsx.ts` – Excel → `data/seed.json` (mit Plausibilitätsprüfungen)
+- `scripts/seed.ts` – `data/seed.json` → Postgres (idempotent, überschreibt keine Tokens/E-Mails/RSVPs)
+- `src/app/page.tsx` – öffentliche Gesamtübersicht
+- `src/app/spieler/[token]/` – persönliche Seite mit Zu-/Absage und Kalender-Abo
+- `src/app/api/cron/erinnerungen/` – tägliche Erinnerungs-E-Mail (Vercel Cron, `vercel.json`)
+- `src/app/api/ics/` – Kalender-Feed und Einzeltermin-Download
+- `src/app/admin/` – Linkliste, geschützt per `?key=`

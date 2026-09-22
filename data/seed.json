@@ -1,0 +1,973 @@
+{
+  "generatedAt": "2026-09-22T10:21:00.296Z",
+  "courts": [
+    {
+      "slug": "happy-match",
+      "label": "Platz 1",
+      "hallName": "Happy Match",
+      "withCoach": true,
+      "startLocal": "20:30",
+      "endLocal": "22:00"
+    },
+    {
+      "slug": "frankenbach",
+      "label": "Platz 2",
+      "hallName": "Tennishalle Frankenbach",
+      "withCoach": false,
+      "startLocal": "20:00",
+      "endLocal": "21:30"
+    }
+  ],
+  "players": [
+    {
+      "displayName": "Patrick Kremer",
+      "lk": 8.8,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 13,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Seb",
+      "lk": 13,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Phillipp Kremer",
+      "lk": 13.4,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 14,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Moritz",
+      "lk": 14.9,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Martin",
+      "lk": 15,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Hakan",
+      "lk": 15.4,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 13,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Philipp Wilson",
+      "lk": 15.6,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 14,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Yassin",
+      "lk": 15.7,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 14,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Motzi",
+      "lk": 17.3,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 2,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Ben",
+      "lk": 19.3,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 13,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Pablo",
+      "lk": 20.1,
+      "wantsCoach": true,
+      "expectedMit": 12,
+      "expectedOhne": 2,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Uli",
+      "lk": 20.6,
+      "wantsCoach": true,
+      "expectedMit": 12,
+      "expectedOhne": 2,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Nils Saxinger",
+      "lk": 21,
+      "wantsCoach": false,
+      "expectedMit": 0,
+      "expectedOhne": 13,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Daniel",
+      "lk": 24.1,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Pascal",
+      "lk": 24.4,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 2,
+      "expectedGesamt": 13
+    },
+    {
+      "displayName": "Mario",
+      "lk": 25,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    },
+    {
+      "displayName": "Louis",
+      "lk": 25,
+      "wantsCoach": true,
+      "expectedMit": 11,
+      "expectedOhne": 3,
+      "expectedGesamt": 14
+    }
+  ],
+  "sessions": [
+    {
+      "court": "happy-match",
+      "sessionNo": 1,
+      "date": "2026-10-06",
+      "players": [
+        "Daniel",
+        "Pascal",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Uli",
+      "lkRange": "LK 0,9",
+      "note": "Saisonstart"
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 2,
+      "date": "2026-10-13",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Motzi"
+      ],
+      "ersatz": "Pablo",
+      "lkRange": "LK 4,3",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 3,
+      "date": "2026-10-20",
+      "players": [
+        "Motzi",
+        "Pablo",
+        "Uli",
+        "Daniel"
+      ],
+      "ersatz": "Pascal",
+      "lkRange": "LK 6,8",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 4,
+      "date": "2026-10-27",
+      "players": [
+        "Pablo",
+        "Uli",
+        "Pascal",
+        "Mario"
+      ],
+      "ersatz": "Louis",
+      "lkRange": "LK 4,9",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 5,
+      "date": "2026-11-03",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Louis"
+      ],
+      "ersatz": "Motzi",
+      "lkRange": "LK 12,0",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 6,
+      "date": "2026-11-10",
+      "players": [
+        "Motzi",
+        "Pablo",
+        "Pascal",
+        "Louis"
+      ],
+      "ersatz": "Uli",
+      "lkRange": "LK 7,7",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 7,
+      "date": "2026-11-17",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Uli"
+      ],
+      "ersatz": "Daniel",
+      "lkRange": "LK 7,6",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 8,
+      "date": "2026-11-24",
+      "players": [
+        "Uli",
+        "Daniel",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Pascal",
+      "lkRange": "LK 4,4",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 9,
+      "date": "2026-12-01",
+      "players": [
+        "Moritz",
+        "Martin",
+        "Motzi",
+        "Pablo"
+      ],
+      "ersatz": "Seb",
+      "lkRange": "LK 5,2",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 10,
+      "date": "2026-12-08",
+      "players": [
+        "Seb",
+        "Daniel",
+        "Pascal",
+        "Mario"
+      ],
+      "ersatz": "Uli",
+      "lkRange": "LK 12,0",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 11,
+      "date": "2026-12-15",
+      "players": [
+        "Motzi",
+        "Uli",
+        "Pascal",
+        "Louis"
+      ],
+      "ersatz": "Pablo",
+      "lkRange": "LK 7,7",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 12,
+      "date": "2027-01-05",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Pablo"
+      ],
+      "ersatz": "Daniel",
+      "lkRange": "LK 7,1",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 13,
+      "date": "2027-01-12",
+      "players": [
+        "Motzi",
+        "Pablo",
+        "Daniel",
+        "Mario"
+      ],
+      "ersatz": "Uli",
+      "lkRange": "LK 7,7",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 14,
+      "date": "2027-01-19",
+      "players": [
+        "Uli",
+        "Daniel",
+        "Pascal",
+        "Louis"
+      ],
+      "ersatz": "Mario",
+      "lkRange": "LK 4,4",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 15,
+      "date": "2027-01-26",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Mario"
+      ],
+      "ersatz": "Motzi",
+      "lkRange": "LK 12,0",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 16,
+      "date": "2027-02-02",
+      "players": [
+        "Seb",
+        "Motzi",
+        "Pablo",
+        "Uli"
+      ],
+      "ersatz": "Martin",
+      "lkRange": "LK 7,6",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 17,
+      "date": "2027-02-09",
+      "players": [
+        "Daniel",
+        "Pascal",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Martin",
+      "lkRange": "LK 0,9",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 18,
+      "date": "2027-02-16",
+      "players": [
+        "Moritz",
+        "Martin",
+        "Motzi",
+        "Uli"
+      ],
+      "ersatz": "Pablo",
+      "lkRange": "LK 5,7",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 19,
+      "date": "2027-02-23",
+      "players": [
+        "Pablo",
+        "Daniel",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Pascal",
+      "lkRange": "LK 4,9",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 20,
+      "date": "2027-03-02",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Pascal"
+      ],
+      "ersatz": "Motzi",
+      "lkRange": "LK 11,4",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 21,
+      "date": "2027-03-09",
+      "players": [
+        "Motzi",
+        "Uli",
+        "Pascal",
+        "Mario"
+      ],
+      "ersatz": "Pablo",
+      "lkRange": "LK 7,7",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 22,
+      "date": "2027-03-16",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Pablo"
+      ],
+      "ersatz": "Daniel",
+      "lkRange": "LK 7,1",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 23,
+      "date": "2027-03-23",
+      "players": [
+        "Pablo",
+        "Uli",
+        "Daniel",
+        "Louis"
+      ],
+      "ersatz": "Pascal",
+      "lkRange": "LK 4,9",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 24,
+      "date": "2027-03-30",
+      "players": [
+        "Motzi",
+        "Pascal",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Daniel",
+      "lkRange": "LK 7,7",
+      "note": "Osterwoche (Ostersonntag 28.03.) – Termin prüfen"
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 25,
+      "date": "2027-04-06",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Daniel"
+      ],
+      "ersatz": "Motzi",
+      "lkRange": "LK 11,1",
+      "note": "Osterferien – Termin prüfen"
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 26,
+      "date": "2027-04-13",
+      "players": [
+        "Motzi",
+        "Pablo",
+        "Daniel",
+        "Pascal"
+      ],
+      "ersatz": "Uli",
+      "lkRange": "LK 7,1",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 27,
+      "date": "2027-04-20",
+      "players": [
+        "Seb",
+        "Moritz",
+        "Martin",
+        "Uli"
+      ],
+      "ersatz": "Mario",
+      "lkRange": "LK 7,6",
+      "note": null
+    },
+    {
+      "court": "happy-match",
+      "sessionNo": 28,
+      "date": "2027-04-27",
+      "players": [
+        "Pablo",
+        "Uli",
+        "Mario",
+        "Louis"
+      ],
+      "ersatz": "Daniel",
+      "lkRange": "LK 4,9",
+      "note": "Saisonabschluss"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 1,
+      "date": "2026-10-06",
+      "players": [
+        "Moritz",
+        "Martin",
+        "Hakan",
+        "Philipp Wilson"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 0,7",
+      "note": "Saisonstart"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 2,
+      "date": "2026-10-13",
+      "players": [
+        "Ben",
+        "Pablo",
+        "Uli",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 1,7",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 3,
+      "date": "2026-10-20",
+      "players": [
+        "Patrick Kremer",
+        "Seb",
+        "Phillipp Kremer",
+        "Yassin"
+      ],
+      "ersatz": "Hakan",
+      "lkRange": "LK 6,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 4,
+      "date": "2026-10-27",
+      "players": [
+        "Hakan",
+        "Philipp Wilson",
+        "Yassin",
+        "Ben"
+      ],
+      "ersatz": "Phillipp Kremer",
+      "lkRange": "LK 3,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 5,
+      "date": "2026-11-03",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Philipp Wilson",
+      "lkRange": "LK 12,2",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 6,
+      "date": "2026-11-10",
+      "players": [
+        "Ben",
+        "Nils Saxinger",
+        "Daniel",
+        "Mario"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 5,7",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 7,
+      "date": "2026-11-17",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Philipp Wilson",
+        "Yassin"
+      ],
+      "ersatz": "Hakan",
+      "lkRange": "LK 6,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 8,
+      "date": "2026-11-24",
+      "players": [
+        "Philipp Wilson",
+        "Yassin",
+        "Motzi",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Ben",
+      "lkRange": "LK 5,4",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 9,
+      "date": "2026-12-01",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Ben"
+      ],
+      "ersatz": "Pascal",
+      "lkRange": "LK 10,5",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 10,
+      "date": "2026-12-08",
+      "players": [
+        "Hakan",
+        "Yassin",
+        "Ben",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Philipp Wilson",
+      "lkRange": "LK 5,6",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 11,
+      "date": "2026-12-15",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Moritz",
+        "Philipp Wilson"
+      ],
+      "ersatz": "Seb",
+      "lkRange": "LK 6,8",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 12,
+      "date": "2026-12-22",
+      "players": [
+        "Pablo",
+        "Daniel",
+        "Pascal",
+        "Louis"
+      ],
+      "ersatz": "Mario",
+      "lkRange": "LK 4,9",
+      "note": "Weihnachten – Trainer pausiert"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 13,
+      "date": "2026-12-29",
+      "players": [
+        "Seb",
+        "Phillipp Kremer",
+        "Martin",
+        "Ben"
+      ],
+      "ersatz": "Hakan",
+      "lkRange": "LK 6,3",
+      "note": "Weihnachten – Trainer pausiert"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 14,
+      "date": "2027-01-05",
+      "players": [
+        "Hakan",
+        "Philipp Wilson",
+        "Yassin",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Mario",
+      "lkRange": "LK 5,6",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 15,
+      "date": "2027-01-12",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Philipp Wilson"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 6,8",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 16,
+      "date": "2027-01-19",
+      "players": [
+        "Yassin",
+        "Ben",
+        "Nils Saxinger",
+        "Mario"
+      ],
+      "ersatz": "Patrick Kremer",
+      "lkRange": "LK 9,3",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 17,
+      "date": "2027-01-26",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Philipp Wilson"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 6,8",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 18,
+      "date": "2027-02-02",
+      "players": [
+        "Ben",
+        "Nils Saxinger",
+        "Pascal",
+        "Louis"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 5,7",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 19,
+      "date": "2027-02-09",
+      "players": [
+        "Patrick Kremer",
+        "Moritz",
+        "Martin",
+        "Yassin"
+      ],
+      "ersatz": "Phillipp Kremer",
+      "lkRange": "LK 6,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 20,
+      "date": "2027-02-16",
+      "players": [
+        "Phillipp Kremer",
+        "Philipp Wilson",
+        "Yassin",
+        "Ben"
+      ],
+      "ersatz": "Hakan",
+      "lkRange": "LK 5,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 21,
+      "date": "2027-02-23",
+      "players": [
+        "Patrick Kremer",
+        "Seb",
+        "Hakan",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Philipp Wilson",
+      "lkRange": "LK 12,2",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 22,
+      "date": "2027-03-02",
+      "players": [
+        "Philipp Wilson",
+        "Motzi",
+        "Ben",
+        "Uli"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 5,0",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 23,
+      "date": "2027-03-09",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Yassin"
+      ],
+      "ersatz": "Nils Saxinger",
+      "lkRange": "LK 6,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 24,
+      "date": "2027-03-16",
+      "players": [
+        "Ben",
+        "Nils Saxinger",
+        "Daniel",
+        "Louis"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 5,7",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 25,
+      "date": "2027-03-23",
+      "players": [
+        "Hakan",
+        "Philipp Wilson",
+        "Yassin",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Phillipp Kremer",
+      "lkRange": "LK 5,6",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 26,
+      "date": "2027-03-30",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Hakan",
+        "Philipp Wilson"
+      ],
+      "ersatz": "Yassin",
+      "lkRange": "LK 6,8",
+      "note": "Osterwoche (Ostersonntag 28.03.) – Termin prüfen"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 27,
+      "date": "2027-04-06",
+      "players": [
+        "Phillipp Kremer",
+        "Yassin",
+        "Ben",
+        "Nils Saxinger"
+      ],
+      "ersatz": "Patrick Kremer",
+      "lkRange": "LK 7,6",
+      "note": "Osterferien – Termin prüfen"
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 28,
+      "date": "2027-04-13",
+      "players": [
+        "Patrick Kremer",
+        "Hakan",
+        "Philipp Wilson",
+        "Yassin"
+      ],
+      "ersatz": "Phillipp Kremer",
+      "lkRange": "LK 6,9",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 29,
+      "date": "2027-04-20",
+      "players": [
+        "Phillipp Kremer",
+        "Ben",
+        "Nils Saxinger",
+        "Mario"
+      ],
+      "ersatz": "Patrick Kremer",
+      "lkRange": "LK 11,6",
+      "note": null
+    },
+    {
+      "court": "frankenbach",
+      "sessionNo": 30,
+      "date": "2027-04-27",
+      "players": [
+        "Patrick Kremer",
+        "Phillipp Kremer",
+        "Philipp Wilson",
+        "Yassin"
+      ],
+      "ersatz": "Hakan",
+      "lkRange": "LK 6,9",
+      "note": "Saisonabschluss"
+    }
+  ]
+}
