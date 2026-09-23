@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFullSchedule, getPlayerByToken, myRoleInSession } from "@/lib/queries";
 import { formatDate, formatTimeRange, playerLabel, rsvpLabels } from "@/lib/format";
+import { cancelledStarters, ersatzNeeded } from "@/lib/vacancy";
 import { confirmRsvpFromEmail } from "@/app/spieler/[token]/actions";
 import { RsvpBadge } from "@/components/RsvpBadge";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -50,11 +51,14 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
   const myAssignment = [session.trainer, session.ersatz, ...session.starters].find(
     (a) => a?.playerId === player.id,
   )!;
-  const labels = rsvpLabels(role);
+  const needed = role === "ersatz" && ersatzNeeded(session);
+  const labels = rsvpLabels(role, needed);
   const savedStatus = gespeichert && myAssignment.rsvpStatus !== "offen" ? myAssignment.rsvpStatus : null;
   const question =
     role === "ersatz"
-      ? "Hältst du dich als Ersatz bereit?"
+      ? needed
+        ? "Kannst du als Ersatz einspringen?"
+        : "Hältst du dich als Ersatz bereit?"
       : role === "trainer"
         ? "Bist du als Trainer dabei?"
         : "Bist du dabei?";
@@ -111,7 +115,12 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
           </p>
         )}
 
-        {role === "ersatz" ? (
+        {role === "ersatz" && needed ? (
+          <p className="mt-2 text-sm">
+            Du bist an diesem Termin <span className="font-semibold">Ersatz</span>, und {cancelledStarters(session)}{" "}
+            abgesagt. Mit „Ja“ sagst du, dass du einspringst.
+          </p>
+        ) : role === "ersatz" ? (
           <p className="mt-2 text-sm">
             Du bist an diesem Termin <span className="font-semibold">Ersatz</span>. Mit „Ja“ sagst du, dass du
             einspringen kannst, falls jemand absagt.

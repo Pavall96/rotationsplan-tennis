@@ -3,6 +3,7 @@ import type { SessionView } from "@/lib/queries";
 import { formatDateForFile } from "@/lib/format";
 import { SessionCard } from "@/components/SessionCard";
 import { ArrowLeftIcon } from "@/components/icons";
+import { vacancyStatus } from "@/lib/vacancy";
 
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -127,18 +128,23 @@ export function SeasonCalendar({
             }
 
             const isSelected = date === selectedDay;
+            const playersMissing = !isPast && sessionsOnDay.some((s) => (vacancyStatus(s)?.open ?? 0) > 0);
             return (
               <Link
                 key={date}
                 href={calendarHref(month, date)}
                 scroll={false}
                 aria-current={isSelected ? "date" : undefined}
-                className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-xl text-sm font-semibold transition-colors ${
+                aria-label={playersMissing ? `${dayNo}. – Spieler fehlt` : undefined}
+                className={`relative flex aspect-square flex-col items-center justify-center gap-1 rounded-xl text-sm font-semibold transition-colors ${
                   isSelected
                     ? "bg-[var(--color-brand)] text-[var(--background)]"
                     : "bg-[var(--color-brand-bg)] text-[var(--foreground)]"
                 } ${isPast && !isSelected ? "opacity-50" : ""} ${isToday && !isSelected ? "ring-2 ring-[var(--color-brand)]" : ""}`}
               >
+                {playersMissing && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-card)] bg-[var(--color-nein)]" />
+                )}
                 {dayNo}
                 <span className="flex gap-0.5">
                   {sessionsOnDay.map((s) => (
