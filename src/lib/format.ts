@@ -59,3 +59,8 @@ export function rsvpLabels(role: "starter" | "ersatz" | "trainer", ersatzNeeded 
   }
   return { ja: "Ja, ich bin dabei", nein: "Nein, ich kann nicht" };
 }
+
+/** Apple "Hide My Email" addresses only forward mail from senders registered with Apple, so our emails never arrive. */
+export function isAppleRelayEmail(email: string): boolean {
+  return /@privaterelay\.appleid\.com$/i.test(email.trim());
+}

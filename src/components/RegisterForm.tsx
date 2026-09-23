@@ -3,13 +3,16 @@
 import { useState, useTransition } from "react";
 import { registerEmail, type RegisterResult } from "@/app/registrieren/actions";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
-import { MailIcon } from "@/components/icons";
+import { AlertIcon, MailIcon } from "@/components/icons";
+import { isAppleRelayEmail } from "@/lib/format";
 
 type PlayerOption = { id: number; displayName: string; hasEmail: boolean };
 
 export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] }) {
   const [result, setResult] = useState<RegisterResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const [email, setEmail] = useState("");
+  const appleRelay = isAppleRelayEmail(email);
 
   if (result?.status === "ok") {
     return (
@@ -71,8 +74,16 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
             type="email"
             required
             placeholder="du@beispiel.de"
-            className="w-full rounded-[10px] border border-[var(--color-border-strong)] bg-transparent px-3 py-2.5 text-sm"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={appleRelay || undefined}
+            aria-describedby={appleRelay ? "email-relay-hint" : undefined}
+            className={`w-full rounded-[10px] border bg-transparent px-3 py-2.5 text-sm ${
+              appleRelay ? "border-[var(--color-nein)]" : "border-[var(--color-border-strong)]"
+            }`}
           />
+          {appleRelay && <AppleRelayHint />}
         </div>
 
         <div>
@@ -93,7 +104,7 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || appleRelay}
           className="w-full rounded-full bg-[var(--color-brand)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {pending ? "…" : "Meinen Link holen"}
@@ -105,6 +116,13 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
             hast, melde dich bei einem Mannschaftsführer.
           </p>
         )}
+        {result?.status === "email-taken" && (
+          <p className="text-sm text-[var(--color-nein)]">
+            Diese E-Mail-Adresse ist schon bei einem anderen Spieler hinterlegt. Bitte nimm eine andere oder melde
+            dich bei einem Mannschaftsführer.
+          </p>
+        )}
+        {result?.status === "apple-relay" && !appleRelay && <AppleRelayHint />}
         {result?.status === "invalid" && (
           <p className="text-sm text-[var(--color-nein)]">Bitte Namen und eine gültige E-Mail-Adresse angeben.</p>
         )}
@@ -117,5 +135,20 @@ export function RegisterForm({ playerOptions }: { playerOptions: PlayerOption[] 
         </p>
       </div>
     </>
+  );
+}
+
+function AppleRelayHint() {
+  return (
+    <p
+      id="email-relay-hint"
+      className="mt-1.5 flex gap-1.5 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs text-[var(--color-nein)]"
+    >
+      <AlertIcon className="mt-0.5 h-3 w-3 shrink-0" />
+      <span>
+        Das ist eine Apple-„E-Mail-Adresse verbergen“. Dorthin kommen unsere Erinnerungen nicht an – bitte gib deine
+        echte Adresse ein (z.B. Gmail, Outlook, iCloud, GMX).
+      </span>
+    </p>
   );
 }

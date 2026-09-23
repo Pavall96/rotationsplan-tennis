@@ -3,12 +3,13 @@
 import { eq, and, ne } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players } from "@/db/schema";
-import { playerLabel } from "@/lib/format";
+import { isAppleRelayEmail, playerLabel } from "@/lib/format";
 
 export type RegisterResult =
   | { status: "ok"; link: string; displayName: string }
   | { status: "already-registered"; displayName: string }
   | { status: "email-taken" }
+  | { status: "apple-relay" }
   | { status: "invalid" };
 
 export async function registerEmail(formData: FormData): Promise<RegisterResult> {
@@ -18,6 +19,9 @@ export async function registerEmail(formData: FormData): Promise<RegisterResult>
 
   if (!playerId || !email || !email.includes("@")) {
     return { status: "invalid" };
+  }
+  if (isAppleRelayEmail(email)) {
+    return { status: "apple-relay" };
   }
 
   const db = getDb();
