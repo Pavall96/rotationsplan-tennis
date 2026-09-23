@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getFullSchedule } from "@/lib/queries";
 import { SessionCard } from "@/components/SessionCard";
 import { formatDateForFile } from "@/lib/format";
-import { ChevronRightIcon } from "@/components/icons";
+import { MyPageLink } from "@/components/MyPageLink";
 
 export const dynamic = "force-dynamic";
 
@@ -42,13 +42,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </div>
       </header>
 
-      <Link
-        href="/registrieren"
-        className="mb-6 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
-      >
-        Noch keinen persönlichen Link? Hier eintragen
-        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
-      </Link>
+      <MyPageLink />
 
       {nextSessions.length > 0 && (
         <section className="mb-6">

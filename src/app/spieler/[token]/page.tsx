@@ -10,6 +10,8 @@ import { formatDate, formatTimeRange, formatDateForFile, playerLabel, mapsUrl } 
 import { getBaseUrl } from "@/lib/base-url";
 import { RsvpForm } from "@/components/RsvpForm";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { FirstVisitGuide } from "@/components/FirstVisitGuide";
+import { RememberMyPage } from "@/components/MyPageLink";
 import { ArrowLeftIcon, CalendarIcon, PinIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +52,9 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
       <header className="my-4">
         <h1 className="font-display text-2xl font-bold">Hallo {playerLabel(player)}!</h1>
       </header>
+
+      <FirstVisitGuide token={token} />
+      <RememberMyPage token={token} />
 
       <div className="mb-4 grid grid-cols-3 gap-2">
         <div className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-1.5 py-2.5 text-center">
