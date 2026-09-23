@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, sessionAssignments, rsvps } from "@/db/schema";
+import { getBaseUrl } from "@/lib/base-url";
+import { notifyErsatz } from "@/lib/ersatz-alert";
 
 async function saveRsvp(formData: FormData, source: "web" | "email") {
   const token = String(formData.get("token") ?? "");
@@ -30,6 +33,12 @@ async function saveRsvp(formData: FormData, source: "web" | "email") {
     throw new Error("Du bist für diesen Termin nicht eingeteilt.");
   }
 
+  const [previous] = await db
+    .select({ status: rsvps.status })
+    .from(rsvps)
+    .where(and(eq(rsvps.sessionId, sessionId), eq(rsvps.playerId, player.id)))
+    .limit(1);
+
   await db
     .insert(rsvps)
     .values({ sessionId, playerId: player.id, status, source })
@@ -40,6 +49,20 @@ async function saveRsvp(formData: FormData, source: "web" | "email") {
 
   revalidatePath("/");
   revalidatePath("/spieler/[token]", "page");
+
+  if (assignment.role === "starter") {
+    const baseUrl = await getBaseUrl();
+    // Sent after the response so a slow mail provider never delays saving the answer.
+    after(() =>
+      notifyErsatz({
+        sessionId,
+        starterId: player.id,
+        previous: (previous?.status as "ja" | "nein" | undefined) ?? null,
+        status,
+        baseUrl,
+      }),
+    );
+  }
 
   return { token, sessionId, role: assignment.role };
 }

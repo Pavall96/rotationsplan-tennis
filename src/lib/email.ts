@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
 import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
+import { cancelledStarters, ersatzNeeded } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
 
@@ -29,48 +30,42 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
-  const { playerName, role, session, token, baseUrl } = input;
-  const playerNameHtml = escapeHtml(playerName);
+type Buttons = { yesUrl: string; noUrl: string; ja: string; nein: string };
+
+/** Header, greeting, session card, optional Ja/Nein buttons and footer — shared by every email we send. */
+function renderShell(opts: {
+  preheader: string;
+  playerName: string;
+  intro: string;
+  session: SessionView;
+  cardBody: string;
+  buttons: Buttons | null;
+  note: string;
+  token: string;
+  baseUrl: string;
+}): string {
+  const { session, buttons, baseUrl, token } = opts;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
-  const others = session.starters.map((a) => a.displayName).join(", ");
-  const time = formatTimeRange(session.startsAt, session.endsAt);
-  const date = formatDate(session.startsAt);
-
-  const subject =
-    role === "ersatz"
-      ? `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – hältst du dich bereit?`
-      : role === "trainer"
-        ? `Training heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`
-        : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
-
-  // Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message.
-  const answerUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=`;
-  const yesUrl = `${answerUrl}ja`;
-  const noUrl = `${answerUrl}nein`;
-  const labels = rsvpLabels(role);
-  const overviewUrl = `${baseUrl}/`;
-  const personalUrl = `${baseUrl}/spieler/${token}`;
-
-  const roleBody =
-    role === "ersatz"
-      ? `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">Du bist heute als Ersatz eingetragen.</p>`
-      : role === "trainer"
-        ? `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">Du bist heute als Trainer eingeteilt.</p>`
-        : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${session.starters
-            .map(
-              (a) =>
-                `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
-            )
-            .join("")}</div>`;
-
   const routeLine = session.address
     ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#11324e;font-size:13px;">Route öffnen →</a></p>`
     : "";
+  const buttonRow = buttons
+    ? `
+      <table role="presentation" width="100%" style="margin-bottom:20px;">
+        <tr>
+          <td style="padding-right:6px;width:50%;">
+            <a href="${buttons.yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${buttons.ja}</a>
+          </td>
+          <td style="padding-left:6px;width:50%;">
+            <a href="${buttons.noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">${buttons.nein}</a>
+          </td>
+        </tr>
+      </table>`
+    : "";
 
-  const html = `
+  return `
   <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;border-radius:8px;overflow:hidden;">
-    <p style="display:none;max-height:0;overflow:hidden;">Bitte kurz abstimmen: Ja oder Nein.</p>
+    <p style="display:none;max-height:0;overflow:hidden;">${escapeHtml(opts.preheader)}</p>
 
     <table role="presentation" width="100%" style="background:#11324e;">
       <tr>
@@ -85,41 +80,94 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
     </table>
 
     <div style="padding:32px;">
-      <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Hallo ${playerNameHtml}!</p>
-      <p style="margin:0 0 24px;font-size:15px;color:#4b5563;">Heute ist Wintertraining – bitte kurz abstimmen.</p>
+      <p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Hallo ${escapeHtml(opts.playerName)}!</p>
+      <p style="margin:0 0 24px;font-size:15px;color:#4b5563;">${escapeHtml(opts.intro)}</p>
 
       <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px 20px;margin-bottom:24px;">
         <table role="presentation" width="100%">
           <tr>
-            <td style="font-size:16px;font-weight:700;color:#111827;">${date}</td>
-            <td style="font-size:13px;color:#6b7280;text-align:right;">${time}</td>
+            <td style="font-size:16px;font-weight:700;color:#111827;">${formatDate(session.startsAt)}</td>
+            <td style="font-size:13px;color:#6b7280;text-align:right;">${formatTimeRange(session.startsAt, session.endsAt)}</td>
           </tr>
         </table>
         <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${escapeHtml(session.hallName)} · ${withCoach}</p>
-        ${roleBody}
+        ${opts.cardBody}
         ${routeLine}
       </div>
-
-      <table role="presentation" width="100%" style="margin-bottom:20px;">
-        <tr>
-          <td style="padding-right:6px;width:50%;">
-            <a href="${yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${labels.ja}</a>
-          </td>
-          <td style="padding-left:6px;width:50%;">
-            <a href="${noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">${labels.nein}</a>
-          </td>
-        </tr>
-      </table>
-
-      <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Deine Antwort sehen alle im gemeinsamen Plan – so weiß die Runde früh genug, ob jemand fehlt.</p>
+${buttonRow}
+      <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">${escapeHtml(opts.note)}</p>
     </div>
 
     <div style="background:#fafaf9;border-top:1px solid #f0f0ef;padding:20px 32px;">
-      <p style="margin:0 0 4px;font-size:12px;"><a href="${overviewUrl}" style="color:#6b7280;">Ganzer Plan</a></p>
-      <p style="margin:0 0 4px;font-size:12px;"><a href="${personalUrl}" style="color:#6b7280;">Dein persönlicher Link</a></p>
+      <p style="margin:0 0 4px;font-size:12px;"><a href="${baseUrl}/" style="color:#6b7280;">Ganzer Plan</a></p>
+      <p style="margin:0 0 4px;font-size:12px;"><a href="${baseUrl}/spieler/${token}" style="color:#6b7280;">Dein persönlicher Link</a></p>
       <p style="margin:0;font-size:12px;color:#9ca3af;">Diesen Link nicht weitergeben.</p>
     </div>
   </div>`;
+}
+
+function strongLine(text: string): string {
+  return `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${escapeHtml(text)}</p>`;
+}
+
+/** Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message. */
+function answerButtons(
+  session: SessionView,
+  role: "starter" | "ersatz" | "trainer",
+  token: string,
+  baseUrl: string,
+): Buttons {
+  const answerUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=`;
+  return { yesUrl: `${answerUrl}ja`, noUrl: `${answerUrl}nein`, ...rsvpLabels(role, ersatzNeeded(session)) };
+}
+
+function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
+  const { playerName, role, session, token, baseUrl } = input;
+  const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
+  const others = session.starters.map((a) => a.displayName).join(", ");
+  const time = formatTimeRange(session.startsAt, session.endsAt);
+  const date = formatDate(session.startsAt);
+  const needed = role === "ersatz" && ersatzNeeded(session);
+
+  const subject =
+    role === "ersatz"
+      ? needed
+        ? `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – du wirst gebraucht!`
+        : `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – hältst du dich bereit?`
+      : role === "trainer"
+        ? `Training heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`
+        : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
+
+  const buttons = answerButtons(session, role, token, baseUrl);
+  const roleLine =
+    role === "ersatz"
+      ? needed
+        ? `Du bist heute als Ersatz eingetragen – ${cancelledStarters(session)} abgesagt, du wirst gebraucht.`
+        : `Du bist heute als Ersatz eingetragen.`
+      : role === "trainer"
+        ? `Du bist heute als Trainer eingeteilt.`
+        : null;
+
+  const cardBody = roleLine
+    ? strongLine(roleLine)
+    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${session.starters
+        .map(
+          (a) =>
+            `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
+        )
+        .join("")}</div>`;
+
+  const html = renderShell({
+    preheader: "Bitte kurz abstimmen: Ja oder Nein.",
+    playerName,
+    intro: "Heute ist Wintertraining – bitte kurz abstimmen.",
+    session,
+    cardBody,
+    buttons,
+    note: "Deine Antwort sehen alle im gemeinsamen Plan – so weiß die Runde früh genug, ob jemand fehlt.",
+    token,
+    baseUrl,
+  });
 
   const text = [
     `Hallo ${playerName},`,
@@ -127,24 +175,102 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
     `heute ist Wintertraining:`,
     `${date} · ${time}`,
     `Halle: ${session.hallName} (${withCoach})`,
-    role === "ersatz"
-      ? `Du bist heute als Ersatz eingetragen.`
-      : role === "trainer"
-        ? `Du bist heute als Trainer eingeteilt.`
-        : `Mit dabei: ${others}`,
+    roleLine ?? `Mit dabei: ${others}`,
     session.address ? `Route: ${mapsUrl(session.address)}` : ``,
     ``,
     `Bist du heute dabei? Bitte abstimmen:`,
-    `Ja: ${yesUrl}`,
-    `Nein: ${noUrl}`,
+    `Ja: ${buttons.yesUrl}`,
+    `Nein: ${buttons.noUrl}`,
     ``,
-    `Ganzer Plan: ${overviewUrl}`,
-    `Dein persönlicher Link: ${personalUrl}`,
+    `Ganzer Plan: ${baseUrl}/`,
+    `Dein persönlicher Link: ${baseUrl}/spieler/${token}`,
   ]
     .filter((l) => l !== "")
     .join("\n");
 
   return { subject, html, text };
+}
+
+export type ErsatzAlertInput = {
+  to: string;
+  playerName: string;
+  session: SessionView;
+  token: string;
+  baseUrl: string;
+  /** "gebraucht": a starter just cancelled. "entwarnung": the cancellation was taken back, nobody is missing any more. */
+  kind: "gebraucht" | "entwarnung";
+  /** The starter whose answer triggered this email. */
+  changedBy: string;
+};
+
+export function renderErsatzAlert(input: ErsatzAlertInput): { subject: string; html: string; text: string } {
+  const { playerName, session, token, baseUrl, kind, changedBy } = input;
+  const date = formatDate(session.startsAt);
+  const shortDate = date.replace(/\d{4}$/, "");
+  const time = formatTimeRange(session.startsAt, session.endsAt);
+  const personalUrl = `${baseUrl}/spieler/${token}`;
+
+  if (kind === "entwarnung") {
+    const subject = `Entwarnung für ${shortDate} – du wirst doch nicht gebraucht`;
+    const line = `${changedBy} kommt doch – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`;
+    const html = renderShell({
+      preheader: line,
+      playerName,
+      intro: "Kurze Entwarnung zu deinem Ersatz-Termin.",
+      session,
+      cardBody: strongLine(line),
+      buttons: null,
+      note: "Du bleibst für diesen Termin als Ersatz eingetragen. Falls wieder jemand absagt, melden wir uns.",
+      token,
+      baseUrl,
+    });
+    const text = [`Hallo ${playerName},`, ``, line, `${date} · ${time} · ${session.hallName}`, ``, `Ganzer Plan: ${baseUrl}/`, `Dein persönlicher Link: ${personalUrl}`].join("\n");
+    return { subject, html, text };
+  }
+
+  const buttons = answerButtons(session, "ersatz", token, baseUrl);
+  const subject = `Ersatz gesucht: ${shortDate} ${formatTimeRangeStart(session)} ${session.hallName} – kannst du einspringen?`;
+  const line = `${changedBy} hat abgesagt. Du bist als Ersatz eingetragen – kannst du einspringen?`;
+  const html = renderShell({
+    preheader: line,
+    playerName,
+    intro: "Für einen deiner Ersatz-Termine hat jemand abgesagt.",
+    session,
+    cardBody: strongLine(line),
+    buttons,
+    note: "Bitte antworte kurz – deine Antwort sehen alle im gemeinsamen Plan, so weiß die Runde, ob sie vollständig ist.",
+    token,
+    baseUrl,
+  });
+  const text = [
+    `Hallo ${playerName},`,
+    ``,
+    line,
+    `${date} · ${time}`,
+    `Halle: ${session.hallName}`,
+    session.address ? `Route: ${mapsUrl(session.address)}` : ``,
+    ``,
+    `${buttons.ja}: ${buttons.yesUrl}`,
+    `${buttons.nein}: ${buttons.noUrl}`,
+    ``,
+    `Ganzer Plan: ${baseUrl}/`,
+    `Dein persönlicher Link: ${personalUrl}`,
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
+  return { subject, html, text };
+}
+
+export async function sendErsatzAlert(input: ErsatzAlertInput, opts: { from: string; replyTo?: string }): Promise<SendResult> {
+  const { subject, html, text } = renderErsatzAlert(input);
+  const resend = getResend();
+  if (!resend) {
+    console.warn(`⚠️  RESEND_API_KEY nicht gesetzt – E-Mail wird NICHT verschickt.`);
+    console.log(`[DEV EMAIL] an ${input.to}: ${subject}`);
+    return { to: input.to };
+  }
+  const { data, error } = await resend.emails.send({ from: opts.from, to: input.to, replyTo: opts.replyTo, subject, html, text });
+  return error ? { to: input.to, error: error.message } : { to: input.to, id: data?.id };
 }
 
 function formatTimeRangeStart(session: SessionView): string {

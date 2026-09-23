@@ -47,9 +47,15 @@ export function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
-/** Answer-button wording for the reminder email and its confirmation page; Ersatz answers mean "standing by", not "playing". */
-export function rsvpLabels(role: "starter" | "ersatz" | "trainer"): { ja: string; nein: string } {
-  return role === "ersatz"
-    ? { ja: "Ja, ich halte mich bereit", nein: "Nein, heute nicht" }
-    : { ja: "Ja, ich bin dabei", nein: "Nein, ich kann nicht" };
+/**
+ * Answer-button wording for the reminder email and its confirmation page. Ersatz answers mean "standing by",
+ * unless a starter has already cancelled (`ersatzNeeded`) — then the Ersatz is answering whether they'll play.
+ */
+export function rsvpLabels(role: "starter" | "ersatz" | "trainer", ersatzNeeded = false): { ja: string; nein: string } {
+  if (role === "ersatz") {
+    return ersatzNeeded
+      ? { ja: "Ja, ich springe ein", nein: "Nein, ich kann nicht" }
+      : { ja: "Ja, ich halte mich bereit", nein: "Nein, heute nicht" };
+  }
+  return { ja: "Ja, ich bin dabei", nein: "Nein, ich kann nicht" };
 }
