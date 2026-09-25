@@ -5,6 +5,7 @@ import { SessionCard } from "@/components/SessionCard";
 import { formatDateForFile } from "@/lib/format";
 import { MyPageLink } from "@/components/MyPageLink";
 import { SeasonCalendar } from "@/components/SeasonCalendar";
+import { ChevronRightIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </header>
 
       <MyPageLink />
+
+      <Link
+        href="/punktspiele"
+        className="-mt-4 mb-6 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
+      >
+        Winterspiele der Mannschaften
+        <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
+      </Link>
 
       {!showCalendar && nextSessions.length > 0 && (
         <section className="mb-6">

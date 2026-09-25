@@ -49,3 +49,18 @@ export function MyPageLink() {
     </Link>
   );
 }
+
+/** On the public match page: jump to the personal version (with Fahrgemeinschaft) if this device knows the player. */
+export function MyMatchesLink() {
+  const token = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  return (
+    <Link
+      href={token ? `/spieler/${encodeURIComponent(token)}/punktspiele` : "/registrieren"}
+      className="mb-5 flex items-center justify-between gap-2 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm font-medium"
+    >
+      {token ? "Eintragen, wann du kannst · Fahrgemeinschaft" : "Zum Eintragen: persönlichen Link holen"}
+      <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
+    </Link>
+  );
+}

@@ -47,6 +47,23 @@ export function mapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
+/** Turn-by-turn route from wherever the player is now (Google Maps app or web, on iPhone and Android). */
+export function directionsUrl(address: string): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+}
+
+/** Same route in Apple Karten, for iPhone users without Google Maps. */
+export function appleDirectionsUrl(address: string): string {
+  return `https://maps.apple.com/?daddr=${encodeURIComponent(address)}`;
+}
+
+/** "Sa., 19.12." — for day headers where the year is obvious. */
+export function formatDayShort(d: Date | string): string {
+  return new Intl.DateTimeFormat("de-DE", { timeZone: TIMEZONE, weekday: "short", day: "2-digit", month: "2-digit" }).format(
+    new Date(d),
+  );
+}
+
 /**
  * Answer-button wording for the reminder email and its confirmation page. Ersatz answers mean "standing by",
  * unless a starter has already cancelled (`ersatzNeeded`) — then the Ersatz is answering whether they'll play.
