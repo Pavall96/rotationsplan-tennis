@@ -13,6 +13,7 @@ export type MatchView = {
   opponent: string;
   playersNeeded: number;
   lineupPublishedAt: Date | null;
+  scheduleVersion: number;
   team: { id: number; slug: string; name: string; ageClass: AgeClass; rank: number };
   venue: { name: string; address: string | null; notes: string | null } | null;
 };
@@ -40,6 +41,7 @@ export async function getAllMatches(): Promise<MatchView[]> {
       opponent: matches.opponent,
       playersNeeded: matches.playersNeeded,
       lineupPublishedAt: matches.lineupPublishedAt,
+      scheduleVersion: matches.scheduleVersion,
       teamId: teams.id,
       teamSlug: teams.slug,
       teamName: teams.name,
@@ -62,6 +64,7 @@ export async function getAllMatches(): Promise<MatchView[]> {
     opponent: r.opponent,
     playersNeeded: r.playersNeeded,
     lineupPublishedAt: r.lineupPublishedAt,
+    scheduleVersion: r.scheduleVersion,
     team: { id: r.teamId, slug: r.teamSlug, name: r.teamName, ageClass: r.ageClass as AgeClass, rank: r.rank },
     venue: r.venueName ? { name: r.venueName, address: r.venueAddress, notes: r.venueNotes } : null,
   }));

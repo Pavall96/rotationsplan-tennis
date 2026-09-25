@@ -82,7 +82,8 @@ export async function addToLineup(formData: FormData): Promise<Result> {
     .values({ matchId, playerId, role })
     .onConflictDoUpdate({
       target: [lineups.matchId, lineups.playerId],
-      set: previousRole && previousRole !== role ? { role, notifiedAt: null } : { role },
+      // A new role is a change the players only see (and the player is only told about) on the next publish.
+      set: previousRole && previousRole !== role ? { role, publishedAt: null, notifiedAt: null } : { role },
     });
   refresh();
 }
@@ -149,10 +150,13 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   if (entries.length === 0) return { error: "Noch niemand aufgestellt." };
   const rosters = rosterByPlayer(roster);
   const starters = entries.filter((e) => e.role === "stamm" && e.response !== "nein");
+  if (starters.length > match.playersNeeded) {
+    return { error: `${starters.length} Stammspieler aufgestellt – höchstens ${match.playersNeeded}.` };
+  }
   if (tooManyNonGermans(starters.map((e) => ({ countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}) })))) {
     return { error: "Mehr als ein Nicht-Deutscher aufgestellt – so darf die Aufstellung nicht raus." };
   }
-  const pending = entries.filter((e) => !e.notified);
+  const pending = entries.filter((e) => !e.published);
   const preview: PublishPreview = {
     stammCount: entries.filter((e) => e.role === "stamm").length,
     playersNeeded: match.playersNeeded,
@@ -167,17 +171,21 @@ export async function publishLineup(token: string, matchId: number, send: boolea
 
   const db = getDb();
   await db.update(matches).set({ lineupPublishedAt: new Date() }).where(and(eq(matches.id, matchId), isNull(matches.lineupPublishedAt)));
-  // Claim the rows in one conditional update: of two simultaneous publishes, only one gets each player back.
-  const pendingWithEmail = pending.filter((e) => e.hasEmail).map((e) => e.playerId);
-  const toNotify = pendingWithEmail.length
-    ? (
-        await db
-          .update(lineups)
-          .set({ notifiedAt: new Date() })
-          .where(and(eq(lineups.matchId, matchId), isNull(lineups.notifiedAt), inArray(lineups.playerId, pendingWithEmail)))
-          .returning({ playerId: lineups.playerId })
-      ).map((r) => r.playerId)
-    : [];
+  // Claim the unpublished entries in one conditional update: of two simultaneous publishes, only one gets each
+  // player back — and only those get an email.
+  const claimed = await db
+    .update(lineups)
+    .set({ publishedAt: new Date() })
+    .where(and(eq(lineups.matchId, matchId), isNull(lineups.publishedAt)))
+    .returning({ playerId: lineups.playerId });
+  const withEmail = new Set(pending.filter((e) => e.hasEmail).map((e) => e.playerId));
+  const toNotify = claimed.map((r) => r.playerId).filter((id) => withEmail.has(id));
+  if (toNotify.length > 0) {
+    await db
+      .update(lineups)
+      .set({ notifiedAt: new Date() })
+      .where(and(eq(lineups.matchId, matchId), inArray(lineups.playerId, toNotify)));
+  }
   refresh();
   const baseUrl = await getBaseUrl();
   const stammNames = entries.filter((e) => e.role === "stamm").map((e) => e.name);

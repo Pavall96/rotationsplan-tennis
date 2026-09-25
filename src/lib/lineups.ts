@@ -11,6 +11,8 @@ export type LineupEntry = {
   playerId: number;
   name: string;
   role: LineupRole;
+  /** Visible to players (entries added after a publish stay private until the next one). */
+  published: boolean;
   notified: boolean;
   hasEmail: boolean;
   response: LineupResponse | null;
@@ -18,8 +20,11 @@ export type LineupEntry = {
 
 export type LineupResponse = "ja" | "nein";
 
-/** Every lineup, keyed by match id. */
-export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
+/**
+ * Lineups keyed by match id. Captain views pass nothing and see every entry; everything players see (cards,
+ * answers, calendar, reminders) must use `{ publishedOnly: true }`.
+ */
+export async function getLineups(opts: { publishedOnly?: boolean } = {}): Promise<Map<number, LineupEntry[]>> {
   const rows = await getDb()
     .select({
       matchId: lineups.matchId,
@@ -29,6 +34,7 @@ export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
       email: players.email,
       role: lineups.role,
       notifiedAt: lineups.notifiedAt,
+      publishedAt: lineups.publishedAt,
       response: lineups.response,
     })
     .from(lineups)
@@ -37,11 +43,13 @@ export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
 
   const byMatch = new Map<number, LineupEntry[]>();
   for (const r of rows) {
+    if (opts.publishedOnly && !r.publishedAt) continue;
     if (!byMatch.has(r.matchId)) byMatch.set(r.matchId, []);
     byMatch.get(r.matchId)!.push({
       playerId: r.playerId,
       name: playerLabel(r),
       role: r.role as LineupRole,
+      published: Boolean(r.publishedAt),
       notified: Boolean(r.notifiedAt),
       hasEmail: Boolean(r.email),
       response: r.response as LineupResponse | null,
@@ -74,6 +82,7 @@ export function lineupContext(
       playedFor(m),
   ).length;
 
+  // Stricter than § 33a Ziff. 2 on purpose: an Ersatz must be free to step in, so they're taken for that day too.
   const sameDay = allMatches.find((m) => m.id !== match.id && m.matchDate === match.matchDate && inLineup(m));
   return { playsMatches, firstTeamAppearances, sameDayTeam: sameDay?.team.name ?? null };
 }

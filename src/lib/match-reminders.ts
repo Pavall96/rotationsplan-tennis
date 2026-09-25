@@ -44,7 +44,7 @@ export async function runMatchReminders(opts: { dryRun: boolean; baseUrl: string
 
   const db = getDb();
   const [lineupsByMatch, ridesByMatch, remindedRows] = await Promise.all([
-    getLineups(),
+    getLineups({ publishedOnly: true }),
     getRidesByMatch(),
     db.select({ matchId: lineups.matchId, playerId: lineups.playerId, remindedAt: lineups.remindedAt }).from(lineups),
   ]);

@@ -97,18 +97,38 @@ async function notify(
   });
 }
 
-/** Removes the player as passenger from every ride of this match; returns the drivers they left. */
-async function leaveAllRides(playerId: number, matchId: number): Promise<number[]> {
-  const db = getDb();
-  const left = await db
-    .select({ passengerId: ridePassengers.id, driverId: rides.driverPlayerId })
-    .from(ridePassengers)
-    .innerJoin(rides, eq(ridePassengers.rideId, rides.id))
-    .where(and(eq(ridePassengers.playerId, playerId), eq(rides.matchId, matchId)));
-  if (left.length > 0) {
-    await db.delete(ridePassengers).where(inArray(ridePassengers.id, left.map((l) => l.passengerId)));
+/** Gives seats back after passengers left (one per removed passenger row). */
+async function releaseSeats(rideIds: number[]) {
+  for (const id of rideIds) {
+    await getDb()
+      .update(rides)
+      .set({ taken: sql`greatest(${rides.taken} - 1, 0)` })
+      .where(eq(rides.id, id));
   }
-  return left.map((l) => l.driverId);
+}
+
+/**
+ * Removes the player as passenger from the rides of this match (except `keepRideId`); returns the drivers they left.
+ */
+async function leaveAllRides(playerId: number, matchId: number, keepRideId?: number): Promise<number[]> {
+  const db = getDb();
+  const removed = await db
+    .delete(ridePassengers)
+    .where(
+      and(
+        eq(ridePassengers.playerId, playerId),
+        sql`${ridePassengers.rideId} in (select id from rides where match_id = ${matchId})`,
+        keepRideId ? sql`${ridePassengers.rideId} <> ${keepRideId}` : undefined,
+      ),
+    )
+    .returning({ rideId: ridePassengers.rideId });
+  if (removed.length === 0) return [];
+  await releaseSeats(removed.map((r) => r.rideId));
+  const drivers = await db
+    .select({ id: rides.driverPlayerId })
+    .from(rides)
+    .where(inArray(rides.id, removed.map((r) => r.rideId)));
+  return drivers.map((d) => d.id);
 }
 
 function refresh() {
@@ -216,38 +236,35 @@ export async function joinRide(formData: FormData): Promise<RideActionResult> {
     .limit(1);
   if (ownRide) return { error: "Du fährst selbst – sag erst deine Fahrt ab." };
 
-  // Take the seat in one statement that also checks it's free: a double tap or two players grabbing the last seat
-  // at once can't overfill the car, and only the request that actually got the seat emails the driver.
-  const inserted = await db.execute(sql`
-    insert into ride_passengers (ride_id, player_id)
-    select ${ride.id}, ${player.id} from rides
-    where id = ${ride.id} and (select count(*) from ride_passengers where ride_id = ${ride.id}) < seats
-    on conflict do nothing
-    returning id`);
-  const taken = inserted.rows.length > 0;
+  const [aboard] = await db
+    .select({ id: ridePassengers.id })
+    .from(ridePassengers)
+    .where(and(eq(ridePassengers.rideId, ride.id), eq(ridePassengers.playerId, player.id)))
+    .limit(1);
+  if (aboard) return;
+
+  // Take the seat on the ride row itself: "taken < seats" is re-checked on the locked row (and a CHECK backs it up),
+  // so two players grabbing the last seat at once can't both get it.
+  const [seat] = await db
+    .update(rides)
+    .set({ taken: sql`${rides.taken} + 1` })
+    .where(and(eq(rides.id, ride.id), sql`${rides.taken} < ${rides.seats}`))
+    .returning({ id: rides.id });
+  if (!seat) return { error: "Das Auto ist leider schon voll." };
+
+  const [taken] = await db
+    .insert(ridePassengers)
+    .values({ rideId: ride.id, playerId: player.id })
+    .onConflictDoNothing()
+    .returning({ id: ridePassengers.id });
   if (!taken) {
-    const [already] = await db
-      .select({ id: ridePassengers.id })
-      .from(ridePassengers)
-      .where(and(eq(ridePassengers.rideId, ride.id), eq(ridePassengers.playerId, player.id)))
-      .limit(1);
-    return already ? undefined : { error: "Das Auto ist leider schon voll." };
+    // A double tap got here first — give back the seat this request counted.
+    await releaseSeats([ride.id]);
+    return;
   }
 
   // Now that the new seat is safe, leave any other car for this match.
-  const left = await db
-    .delete(ridePassengers)
-    .where(
-      and(
-        eq(ridePassengers.playerId, player.id),
-        sql`${ridePassengers.rideId} <> ${ride.id}`,
-        sql`${ridePassengers.rideId} in (select id from rides where match_id = ${match.id})`,
-      ),
-    )
-    .returning({ rideId: ridePassengers.rideId });
-  const leftDrivers = left.length
-    ? (await db.select({ id: rides.driverPlayerId }).from(rides).where(inArray(rides.id, left.map((l) => l.rideId)))).map((r) => r.id)
-    : [];
+  const leftDrivers = await leaveAllRides(player.id, match.id, ride.id);
   await db
     .delete(rideRequests)
     .where(and(eq(rideRequests.matchId, match.id), eq(rideRequests.playerId, player.id)));
@@ -268,6 +285,7 @@ export async function leaveRide(formData: FormData): Promise<RideActionResult> {
     .delete(ridePassengers)
     .where(and(eq(ridePassengers.rideId, ride.id), eq(ridePassengers.playerId, player.id)))
     .returning();
+  await releaseSeats(removed.map((r) => r.rideId));
 
   const match = await loadUpcomingMatch(ride.matchId);
   if (match && removed.length > 0) {
@@ -351,7 +369,7 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
 
   const db = getDb();
   const [row] = await db
-    .select({ role: lineups.role, response: lineups.response, captainId: teams.captainPlayerId, published: matches.lineupPublishedAt })
+    .select({ role: lineups.role, response: lineups.response, captainId: teams.captainPlayerId, published: lineups.publishedAt })
     .from(lineups)
     .innerJoin(matches, eq(lineups.matchId, matches.id))
     .innerJoin(teams, eq(matches.teamId, teams.id))
@@ -369,7 +387,7 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
     .returning({ id: lineups.id });
   if (changed.length === 0) return;
 
-  const lineupNow = (await getLineups()).get(matchId) ?? [];
+  const lineupNow = (await getLineups({ publishedOnly: true })).get(matchId) ?? [];
   const alerts = responseAlerts(row.role as LineupRole, row.response as LineupResponse | null, response, lineupNow);
   const name = playerLabel(player);
   const detail = matchLine(match);

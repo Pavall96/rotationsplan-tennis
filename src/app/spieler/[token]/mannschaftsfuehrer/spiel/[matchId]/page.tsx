@@ -166,7 +166,13 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
 
         <ol className="mb-3 space-y-1.5">
           {stamm.map((e, i) => (
-            <LineupRow key={e.playerId} label={`${i + 1}`} entry={e} hidden={hidden} />
+            <LineupRow
+              key={e.playerId}
+              label={`${i + 1}`}
+              entry={e}
+              hidden={hidden}
+              unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+            />
           ))}
           {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
         </ol>
@@ -175,7 +181,14 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
             <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
             <ul className="mb-3 space-y-1.5">
               {ersatz.map((e) => (
-                <LineupRow key={e.playerId} label="E" entry={e} hidden={hidden} promote />
+                <LineupRow
+                  key={e.playerId}
+                  label="E"
+                  entry={e}
+                  hidden={hidden}
+                  promote
+                  unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                />
               ))}
             </ul>
           </>
@@ -281,11 +294,14 @@ function LineupRow({
   entry,
   hidden,
   promote = false,
+  unpublished = false,
 }: {
   label: string;
   entry: LineupEntry & { lists: string; problem: string | null };
   hidden: { token: string; matchId: number };
   promote?: boolean;
+  /** Added or changed since the last publish — players don't see it yet. */
+  unpublished?: boolean;
 }) {
   const response = entry.response ? RESPONSE_LABEL[entry.response] : null;
   return (
@@ -299,7 +315,9 @@ function LineupRow({
         <span className="block truncate text-sm font-semibold">{entry.name}</span>
         <span className="text-[11px] text-[var(--color-ink-faint)]">
           {entry.lists}
-          {response ? (
+          {unpublished ? (
+            <span className="font-semibold text-[var(--color-h30)]"> · noch nicht veröffentlicht</span>
+          ) : response ? (
             <span className={`font-semibold ${response.color}`}> · {response.text}</span>
           ) : entry.notified ? (
             " · benachrichtigt"

@@ -6,6 +6,7 @@ const entry = (playerId: number, role: "stamm" | "ersatz", response: "ja" | "nei
   playerId,
   name: `P${playerId}`,
   role,
+  published: true,
   notified: true,
   hasEmail: true,
   response,
@@ -47,6 +48,7 @@ test("lineupContext: Festspiel count and same-day check", async () => {
       opponent: "X",
       playersNeeded: 4,
       lineupPublishedAt: null,
+      scheduleVersion: 0,
       team: { id: rank + (ageClass === "h30" ? 10 : 0), slug: "", name: `${ageClass} ${rank}`, ageClass, rank },
       venue: null,
     }) as const;
