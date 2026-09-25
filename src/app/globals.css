@@ -24,6 +24,14 @@
   --color-nein-bg: #FBEAEA;
   --color-offen: #6B7268;
   --color-offen-bg: #EFEFE6;
+
+  --color-herren: #1F5FA8;
+  --color-herren-bg: rgba(31, 95, 168, 0.11);
+  --color-h30: #A5560F;
+  --color-h30-bg: rgba(165, 86, 15, 0.12);
+
+  --color-vielleicht: #8A6100;
+  --color-vielleicht-bg: #FBF1D9;
 }
 
 @theme inline {
@@ -58,6 +66,14 @@
     --color-nein-bg: rgba(242, 113, 113, 0.14);
     --color-offen: #9CA8A0;
     --color-offen-bg: rgba(156, 168, 160, 0.14);
+
+    --color-herren: #8DB8EC;
+    --color-herren-bg: rgba(141, 184, 236, 0.16);
+    --color-h30: #F0A864;
+    --color-h30-bg: rgba(240, 168, 100, 0.16);
+
+    --color-vielleicht: #F5C451;
+    --color-vielleicht-bg: rgba(245, 196, 81, 0.14);
   }
 }
 

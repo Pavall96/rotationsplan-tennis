@@ -47,6 +47,29 @@ npm install
    ```
 7. **Links verteilen:** `/admin?key=<ADMIN_TOKEN>` zeigt alle persönlichen Links zum Kopieren.
 
+## Winterspiele der Mannschaften
+
+Spielplan und Hallenadressen der vier Teams (Herren I/II, Herren 30 I/II) kommen direkt von den WTB-Mannschaftsseiten:
+
+```bash
+npm run data:wtb -- --dry-run   # nur anzeigen
+npm run data:wtb                # in die Datenbank schreiben (erneut ausführbar, z.B. nach Terminverschiebungen)
+```
+
+Meldeliste (Reihenfolge, LK, Nationalität) aus `data/meldeliste.json` importieren – legt fehlende Spieler an und
+verknüpft bestehende über die WTB-ID (Zuordnung Spitzname → WTB-ID steht im Skript):
+
+```bash
+npm run data:meldeliste -- --dry-run
+npm run data:meldeliste
+```
+
+Die Spielregeln (fest in der 1. Mannschaft, Festspielen, Nicht-Deutsche) stehen in `src/lib/eligibility.ts`, getestet
+mit `npm test`. Fahrgemeinschaften laufen über `/spieler/<token>/punktspiele`.
+
+Die Tabellen dafür (`teams`, `venues`, `matches`, `roster_entries`, `rides`, …) stehen in `drizzle/manual-migrations.sql`. Mannschaftsführer erreichen
+über ihre persönliche Seite den Bereich `/spieler/<token>/mannschaftsfuehrer`, wo sie Spieler ohne Training anlegen können.
+
 ## Entwicklung
 
 ```bash

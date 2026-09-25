@@ -11,7 +11,10 @@
     "db:seed": "dotenv -e .env.local -- tsx scripts/seed.ts",
     "data:parse": "tsx scripts/parse-xlsx.ts",
     "data:emails": "dotenv -e .env.local -- tsx scripts/import-emails.ts",
-    "tokens:list": "dotenv -e .env.local -- tsx scripts/list-links.ts"
+    "tokens:list": "dotenv -e .env.local -- tsx scripts/list-links.ts",
+    "data:wtb": "dotenv -e .env.local -- tsx scripts/import-wtb.ts",
+    "data:meldeliste": "dotenv -e .env.local -- tsx scripts/import-meldeliste.ts",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

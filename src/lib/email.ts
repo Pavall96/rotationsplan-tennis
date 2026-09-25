@@ -310,3 +310,68 @@ export async function sendReminderBatch(
   }
   return (data?.data ?? []).map((d, i) => ({ to: messages[i].to as string, id: d.id }));
 }
+
+export type NoticeEmailInput = {
+  to: string;
+  playerName: string;
+  subject: string;
+  /** Main message, e.g. "Hakan fährt bei dir mit." */
+  line: string;
+  /** Short context under the message, e.g. "Sa., 19.12. · Herren I bei TC RW Bad Mergentheim 1". */
+  detail: string;
+  cta: { url: string; label: string };
+  token: string;
+  baseUrl: string;
+};
+
+/** A short one-message email (used for Fahrgemeinschaft updates) in the same look as the reminders. */
+export function renderNotice(input: NoticeEmailInput): { html: string; text: string } {
+  const { baseUrl, token } = input;
+  const html = `
+  <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;border-radius:8px;overflow:hidden;">
+    <p style="display:none;max-height:0;overflow:hidden;">${escapeHtml(input.line)}</p>
+    <table role="presentation" width="100%" style="background:#11324e;">
+      <tr>
+        <td style="padding:18px 32px;" valign="middle">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:10px;"><img src="${baseUrl}/logo.png" width="36" height="36" alt="TC Sonnenbrunnen" style="display:block;border-radius:50%;"></td>
+            <td style="color:#ffffff;font-weight:700;font-size:15px;letter-spacing:0.02em;">TC SONNENBRUNNEN</td>
+          </tr></table>
+        </td>
+        <td style="padding:18px 32px;color:#a9c9bb;font-size:12px;text-align:right;" valign="middle">Winterspiele 2026/27</td>
+      </tr>
+    </table>
+    <div style="padding:32px;">
+      <p style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">Hallo ${escapeHtml(input.playerName)}!</p>
+      <div style="border:1px solid #e5e7eb;border-radius:8px;padding:18px 20px;margin-bottom:24px;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#111827;">${escapeHtml(input.line)}</p>
+        <p style="margin:0;font-size:13px;color:#6b7280;">${escapeHtml(input.detail)}</p>
+      </div>
+      <a href="${input.cta.url}" style="display:block;text-align:center;background:#11324e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${escapeHtml(input.cta.label)}</a>
+    </div>
+    <div style="background:#fafaf9;border-top:1px solid #f0f0ef;padding:20px 32px;">
+      <p style="margin:0 0 4px;font-size:12px;"><a href="${baseUrl}/spieler/${token}" style="color:#6b7280;">Dein persönlicher Link</a></p>
+      <p style="margin:0;font-size:12px;color:#9ca3af;">Diesen Link nicht weitergeben.</p>
+    </div>
+  </div>`;
+  const text = [`Hallo ${input.playerName},`, ``, input.line, input.detail, ``, `${input.cta.label}: ${input.cta.url}`].join("\n");
+  return { html, text };
+}
+
+export async function sendNotice(input: NoticeEmailInput, opts: { from: string; replyTo?: string }): Promise<SendResult> {
+  const { html, text } = renderNotice(input);
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[DEV EMAIL] an ${input.to}: ${input.subject}`);
+    return { to: input.to };
+  }
+  const { data, error } = await resend.emails.send({
+    from: opts.from,
+    to: input.to,
+    replyTo: opts.replyTo,
+    subject: input.subject,
+    html,
+    text,
+  });
+  return error ? { to: input.to, error: error.message } : { to: input.to, id: data?.id };
+}
