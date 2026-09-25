@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   const baseUrl = await getBaseUrl();
 
   // Punktspiele once the lineup is published, for Stammspieler (the Ersatz isn't a commitment, same as training).
-  const [allMatches, lineupsByMatch] = await Promise.all([getAllMatches(), getLineups()]);
+  const [allMatches, lineupsByMatch] = await Promise.all([getAllMatches(), getLineups({ publishedOnly: true })]);
   const myMatches = allMatches.filter(
     (m) =>
       m.lineupPublishedAt &&

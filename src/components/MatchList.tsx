@@ -24,7 +24,7 @@ export async function MatchList({
     getAllMatches(),
     getTeams(),
     getRidesByMatch(),
-    getLineups(),
+    getLineups({ publishedOnly: true }),
   ]);
 
   const selected = teamList.find((t) => t.slug === teamSlug) ?? null;
@@ -58,7 +58,8 @@ export async function MatchList({
       {selected && (
         <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
           {selected.league}
-          {selected.captainName && ` · Mannschaftsführer: ${selected.captainName}`}
+          {/* Player names only behind a personal link. */}
+          {viewer && selected.captainName && ` · Mannschaftsführer: ${selected.captainName}`}
         </p>
       )}
 

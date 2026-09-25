@@ -128,3 +128,13 @@ ALTER TABLE lineups ADD CONSTRAINT lineups_response_check CHECK (response in ('j
 
 -- 2026-09-25: cooldown for the availability reminder (review fix). Additive, nullable.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS availability_reminded_at timestamptz;
+
+-- 2026-09-25: review follow-ups. Additive columns with defaults (lineups and rides were still empty).
+ALTER TABLE lineups ADD COLUMN IF NOT EXISTS published_at timestamptz;
+UPDATE lineups SET published_at = COALESCE(notified_at, (SELECT lineup_published_at FROM matches WHERE matches.id = lineups.match_id))
+  WHERE published_at IS NULL;
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS schedule_version smallint NOT NULL DEFAULT 0;
+ALTER TABLE rides ADD COLUMN IF NOT EXISTS taken smallint NOT NULL DEFAULT 0;
+UPDATE rides SET taken = (SELECT count(*) FROM ride_passengers WHERE ride_passengers.ride_id = rides.id);
+ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_taken_check;
+ALTER TABLE rides ADD CONSTRAINT rides_taken_check CHECK (taken >= 0 AND taken <= seats);

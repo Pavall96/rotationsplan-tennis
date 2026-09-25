@@ -108,17 +108,24 @@ async function main() {
   );
 
   for (const [ageClass, list] of Object.entries(file.lists) as ["herren" | "h30", ListEntry[]][]) {
-    await db.delete(rosterEntries).where(eq(rosterEntries.ageClass, ageClass));
-    await db.insert(rosterEntries).values(
-      list.map((e) => ({
+    const rows = list.map((e) => {
+      const playerId = idByWtb.get(e.wtbId);
+      if (!playerId) throw new Error(`Kein Spieler für WTB-ID ${e.wtbId} (${e.firstName} ${e.lastName}).`);
+      return {
         ageClass,
         position: e.position,
-        playerId: idByWtb.get(e.wtbId)!,
+        playerId,
         lk: e.lk.toFixed(1),
         nationality: e.nationality,
         countsAsGerman: e.countsAsGerman,
-      })),
-    );
+      };
+    });
+    // Delete and re-insert as one transaction (the HTTP driver's batch): if the insert fails, the old list stays,
+    // so production never ends up with an empty Meldeliste.
+    await db.batch([
+      db.delete(rosterEntries).where(eq(rosterEntries.ageClass, ageClass)),
+      db.insert(rosterEntries).values(rows),
+    ]);
   }
 
   console.log(`\n✅ Meldeliste importiert.`);

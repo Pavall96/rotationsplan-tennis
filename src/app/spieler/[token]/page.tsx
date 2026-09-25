@@ -35,7 +35,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
     getAllMatches(),
     getPlayerRoster(player.id),
     getAvailability(),
-    getLineups(),
+    getLineups({ publishedOnly: true }),
   ]);
   const myMatches = allMatches.filter(
     (m) =>

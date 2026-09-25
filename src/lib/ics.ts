@@ -145,7 +145,8 @@ export function matchToIcsEvent(
     location: venue ? (venue.address ? `${venue.name}, ${venue.address}` : venue.name) : "",
     start: match.startsAt,
     end: new Date(match.startsAt.getTime() + MATCH_DURATION_MS),
-    sequence: 0,
+    // Bumped when the WTB moves the match, so calendar apps replace the old time instead of keeping it.
+    sequence: match.scheduleVersion,
     status: me?.response === "nein" ? "CANCELLED" : "CONFIRMED",
   };
 }

@@ -162,6 +162,8 @@ export const matches = pgTable("matches", {
   playersNeeded: smallint("players_needed").notNull().default(4),
   // Set when the Mannschaftsführer publishes the lineup; players only see it (and get emailed) from then on.
   lineupPublishedAt: timestamp("lineup_published_at", { withTimezone: true }),
+  // Bumped by the WTB import whenever date, time or hall change — used as the calendar event's SEQUENCE.
+  scheduleVersion: smallint("schedule_version").notNull().default(0),
 });
 
 // Namentliche Mannschaftsmeldung: one ranked list per age class. Positions 1–4 are fixed to the first team.
@@ -198,6 +200,9 @@ export const rides = pgTable(
       .notNull()
       .references(() => players.id),
     seats: smallint("seats").notNull(),
+    // Seats taken, kept in step with ride_passengers. Incremented with "where taken < seats" and guarded by a CHECK,
+    // so two players grabbing the last seat at once can't both get it.
+    taken: smallint("taken").notNull().default(0),
     meetingPoint: text("meeting_point").notNull(),
     departureTime: time("departure_time").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -205,6 +210,7 @@ export const rides = pgTable(
   (table) => [
     unique("rides_match_driver_unique").on(table.matchId, table.driverPlayerId),
     check("rides_seats_check", sql`${table.seats} between 1 and 8`),
+    check("rides_taken_check", sql`${table.taken} >= 0 and ${table.taken} <= ${table.seats}`),
   ],
 );
 
@@ -270,7 +276,9 @@ export const lineups = pgTable(
       .notNull()
       .references(() => players.id),
     role: text("role").notNull(),
-    // When this player was emailed about the published lineup — so re-publishing only emails newcomers.
+    // When this entry became visible to the players. Entries added after a publish stay private until the next one.
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    // When this player was emailed about the published lineup.
     notifiedAt: timestamp("notified_at", { withTimezone: true }),
     // The player's answer to the published lineup: 'ja' (dabei / bereit) or 'nein' (Absage); null = no answer yet.
     response: text("response"),
