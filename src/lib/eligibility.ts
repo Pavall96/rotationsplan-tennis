@@ -48,7 +48,7 @@ export function festspielWarning(roster: PlayerRoster, team: TeamRef, firstTeamA
 }
 
 /** At most one player per team who doesn't count as German (§ 33a Ziff. 1). */
-export function tooManyNonGermans(lineup: RosterEntry[]): boolean {
+export function tooManyNonGermans(lineup: { countsAsGerman: boolean }[]): boolean {
   return lineup.filter((e) => !e.countsAsGerman).length > 1;
 }
 
@@ -66,4 +66,33 @@ export function sortByMeldeliste<T extends RosterEntry>(lineup: T[]): T[] {
 export function canBeAsked(roster: PlayerRoster, team: TeamRef): boolean {
   if (team.ageClass === "herren" && !roster.herren) return Boolean(roster.h30);
   return canPlay(roster, team).ok;
+}
+
+export type LineupContext = {
+  playsMatches: boolean;
+  /** Matches so far (earlier dates, published or planned) in the first team of this age class. */
+  firstTeamAppearances: number;
+  /** Another team the player is already lined up for on the same day, if any. */
+  sameDayTeam: string | null;
+};
+
+export type LineupCheck = { ok: true; warnings: string[] } | { ok: false; reason: string };
+
+/** Everything that decides whether a Mannschaftsführer may put this player into this match's lineup. */
+export function lineupCheck(roster: PlayerRoster, team: TeamRef, ctx: LineupContext): LineupCheck {
+  if (!ctx.playsMatches) return { ok: false, reason: "Spielt diese Saison nicht" };
+  if (ctx.sameDayTeam) return { ok: false, reason: `Spielt am selben Tag schon für ${ctx.sameDayTeam}` };
+
+  const warnings: string[] = [];
+  if (team.ageClass === "herren" && !roster.herren && roster.h30) {
+    // The club's rule: H30 players help out in the Herren teams — they must be on the Herren Wintermeldung.
+    warnings.push("Nicht auf der Herren-Meldeliste – nur spielberechtigt, wenn er in der Wintermeldung steht");
+  } else {
+    const eligible = canPlay(roster, team, ctx.firstTeamAppearances);
+    if (!eligible.ok) return eligible;
+  }
+
+  const festspiel = festspielWarning(roster, team, ctx.firstTeamAppearances);
+  if (festspiel) warnings.push(festspiel);
+  return { ok: true, warnings };
 }

@@ -158,6 +158,8 @@ export const matches = pgTable("matches", {
   opponent: text("opponent").notNull(),
   venueId: integer("venue_id").references(() => venues.id),
   playersNeeded: smallint("players_needed").notNull().default(4),
+  // Set when the Mannschaftsführer publishes the lineup; players only see it (and get emailed) from then on.
+  lineupPublishedAt: timestamp("lineup_published_at", { withTimezone: true }),
 });
 
 // Namentliche Mannschaftsmeldung: one ranked list per age class. Positions 1–4 are fixed to the first team.
@@ -251,5 +253,27 @@ export const availability = pgTable(
   (table) => [
     unique("availability_player_date_unique").on(table.playerId, table.matchDate),
     check("availability_status_check", sql`${table.status} in ('ja', 'vielleicht', 'nein')`),
+  ],
+);
+
+// Aufstellung: who plays a match. 'stamm' play the singles (in Meldeliste order) and doubles; 'ersatz' stand by.
+export const lineups = pgTable(
+  "lineups",
+  {
+    id: serial("id").primaryKey(),
+    matchId: integer("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    role: text("role").notNull(),
+    // When this player was emailed about the published lineup — so re-publishing only emails newcomers.
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("lineups_match_player_unique").on(table.matchId, table.playerId),
+    check("lineups_role_check", sql`${table.role} in ('stamm', 'ersatz')`),
   ],
 );

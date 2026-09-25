@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canPlay, canBeAsked, festspielWarning, tooManyNonGermans, sortByMeldeliste } from "./eligibility";
+import { canPlay, canBeAsked, lineupCheck, festspielWarning, tooManyNonGermans, sortByMeldeliste } from "./eligibility";
 
 const herren1 = { ageClass: "herren", rank: 1 } as const;
 const herren2 = { ageClass: "herren", rank: 2 } as const;
@@ -72,4 +72,24 @@ test("availability poll: who is asked about which team", () => {
 
   assert.equal(canBeAsked({}, h30_2), false);
   assert.equal(canBeAsked({}, herren1), false);
+});
+
+test("lineup: blocks same-day doubles, inactive players and list rules; warns where the club decides", () => {
+  const ctx = { playsMatches: true, firstTeamAppearances: 0, sameDayTeam: null };
+  const pablo = { h30: { position: 16, countsAsGerman: false }, herren: { position: 20, countsAsGerman: false } };
+  assert.deepEqual(lineupCheck(pablo, h30_2, ctx), { ok: true, warnings: [] });
+
+  const busy = lineupCheck(pablo, herren2, { ...ctx, sameDayTeam: "Herren 30 I" });
+  assert.equal(busy.ok, false);
+  assert.equal(lineupCheck(pablo, h30_2, { ...ctx, playsMatches: false }).ok, false);
+  assert.equal(lineupCheck(pablo, h30_2, { ...ctx, firstTeamAppearances: 3 }).ok, false);
+
+  const festspiel = lineupCheck(pablo, h30_1, { ...ctx, firstTeamAppearances: 2 });
+  assert.ok(festspiel.ok && festspiel.warnings.length === 1);
+
+  const h30Only = { h30: { position: 6, countsAsGerman: true } };
+  const helpsOut = lineupCheck(h30Only, herren1, ctx);
+  assert.ok(helpsOut.ok && /Wintermeldung/.test(helpsOut.warnings[0]));
+
+  assert.equal(lineupCheck({ herren: { position: 12, countsAsGerman: true } }, h30_1, ctx).ok, false);
 });

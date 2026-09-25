@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getAllMatches, getTeams, groupByDay } from "@/lib/matches";
 import { getRidesByMatch } from "@/lib/rides";
+import { getLineups } from "@/lib/lineups";
 import { formatDateForFile, formatDayShort } from "@/lib/format";
 import { MatchCard, teamChipClasses } from "@/components/MatchCard";
 import { RideSection } from "@/components/RideSection";
+import { LineupLine } from "@/components/LineupLine";
 
 /**
  * Upcoming team matches grouped by day, filterable by team. With a viewer (the personal page) each card gets the
@@ -18,7 +20,12 @@ export async function MatchList({
   teamSlug: string | undefined;
   viewer: { token: string; playerId: number } | null;
 }) {
-  const [allMatches, teamList, ridesByMatch] = await Promise.all([getAllMatches(), getTeams(), getRidesByMatch()]);
+  const [allMatches, teamList, ridesByMatch, lineupsByMatch] = await Promise.all([
+    getAllMatches(),
+    getTeams(),
+    getRidesByMatch(),
+    getLineups(),
+  ]);
 
   const selected = teamList.find((t) => t.slug === teamSlug) ?? null;
   const today = formatDateForFile(new Date());
@@ -72,6 +79,7 @@ export async function MatchList({
               <div className="space-y-3">
                 {shown.map((m) => (
                   <MatchCard key={m.id} match={m}>
+                    <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewerId={viewer?.playerId ?? null} />
                     <RideSection
                       match={m}
                       data={ridesByMatch.get(m.id) ?? { rides: [], requests: [] }}

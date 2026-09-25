@@ -1,5 +1,5 @@
 import type { MatchView, AgeClass } from "@/lib/matches";
-import { formatTime, directionsUrl, appleDirectionsUrl } from "@/lib/format";
+import { formatTime, formatDayShort, directionsUrl, appleDirectionsUrl } from "@/lib/format";
 import { PinIcon } from "@/components/icons";
 
 export function teamChipClasses(ageClass: AgeClass): string {
@@ -16,7 +16,16 @@ export function TeamChip({ name, ageClass }: { name: string; ageClass: AgeClass 
   );
 }
 
-export function MatchCard({ match, children }: { match: MatchView; children?: React.ReactNode }) {
+export function MatchCard({
+  match,
+  showDate = false,
+  children,
+}: {
+  match: MatchView;
+  /** For lists that aren't grouped under day headers. */
+  showDate?: boolean;
+  children?: React.ReactNode;
+}) {
   const { venue } = match;
 
   return (
@@ -34,7 +43,9 @@ export function MatchCard({ match, children }: { match: MatchView; children?: Re
       <p className="font-display text-lg font-bold leading-snug">
         {match.isHome ? "gegen" : "bei"} {match.opponent}
       </p>
-      <p className="mb-3 text-sm text-[var(--color-ink-muted)]">{formatTime(match.startsAt)} Uhr</p>
+      <p className="mb-3 text-sm text-[var(--color-ink-muted)]">{showDate && `${formatDayShort(match.startsAt)} · `}
+        {formatTime(match.startsAt)} Uhr
+      </p>
 
       {venue && (
         <div className="rounded-[14px] bg-[var(--color-tabs-bg)] px-3 py-2.5">

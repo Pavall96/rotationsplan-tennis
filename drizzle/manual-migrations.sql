@@ -104,3 +104,17 @@ CREATE TABLE IF NOT EXISTS availability (
 
 -- 2026-09-25: players who hold a Meldeliste position but won't play (e.g. moved away). Additive, defaults to true.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS plays_matches boolean NOT NULL DEFAULT true;
+
+-- 2026-09-25: Aufstellung (Phase 3). Additive: one nullable column, one new table.
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS lineup_published_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS lineups (
+  id serial PRIMARY KEY,
+  match_id integer NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  player_id integer NOT NULL REFERENCES players(id),
+  role text NOT NULL,
+  notified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT lineups_match_player_unique UNIQUE (match_id, player_id),
+  CONSTRAINT lineups_role_check CHECK (role in ('stamm', 'ersatz'))
+);

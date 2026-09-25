@@ -8,15 +8,16 @@ import { getRoster, rosterByPlayer, activeRows } from "@/lib/roster";
 import { setPlaysMatches } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
 import { getAvailability } from "@/lib/availability";
+import { getLineups } from "@/lib/lineups";
 import { AvailabilityOverview } from "@/components/AvailabilityOverview";
 import { AvailabilityReminder } from "@/components/AvailabilityReminder";
 import { AGE_CLASS_LABEL, FIXED_POSITIONS } from "@/lib/eligibility";
 import { getBaseUrl } from "@/lib/base-url";
-import { formatDateForFile, playerLabel } from "@/lib/format";
+import { formatDateForFile, formatDayShort, formatTime, playerLabel } from "@/lib/format";
 import { inviteText, whatsappUrl } from "@/lib/invite";
 import { AddPlayerForm } from "@/components/AddPlayerForm";
 import { TeamChip } from "@/components/MatchCard";
-import { ArrowLeftIcon } from "@/components/icons";
+import { ArrowLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +35,15 @@ export default async function CaptainPage({
   if (myTeams.length === 0) notFound();
 
   const db = getDb();
-  const [allMatches, allPlayers, roster, answers, baseUrl] = await Promise.all([
+  const [allMatches, allPlayers, roster, answers, lineupsByMatch, baseUrl] = await Promise.all([
     getAllMatches(),
     db.select().from(players).orderBy(players.displayName),
     getRoster(),
     getAvailability(),
+    getLineups(),
     getBaseUrl(),
   ]);
+  const myTeamIds = new Set(myTeams.map((t) => t.id));
   const listClass: AgeClass = liste === "herren" || liste === "h30" ? liste : myTeams[0].ageClass;
   const list = roster.filter((r) => r.ageClass === listClass);
   const onHerrenList = new Set(roster.filter((r) => r.ageClass === "herren").map((r) => r.playerId));
@@ -71,6 +74,71 @@ export default async function CaptainPage({
           ))}
         </div>
       </header>
+
+      <section className="mb-6">
+        <h2 className="mb-1 font-display font-bold">Aufstellungen</h2>
+        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+          Deine Spiele zum Aufstellen, die anderen Teams zum Mitlesen – wer dort steht, ist am selben Tag für dich
+          gesperrt.
+        </p>
+        <div className="overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)]">
+          {days.flatMap(({ matches: dayMatches }) => dayMatches).map((m) => {
+            const entries = lineupsByMatch.get(m.id) ?? [];
+            const stamm = entries.filter((e) => e.role === "stamm");
+            const mine = myTeamIds.has(m.team.id);
+            const status = (
+              <span
+                className={`shrink-0 text-[11px] font-semibold ${
+                  m.lineupPublishedAt ? "text-[var(--color-ja)]" : "text-[var(--color-ink-muted)]"
+                }`}
+              >
+                {stamm.length}/{m.playersNeeded}
+                {m.lineupPublishedAt ? " · veröffentlicht" : ""}
+              </span>
+            );
+            const body = (
+              <>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
+                    <span className="truncate text-sm">
+                      {formatDayShort(m.startsAt)} {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+                    </span>
+                  </span>
+                  {mine ? <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" /> : status}
+                </span>
+                {mine ? (
+                  <span className="mt-0.5 flex justify-between text-xs">
+                    <span className="truncate text-[var(--color-ink-muted)]">
+                      {stamm.length ? stamm.map((e) => e.name).join(", ") : "Noch niemand aufgestellt"}
+                    </span>
+                    {status}
+                  </span>
+                ) : (
+                  stamm.length > 0 && (
+                    <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-muted)]">
+                      {stamm.map((e) => e.name).join(", ")}
+                    </span>
+                  )
+                )}
+              </>
+            );
+            return mine ? (
+              <Link
+                key={m.id}
+                href={`/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}`}
+                className="block border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0"
+              >
+                {body}
+              </Link>
+            ) : (
+              <div key={m.id} className="border-b border-[var(--color-border)] px-3.5 py-2.5 opacity-80 last:border-b-0">
+                {body}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mb-6">
         <h2 className="mb-1 font-display font-bold">Wer kann wann?</h2>

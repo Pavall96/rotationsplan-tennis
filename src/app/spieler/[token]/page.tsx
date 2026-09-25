@@ -17,6 +17,9 @@ import { getTeams, getAllMatches } from "@/lib/matches";
 import { getPlayerRoster } from "@/lib/roster";
 import { getAvailability, pollDaysForPlayer } from "@/lib/availability";
 import { AvailabilityPicker } from "@/components/AvailabilityPicker";
+import { getLineups } from "@/lib/lineups";
+import { MatchCard } from "@/components/MatchCard";
+import { LineupLine } from "@/components/LineupLine";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +29,20 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
   const player = await getPlayerByToken(token);
   if (!player) notFound();
 
-  const [schedule, teamList, allMatches, roster, answers] = await Promise.all([
+  const [schedule, teamList, allMatches, roster, answers, lineupsByMatch] = await Promise.all([
     getFullSchedule(),
     getTeams(),
     getAllMatches(),
     getPlayerRoster(player.id),
     getAvailability(),
+    getLineups(),
   ]);
+  const myMatches = allMatches.filter(
+    (m) =>
+      m.lineupPublishedAt &&
+      m.matchDate >= formatDateForFile(new Date()) &&
+      (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === player.id),
+  );
   const pollDays = player.playsMatches ? pollDaysForPlayer(roster, allMatches) : [];
   const captainOf = teamList.filter((t) => t.captainPlayerId === player.id);
   const mySessions = sessionsForPlayer(schedule, player.id);
@@ -89,6 +99,28 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
           <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
         </Link>
       </div>
+
+      {myMatches.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
+            Deine Punktspiele
+          </h2>
+          <div className="space-y-3">
+            {myMatches.map((m) => (
+              <MatchCard key={m.id} match={m} showDate>
+                <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewerId={player.id} />
+                <Link
+                  href={`/spieler/${token}/punktspiele#spiel-${m.id}`}
+                  className="mt-3 flex items-center justify-between rounded-[12px] border border-[var(--color-border)] px-3 py-2 text-sm font-medium"
+                >
+                  Fahrgemeinschaft
+                  <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
+                </Link>
+              </MatchCard>
+            ))}
+          </div>
+        </section>
+      )}
 
       <AvailabilityPicker token={token} playerId={player.id} days={pollDays} answers={answers} />
 
