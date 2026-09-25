@@ -7,8 +7,8 @@ import { getDb } from "@/db";
 import { lineups, matches, players, teams } from "@/db/schema";
 import { getAllMatches, type MatchView } from "@/lib/matches";
 import { getLineups, lineupContext, type LineupRole } from "@/lib/lineups";
-import { getPlayerRoster } from "@/lib/roster";
-import { lineupCheck } from "@/lib/eligibility";
+import { getPlayerRoster, getRoster, rosterByPlayer } from "@/lib/roster";
+import { lineupCheck, isNonGerman, tooManyNonGermans } from "@/lib/eligibility";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
 import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
@@ -62,7 +62,15 @@ export async function addToLineup(formData: FormData): Promise<Result> {
   if (!check.ok) return { error: `${playerLabel(player)}: ${check.reason}` };
 
   const current = lineupsByMatch.get(matchId) ?? [];
-  const stamm = current.filter((e) => e.role === "stamm" && e.playerId !== playerId).length;
+  const otherStamm = current.filter((e) => e.role === "stamm" && e.playerId !== playerId);
+  const stamm = otherStamm.length;
+  if (role === "stamm" && isNonGerman(roster)) {
+    // WSPO § 33a Ziff. 1: at most one non-German per match.
+    const rosters = rosterByPlayer(await getRoster());
+    if (otherStamm.some((e) => isNonGerman(rosters.get(e.playerId) ?? {}))) {
+      return { error: `${playerLabel(player)}: Es steht schon ein Nicht-Deutscher auf – höchstens einer pro Spiel.` };
+    }
+  }
   if (role === "stamm" && stamm >= match.playersNeeded) {
     return { error: `Es stehen schon ${match.playersNeeded} Spieler auf – erst jemanden entfernen oder als Ersatz eintragen.` };
   }
@@ -136,8 +144,14 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann veröffentlichen." };
   const { match } = ctx;
 
-  const entries = (await getLineups()).get(matchId) ?? [];
+  const [lineupsByMatch, roster] = await Promise.all([getLineups(), getRoster()]);
+  const entries = lineupsByMatch.get(matchId) ?? [];
   if (entries.length === 0) return { error: "Noch niemand aufgestellt." };
+  const rosters = rosterByPlayer(roster);
+  const starters = entries.filter((e) => e.role === "stamm" && e.response !== "nein");
+  if (tooManyNonGermans(starters.map((e) => ({ countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}) })))) {
+    return { error: "Mehr als ein Nicht-Deutscher aufgestellt – so darf die Aufstellung nicht raus." };
+  }
   const pending = entries.filter((e) => !e.notified);
   const preview: PublishPreview = {
     stammCount: entries.filter((e) => e.role === "stamm").length,
@@ -148,20 +162,23 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   };
   if (!send) return preview;
 
+  const from = process.env.MAIL_FROM;
+  if (preview.withEmail.length > 0 && !from) return { error: "MAIL_FROM fehlt – es wurde nichts veröffentlicht." };
+
   const db = getDb();
   await db.update(matches).set({ lineupPublishedAt: new Date() }).where(and(eq(matches.id, matchId), isNull(matches.lineupPublishedAt)));
-  const toNotify = pending.filter((e) => e.hasEmail).map((e) => e.playerId);
-  // Marked before sending, so a double tap can't email anyone twice.
-  if (toNotify.length > 0) {
-    await db
-      .update(lineups)
-      .set({ notifiedAt: new Date() })
-      .where(and(eq(lineups.matchId, matchId), inArray(lineups.playerId, toNotify)));
-  }
+  // Claim the rows in one conditional update: of two simultaneous publishes, only one gets each player back.
+  const pendingWithEmail = pending.filter((e) => e.hasEmail).map((e) => e.playerId);
+  const toNotify = pendingWithEmail.length
+    ? (
+        await db
+          .update(lineups)
+          .set({ notifiedAt: new Date() })
+          .where(and(eq(lineups.matchId, matchId), isNull(lineups.notifiedAt), inArray(lineups.playerId, pendingWithEmail)))
+          .returning({ playerId: lineups.playerId })
+      ).map((r) => r.playerId)
+    : [];
   refresh();
-
-  const from = process.env.MAIL_FROM;
-  if (toNotify.length > 0 && !from) return { error: "Veröffentlicht, aber MAIL_FROM fehlt – es wurden keine E-Mails verschickt." };
   const baseUrl = await getBaseUrl();
   const stammNames = entries.filter((e) => e.role === "stamm").map((e) => e.name);
 

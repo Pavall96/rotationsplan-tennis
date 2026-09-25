@@ -61,15 +61,17 @@ export function lineupContext(
   allMatches: MatchView[],
   lineupsByMatch: Map<number, LineupEntry[]>,
 ): LineupContext {
-  const inLineup = (m: MatchView, role?: LineupRole) =>
-    (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId && (!role || e.role === role));
+  const inLineup = (m: MatchView) => (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId);
 
+  // A Stammspieler who cancelled didn't play, so that match doesn't count toward Festspielen.
+  const playedFor = (m: MatchView) =>
+    (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId && e.role === "stamm" && e.response !== "nein");
   const firstTeamAppearances = allMatches.filter(
     (m) =>
       m.team.ageClass === match.team.ageClass &&
       m.team.rank === 1 &&
       m.matchDate < match.matchDate &&
-      inLineup(m, "stamm"),
+      playedFor(m),
   ).length;
 
   const sameDay = allMatches.find((m) => m.id !== match.id && m.matchDate === match.matchDate && inLineup(m));

@@ -85,14 +85,26 @@ export function lineupCheck(roster: PlayerRoster, team: TeamRef, ctx: LineupCont
 
   const warnings: string[] = [];
   if (team.ageClass === "herren" && !roster.herren && roster.h30) {
-    // The club's rule: H30 players help out in the Herren teams — they must be on the Herren Wintermeldung.
+    // The club's rule: H30 players help out in the Herren teams — they must be on the Herren Wintermeldung. Their
+    // future Herren position is unknown, but Festspielen (§ 33a Ziff. 3) applies to them all the same.
+    if (team.rank > 1 && ctx.firstTeamAppearances > MAX_HIGHER_TEAM_APPEARANCES) {
+      return { ok: false, reason: `In der 1. Mannschaft festgespielt (${ctx.firstTeamAppearances} Einsätze)` };
+    }
     warnings.push("Nicht auf der Herren-Meldeliste – nur spielberechtigt, wenn er in der Wintermeldung steht");
-  } else {
-    const eligible = canPlay(roster, team, ctx.firstTeamAppearances);
-    if (!eligible.ok) return eligible;
+    if (team.rank === 1 && ctx.firstTeamAppearances === MAX_HIGHER_TEAM_APPEARANCES) {
+      warnings.push("3. Einsatz in der 1. Mannschaft – danach nicht mehr in der 2. spielberechtigt");
+    }
+    return { ok: true, warnings };
   }
 
+  const eligible = canPlay(roster, team, ctx.firstTeamAppearances);
+  if (!eligible.ok) return eligible;
   const festspiel = festspielWarning(roster, team, ctx.firstTeamAppearances);
   if (festspiel) warnings.push(festspiel);
   return { ok: true, warnings };
+}
+
+/** Whether a player counts as a non-German under WSPO § 10 (only entries without the "D" status). */
+export function isNonGerman(roster: PlayerRoster): boolean {
+  return Object.values(roster).some((e) => e && !e.countsAsGerman);
 }
