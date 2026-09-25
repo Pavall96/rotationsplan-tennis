@@ -89,6 +89,7 @@ async function notify(
           { from, replyTo: process.env.REPLY_TO },
         );
         if (result.error) console.error(`Fahrgemeinschafts-Mail an ${p.email} fehlgeschlagen: ${result.error}`);
+        await new Promise((r) => setTimeout(r, 600)); // stay under the mail provider's rate limit
       }
     } catch (err) {
       console.error("Fahrgemeinschafts-Mail fehlgeschlagen:", err);
@@ -147,15 +148,17 @@ export async function offerRide(formData: FormData): Promise<RideActionResult> {
     .delete(rideRequests)
     .where(and(eq(rideRequests.matchId, match.id), eq(rideRequests.playerId, player.id)));
 
-  await db
+  // xmax = 0 only for a freshly inserted row — so of two simultaneous offers, only one counts as "new".
+  const [saved] = await db
     .insert(rides)
     .values({ matchId: match.id, driverPlayerId: player.id, seats, meetingPoint, departureTime })
-    .onConflictDoUpdate({ target: [rides.matchId, rides.driverPlayerId], set: { seats, meetingPoint, departureTime } });
+    .onConflictDoUpdate({ target: [rides.matchId, rides.driverPlayerId], set: { seats, meetingPoint, departureTime } })
+    .returning({ inserted: sql<boolean>`(xmax = 0)` });
 
   const name = playerLabel(player);
   const detail = matchLine(match);
   await notify(leftDrivers, match.id, `${name} fährt doch nicht bei dir mit`, () => `${name} fährt jetzt selbst und nicht mehr bei dir mit.`, detail);
-  if (!existing) {
+  if (saved?.inserted) {
     const searching = await db
       .select({ playerId: rideRequests.playerId })
       .from(rideRequests)
@@ -206,14 +209,45 @@ export async function joinRide(formData: FormData): Promise<RideActionResult> {
   if (!match) return { error: "Das Spiel ist schon vorbei." };
 
   const db = getDb();
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(ridePassengers)
-    .where(eq(ridePassengers.rideId, ride.id));
-  if (count >= ride.seats) return { error: "Das Auto ist leider schon voll." };
+  const [ownRide] = await db
+    .select({ id: rides.id })
+    .from(rides)
+    .where(and(eq(rides.matchId, match.id), eq(rides.driverPlayerId, player.id)))
+    .limit(1);
+  if (ownRide) return { error: "Du fährst selbst – sag erst deine Fahrt ab." };
 
-  const leftDrivers = (await leaveAllRides(player.id, match.id)).filter((id) => id !== ride.driverPlayerId);
-  await db.insert(ridePassengers).values({ rideId: ride.id, playerId: player.id }).onConflictDoNothing();
+  // Take the seat in one statement that also checks it's free: a double tap or two players grabbing the last seat
+  // at once can't overfill the car, and only the request that actually got the seat emails the driver.
+  const inserted = await db.execute(sql`
+    insert into ride_passengers (ride_id, player_id)
+    select ${ride.id}, ${player.id} from rides
+    where id = ${ride.id} and (select count(*) from ride_passengers where ride_id = ${ride.id}) < seats
+    on conflict do nothing
+    returning id`);
+  const taken = inserted.rows.length > 0;
+  if (!taken) {
+    const [already] = await db
+      .select({ id: ridePassengers.id })
+      .from(ridePassengers)
+      .where(and(eq(ridePassengers.rideId, ride.id), eq(ridePassengers.playerId, player.id)))
+      .limit(1);
+    return already ? undefined : { error: "Das Auto ist leider schon voll." };
+  }
+
+  // Now that the new seat is safe, leave any other car for this match.
+  const left = await db
+    .delete(ridePassengers)
+    .where(
+      and(
+        eq(ridePassengers.playerId, player.id),
+        sql`${ridePassengers.rideId} <> ${ride.id}`,
+        sql`${ridePassengers.rideId} in (select id from rides where match_id = ${match.id})`,
+      ),
+    )
+    .returning({ rideId: ridePassengers.rideId });
+  const leftDrivers = left.length
+    ? (await db.select({ id: rides.driverPlayerId }).from(rides).where(inArray(rides.id, left.map((l) => l.rideId)))).map((r) => r.id)
+    : [];
   await db
     .delete(rideRequests)
     .where(and(eq(rideRequests.matchId, match.id), eq(rideRequests.playerId, player.id)));
@@ -325,10 +359,15 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
     .limit(1);
   if (!row || !row.published) return { error: "Du bist für dieses Spiel nicht aufgestellt." };
 
-  await db
+  // Only an actual change updates a row; of two simultaneous identical answers, only one alerts anyone.
+  const changed = await db
     .update(lineups)
     .set({ response, respondedAt: new Date() })
-    .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, player.id)));
+    .where(
+      and(eq(lineups.matchId, matchId), eq(lineups.playerId, player.id), sql`${lineups.response} is distinct from ${response}`),
+    )
+    .returning({ id: lineups.id });
+  if (changed.length === 0) return;
 
   const lineupNow = (await getLineups()).get(matchId) ?? [];
   const alerts = responseAlerts(row.role as LineupRole, row.response as LineupResponse | null, response, lineupNow);

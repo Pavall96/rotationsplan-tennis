@@ -42,12 +42,17 @@ export function AvailabilityReminder({ token, groupText }: { token: string; grou
       {preview && !preview.sent && (
         <div className="rounded-[12px] bg-[var(--color-tabs-bg)] p-3 text-xs">
           {preview.withEmail.length === 0 ? (
-            <p>Alle mit E-Mail haben schon geantwortet.</p>
+            <p>Niemand mit E-Mail muss gerade erinnert werden.</p>
           ) : (
             <>
               <p className="mb-1 font-semibold">E-Mail geht an {preview.withEmail.length} Spieler:</p>
               <p className="mb-2 text-[var(--color-ink-muted)]">{preview.withEmail.join(", ")}</p>
             </>
+          )}
+          {preview.recentlyReminded.length > 0 && (
+            <p className="mb-2 text-[var(--color-ink-muted)]">
+              Heute schon erinnert (bekommen keine zweite Mail): {preview.recentlyReminded.join(", ")}
+            </p>
           )}
           {preview.withoutEmail.length > 0 && (
             <p className="mb-2 text-[var(--color-ink-muted)]">

@@ -3,7 +3,7 @@
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { eq, sql, inArray } from "drizzle-orm";
+import { and, eq, sql, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, teams } from "@/db/schema";
 import { getAllMatches } from "@/lib/matches";
@@ -65,8 +65,12 @@ async function isCaptain(token: string): Promise<boolean> {
 export type ReminderPreview = {
   withEmail: string[];
   withoutEmail: string[];
+  /** Already reminded in the last REMINDER_COOLDOWN_HOURS (e.g. by another Mannschaftsführer) — skipped. */
+  recentlyReminded: string[];
   sent: boolean;
 };
+
+const REMINDER_COOLDOWN_HOURS = 20;
 
 /**
  * Emails every rostered player who still has unanswered Spieltage. With `send` unset it only returns who would get
@@ -80,17 +84,37 @@ export async function availabilityReminder(token: string, send: boolean): Promis
   const recipients = open.size
     ? await getDb().select().from(players).where(inArray(players.id, [...open.keys()])).orderBy(players.displayName)
     : [];
-  const withEmail = recipients.filter((p) => p.email);
+  const cutoff = Date.now() - REMINDER_COOLDOWN_HOURS * 3_600_000;
+  const recent = (p: (typeof recipients)[number]) => Boolean(p.availabilityRemindedAt && p.availabilityRemindedAt.getTime() > cutoff);
+  const eligible = recipients.filter((p) => p.email && !recent(p));
   const preview = {
-    withEmail: withEmail.map((p) => playerLabel(p)),
+    withEmail: eligible.map((p) => playerLabel(p)),
     withoutEmail: recipients.filter((p) => !p.email).map((p) => playerLabel(p)),
+    recentlyReminded: recipients.filter((p) => p.email && recent(p)).map((p) => playerLabel(p)),
     sent: false,
   };
-  if (!send || withEmail.length === 0) return preview;
+  if (!send || eligible.length === 0) return preview;
 
   const from = process.env.MAIL_FROM;
   if (!from) return { error: "MAIL_FROM ist nicht gesetzt – es wurde nichts verschickt." };
   const baseUrl = await getBaseUrl();
+
+  // Claim the players in one conditional update, so two captains sending at once can't both email the same person.
+  const claimed = new Set(
+    (
+      await getDb()
+        .update(players)
+        .set({ availabilityRemindedAt: new Date() })
+        .where(
+          and(
+            inArray(players.id, eligible.map((p) => p.id)),
+            sql`(${players.availabilityRemindedAt} is null or ${players.availabilityRemindedAt} < ${new Date(cutoff)})`,
+          ),
+        )
+        .returning({ id: players.id })
+    ).map((r) => r.id),
+  );
+  const withEmail = eligible.filter((p) => claimed.has(p.id));
 
   // Sent after the response; one at a time with a pause to stay under the mail provider's rate limit.
   after(async () => {
@@ -117,7 +141,7 @@ export async function availabilityReminder(token: string, send: boolean): Promis
       await new Promise((r) => setTimeout(r, 600));
     }
   });
-  return { ...preview, sent: true };
+  return { ...preview, withEmail: withEmail.map((p) => playerLabel(p)), sent: true };
 }
 
 /** Marks a player who holds a Meldeliste position but won't play (or plays again). */

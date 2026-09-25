@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canPlay, canBeAsked, lineupCheck, festspielWarning, tooManyNonGermans, sortByMeldeliste } from "./eligibility";
+import { canPlay, canBeAsked, lineupCheck, isNonGerman, festspielWarning, tooManyNonGermans, sortByMeldeliste } from "./eligibility";
 
 const herren1 = { ageClass: "herren", rank: 1 } as const;
 const herren2 = { ageClass: "herren", rank: 2 } as const;
@@ -92,4 +92,20 @@ test("lineup: blocks same-day doubles, inactive players and list rules; warns wh
   assert.ok(helpsOut.ok && /Wintermeldung/.test(helpsOut.warnings[0]));
 
   assert.equal(lineupCheck({ herren: { position: 12, countsAsGerman: true } }, h30_1, ctx).ok, false);
+});
+
+test("an H30 player helping out in Herren still gets festgespielt", () => {
+  const h30Only = { h30: { position: 6, countsAsGerman: true } };
+  const ctx = { playsMatches: true, firstTeamAppearances: 3, sameDayTeam: null };
+  assert.equal(lineupCheck(h30Only, herren2, ctx).ok, false);
+  assert.equal(lineupCheck(h30Only, herren1, ctx).ok, true);
+
+  const third = lineupCheck(h30Only, herren1, { ...ctx, firstTeamAppearances: 2 });
+  assert.ok(third.ok && third.warnings.some((w) => /3\. Einsatz/.test(w)));
+});
+
+test("non-German status comes from the Meldeliste entries", () => {
+  assert.equal(isNonGerman({ h30: { position: 16, countsAsGerman: false } }), true);
+  assert.equal(isNonGerman({ h30: { position: 3, countsAsGerman: true } }), false);
+  assert.equal(isNonGerman({}), false);
 });

@@ -125,3 +125,6 @@ ALTER TABLE lineups ADD COLUMN IF NOT EXISTS responded_at timestamptz;
 ALTER TABLE lineups ADD COLUMN IF NOT EXISTS reminded_at timestamptz;
 ALTER TABLE lineups DROP CONSTRAINT IF EXISTS lineups_response_check;
 ALTER TABLE lineups ADD CONSTRAINT lineups_response_check CHECK (response in ('ja', 'nein'));
+
+-- 2026-09-25: cooldown for the availability reminder (review fix). Additive, nullable.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS availability_reminded_at timestamptz;

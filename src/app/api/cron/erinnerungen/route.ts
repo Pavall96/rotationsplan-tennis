@@ -12,11 +12,16 @@ export async function GET(request: Request) {
   const dryRun = url.searchParams.get("dryRun") === "1";
   const baseUrl = await getBaseUrl();
 
-  try {
-    const result = await runReminders({ dryRun, baseUrl });
-    const punktspiele = await runMatchReminders({ dryRun, baseUrl });
-    return Response.json({ ...result, punktspiele });
-  } catch (err) {
-    return Response.json({ error: err instanceof Error ? err.message : "Unbekannter Fehler" }, { status: 500 });
-  }
+  // Run independently: a failing training reminder must not stop the match-day emails, and vice versa.
+  const [training, punktspiele] = await Promise.allSettled([
+    runReminders({ dryRun, baseUrl }),
+    runMatchReminders({ dryRun, baseUrl }),
+  ]);
+  const message = (r: PromiseRejectedResult) => (r.reason instanceof Error ? r.reason.message : "Unbekannter Fehler");
+  const body = {
+    ...(training.status === "fulfilled" ? training.value : { error: message(training) }),
+    punktspiele: punktspiele.status === "fulfilled" ? punktspiele.value : { error: message(punktspiele) },
+  };
+  const failed = training.status === "rejected" || punktspiele.status === "rejected";
+  return Response.json(body, { status: failed ? 500 : 200 });
 }

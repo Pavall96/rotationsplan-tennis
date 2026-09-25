@@ -28,6 +28,8 @@ export const players = pgTable("players", {
   wtbId: text("wtb_id").unique(),
   // False for players who stay on the Meldeliste (their position matters) but won't play — not polled or shown.
   playsMatches: boolean("plays_matches").notNull().default(true),
+  // Last "Wann kannst du?" reminder email — several captains pressing the button the same day send it only once.
+  availabilityRemindedAt: timestamp("availability_reminded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -5,7 +5,7 @@ import { getAllMatches, getTeams } from "@/lib/matches";
 import { getRoster, rosterByPlayer } from "@/lib/roster";
 import { getLineups, lineupContext, singlesOrder, type LineupEntry } from "@/lib/lineups";
 import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
-import { lineupCheck, tooManyNonGermans, type LineupCheck } from "@/lib/eligibility";
+import { lineupCheck, isNonGerman, tooManyNonGermans, type LineupCheck } from "@/lib/eligibility";
 import { formatDayShort, formatTime } from "@/lib/format";
 import { addToLineup, removeFromLineup } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
@@ -60,7 +60,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       name: r.name,
       lists: "",
       position: null,
-      countsAsGerman: r.countsAsGerman,
+      countsAsGerman: !isNonGerman(rosters.get(r.playerId) ?? {}),
       playsMatches: r.playsMatches,
     };
     const tag = `${r.ageClass === "h30" ? "H30" : "H"} ${r.position}`;
@@ -71,12 +71,21 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
 
   const lineup = lineupsByMatch.get(matchId) ?? [];
   const inLineup = new Set(lineup.map((e) => e.playerId));
-  const withMeta = (e: LineupEntry) => ({
-    ...e,
-    position: people.get(e.playerId)?.position ?? null,
-    lists: people.get(e.playerId)?.lists ?? "",
-    countsAsGerman: people.get(e.playerId)?.countsAsGerman ?? true,
-  });
+  // Re-checked on every visit: another team's lineup can make an earlier choice invalid (same day, Festspielen).
+  const withMeta = (e: LineupEntry) => {
+    const check = lineupCheck(
+      rosters.get(e.playerId) ?? {},
+      match.team,
+      lineupContext(e.playerId, people.get(e.playerId)?.playsMatches ?? true, match, allMatches, lineupsByMatch),
+    );
+    return {
+      ...e,
+      position: people.get(e.playerId)?.position ?? null,
+      lists: people.get(e.playerId)?.lists ?? "",
+      countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}),
+      problem: check.ok ? null : check.reason,
+    };
+  };
   const stamm = singlesOrder(lineup.filter((e) => e.role === "stamm").map(withMeta));
   const ersatz = singlesOrder(lineup.filter((e) => e.role === "ersatz").map(withMeta));
 
@@ -96,6 +105,10 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
 
   const warnings: string[] = [];
   if (tooManyNonGermans(stamm)) warnings.push("Mehr als ein Nicht-Deutscher aufgestellt (WSPO § 33a Ziff. 1).");
+  for (const e of [...stamm, ...ersatz]) {
+    if (e.problem) warnings.push(`${e.name} ist nicht mehr spielberechtigt: ${e.problem}.`);
+  }
+  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
   if (stamm.some((e) => e.position === null)) {
     warnings.push("Nicht jeder steht auf dieser Meldeliste – die Einzel-Reihenfolge ergibt sich erst aus der Wintermeldung.");
   }
@@ -219,6 +232,11 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                           </ActionForm>
                         </span>
                       </div>
+                      {nonGermanStarter && !c.countsAsGerman && (
+                        <p className="mt-1 text-[11px] text-[var(--color-h30)]">
+                          Nur als Ersatz – {nonGermanStarter.name} ist schon als Nicht-Deutscher aufgestellt
+                        </p>
+                      )}
                       {c.check.ok &&
                         c.check.warnings.map((w) => (
                           <p key={w} className="mt-1 text-[11px] text-[var(--color-h30)]">
@@ -265,13 +283,17 @@ function LineupRow({
   promote = false,
 }: {
   label: string;
-  entry: LineupEntry & { lists: string };
+  entry: LineupEntry & { lists: string; problem: string | null };
   hidden: { token: string; matchId: number };
   promote?: boolean;
 }) {
   const response = entry.response ? RESPONSE_LABEL[entry.response] : null;
   return (
-    <li className="flex items-center gap-2 rounded-[10px] bg-[var(--color-tabs-bg)] px-3 py-2">
+    <li
+      className={`flex items-center gap-2 rounded-[10px] px-3 py-2 ${
+        entry.problem ? "bg-[var(--color-nein-bg)]" : "bg-[var(--color-tabs-bg)]"
+      }`}
+    >
       <span className="w-4 shrink-0 text-xs font-bold text-[var(--color-ink-muted)]">{label}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{entry.name}</span>
