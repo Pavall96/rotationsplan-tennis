@@ -67,10 +67,15 @@ export async function addToLineup(formData: FormData): Promise<Result> {
     return { error: `Es stehen schon ${match.playersNeeded} Spieler auf – erst jemanden entfernen oder als Ersatz eintragen.` };
   }
 
+  // A role change (e.g. Ersatz moves up) means the player must be told again on the next publish.
+  const previousRole = current.find((e) => e.playerId === playerId)?.role;
   await db
     .insert(lineups)
     .values({ matchId, playerId, role })
-    .onConflictDoUpdate({ target: [lineups.matchId, lineups.playerId], set: { role } });
+    .onConflictDoUpdate({
+      target: [lineups.matchId, lineups.playerId],
+      set: previousRole && previousRole !== role ? { role, notifiedAt: null } : { role },
+    });
   refresh();
 }
 
@@ -88,8 +93,8 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
     .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, playerId)))
     .returning();
 
-  // Someone who was already told they play should hear that they don't anymore.
-  if (removed?.notifiedAt) {
+  // Someone who was already told they play should hear that they don't anymore — unless they cancelled themselves.
+  if (removed?.notifiedAt && removed.response !== "nein") {
     const baseUrl = await getBaseUrl();
     const from = process.env.MAIL_FROM;
     after(async () => {

@@ -67,6 +67,30 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
   const webcalUrl = `${baseUrl.replace(/^https?:/, "webcal:")}/api/ics/${token}/rotationsplan.ics`;
   const httpsIcsUrl = `${baseUrl}/api/ics/${token}/rotationsplan.ics`;
 
+  const calendarSection = (
+    <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+      <div className="mb-2 flex items-center gap-2.5">
+        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-brand-bg)] text-[var(--color-brand)]">
+          <CalendarIcon />
+        </span>
+        <h2 className="font-display font-bold">Kalender abonnieren</h2>
+      </div>
+      <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+        Abonniere deine Termine als Kalender – Training und deine Punktspiele, sobald du aufgestellt bist. Neue oder
+        geänderte Termine erscheinen automatisch (je nach Kalender-App alle paar Stunden).
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <a
+          href={webcalUrl}
+          className="inline-block rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          Kalender abonnieren
+        </a>
+        <CopyLinkButton value={httpsIcsUrl} label={"Link kopieren (falls „Abonnieren“ nicht klappt)"} />
+      </div>
+    </section>
+  );
+
   return (
     <main className="max-w-md mx-auto w-full px-4 py-6 flex-1">
       <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
@@ -78,7 +102,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
         <h1 className="font-display text-2xl font-bold">Hallo {playerLabel(player)}!</h1>
       </header>
 
-      <FirstVisitGuide token={token} />
+      <FirstVisitGuide token={token} trains={trains} />
       <RememberMyPage token={token} />
 
       <div className="mb-6 space-y-2">
@@ -108,7 +132,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
           <div className="space-y-3">
             {myMatches.map((m) => (
               <MatchCard key={m.id} match={m} showDate>
-                <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewerId={player.id} />
+                <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewer={{ token, playerId: player.id }} />
                 <Link
                   href={`/spieler/${token}/punktspiele#spiel-${m.id}`}
                   className="mt-3 flex items-center justify-between rounded-[12px] border border-[var(--color-border)] px-3 py-2 text-sm font-medium"
@@ -141,27 +165,7 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
             </div>
           </div>
 
-          <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-            <div className="mb-2 flex items-center gap-2.5">
-              <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-brand-bg)] text-[var(--color-brand)]">
-                <CalendarIcon />
-              </span>
-              <h2 className="font-display font-bold">Kalender abonnieren</h2>
-            </div>
-            <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-              Abonniere deine Termine als Kalender – neue oder geänderte Termine erscheinen automatisch
-              (Aktualisierung je nach Kalender-App alle paar Stunden).
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href={webcalUrl}
-                className="inline-block rounded-full bg-[var(--color-brand)] px-4 py-2.5 text-sm font-semibold text-white"
-              >
-                Kalender abonnieren
-              </a>
-              <CopyLinkButton value={httpsIcsUrl} label={"Link kopieren (falls „Abonnieren“ nicht klappt)"} />
-            </div>
-          </section>
+          {calendarSection}
 
           <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
             Deine nächsten Termine
@@ -243,10 +247,13 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
           </div>
         </>
       ) : (
-        <p className="text-sm text-[var(--color-ink-muted)]">
-          Du bist nicht im Trainings-Rotationsplan eingeteilt. Die Termine der Mannschaften findest du unter
-          „Winterspiele“.
-        </p>
+        <>
+          {(pollDays.length > 0 || myMatches.length > 0) && calendarSection}
+          <p className="text-sm text-[var(--color-ink-muted)]">
+            Du bist nicht im Trainings-Rotationsplan eingeteilt. Die Termine der Mannschaften findest du unter
+            „Winterspiele“.
+          </p>
+        </>
       )}
     </main>
   );

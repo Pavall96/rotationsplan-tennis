@@ -13,7 +13,10 @@ export type LineupEntry = {
   role: LineupRole;
   notified: boolean;
   hasEmail: boolean;
+  response: LineupResponse | null;
 };
+
+export type LineupResponse = "ja" | "nein";
 
 /** Every lineup, keyed by match id. */
 export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
@@ -26,6 +29,7 @@ export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
       email: players.email,
       role: lineups.role,
       notifiedAt: lineups.notifiedAt,
+      response: lineups.response,
     })
     .from(lineups)
     .innerJoin(players, eq(lineups.playerId, players.id))
@@ -40,6 +44,7 @@ export async function getLineups(): Promise<Map<number, LineupEntry[]>> {
       role: r.role as LineupRole,
       notified: Boolean(r.notifiedAt),
       hasEmail: Boolean(r.email),
+      response: r.response as LineupResponse | null,
     });
   }
   return byMatch;
@@ -78,4 +83,33 @@ export function singlesOrder<T extends { position: number | null }>(entries: T[]
 
 export function positionIn(ageClass: AgeClass, roster: Partial<Record<AgeClass, { position: number }>>): number | null {
   return roster[ageClass]?.position ?? null;
+}
+
+export type ResponseAlerts = {
+  /** What to tell the Mannschaftsführer, if anything. */
+  captain: "absage" | "doch-dabei" | "springt-ein" | "ersatz-kann-nicht" | null;
+  /** Ask the Ersatz players (who haven't said no) to step in. */
+  askErsatz: boolean;
+};
+
+/**
+ * Who hears about a player's answer to the published lineup. `lineup` is the state *after* the answer. Only real
+ * changes alert anyone — re-tapping the same answer stays quiet.
+ */
+export function responseAlerts(
+  role: LineupRole,
+  previous: LineupResponse | null,
+  next: LineupResponse,
+  lineup: LineupEntry[],
+): ResponseAlerts {
+  const none: ResponseAlerts = { captain: null, askErsatz: false };
+  if (previous === next) return none;
+  const stammMissing = lineup.some((e) => e.role === "stamm" && e.response === "nein");
+
+  if (role === "stamm") {
+    if (next === "nein") return { captain: "absage", askErsatz: true };
+    return previous === "nein" ? { captain: "doch-dabei", askErsatz: false } : none;
+  }
+  if (!stammMissing) return none;
+  return { captain: next === "ja" ? "springt-ein" : "ersatz-kann-nicht", askErsatz: false };
 }

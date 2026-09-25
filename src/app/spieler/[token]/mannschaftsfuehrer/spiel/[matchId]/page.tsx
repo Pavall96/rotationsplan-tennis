@@ -99,6 +99,14 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   if (stamm.some((e) => e.position === null)) {
     warnings.push("Nicht jeder steht auf dieser Meldeliste – die Einzel-Reihenfolge ergibt sich erst aus der Wintermeldung.");
   }
+  const declined = stamm.filter((e) => e.response === "nein");
+  if (declined.length > 0) {
+    warnings.unshift(
+      `${declined.map((e) => e.name).join(", ")} ${declined.length === 1 ? "hat" : "haben"} abgesagt – entfernen und ${
+        ersatz.length ? "Ersatz hochstufen" : "jemand anderen aufstellen"
+      }, dann Änderungen veröffentlichen.`,
+    );
+  }
   const otherToday = allMatches.filter((m) => m.matchDate === match.matchDate && m.id !== match.id);
   const hidden = { token, matchId };
 
@@ -132,10 +140,10 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
           <h2 className="font-display font-bold">Aufstellung</h2>
           <span
             className={`text-xs font-semibold ${
-              stamm.length === match.playersNeeded ? "text-[var(--color-ja)]" : "text-[var(--color-nein)]"
+              stamm.length - declined.length === match.playersNeeded ? "text-[var(--color-ja)]" : "text-[var(--color-nein)]"
             }`}
           >
-            {stamm.length} von {match.playersNeeded}
+            {stamm.length - declined.length} von {match.playersNeeded}
           </span>
         </div>
         <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
@@ -154,7 +162,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
             <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
             <ul className="mb-3 space-y-1.5">
               {ersatz.map((e) => (
-                <LineupRow key={e.playerId} label="E" entry={e} hidden={hidden} />
+                <LineupRow key={e.playerId} label="E" entry={e} hidden={hidden} promote />
               ))}
             </ul>
           </>
@@ -245,15 +253,23 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   );
 }
 
+const RESPONSE_LABEL = {
+  ja: { text: "zugesagt", color: "text-[var(--color-ja)]" },
+  nein: { text: "abgesagt", color: "text-[var(--color-nein)]" },
+};
+
 function LineupRow({
   label,
   entry,
   hidden,
+  promote = false,
 }: {
   label: string;
   entry: LineupEntry & { lists: string };
   hidden: { token: string; matchId: number };
+  promote?: boolean;
 }) {
+  const response = entry.response ? RESPONSE_LABEL[entry.response] : null;
   return (
     <li className="flex items-center gap-2 rounded-[10px] bg-[var(--color-tabs-bg)] px-3 py-2">
       <span className="w-4 shrink-0 text-xs font-bold text-[var(--color-ink-muted)]">{label}</span>
@@ -261,9 +277,22 @@ function LineupRow({
         <span className="block truncate text-sm font-semibold">{entry.name}</span>
         <span className="text-[11px] text-[var(--color-ink-faint)]">
           {entry.lists}
-          {entry.notified ? " · benachrichtigt" : ""}
+          {response ? (
+            <span className={`font-semibold ${response.color}`}> · {response.text}</span>
+          ) : entry.notified ? (
+            " · benachrichtigt"
+          ) : (
+            ""
+          )}
         </span>
       </span>
+      {promote && (
+        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: entry.playerId, role: "stamm" }}>
+          <SubmitButton className="text-[11px] font-semibold text-[var(--color-brand)] underline underline-offset-2">
+            Aufstellen
+          </SubmitButton>
+        </ActionForm>
+      )}
       <ActionForm action={removeFromLineup} hidden={{ ...hidden, playerId: entry.playerId }}>
         <SubmitButton className="text-[11px] text-[var(--color-nein)] underline underline-offset-2">Entfernen</SubmitButton>
       </ActionForm>

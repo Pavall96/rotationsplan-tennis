@@ -118,3 +118,10 @@ CREATE TABLE IF NOT EXISTS lineups (
   CONSTRAINT lineups_match_player_unique UNIQUE (match_id, player_id),
   CONSTRAINT lineups_role_check CHECK (role in ('stamm', 'ersatz'))
 );
+
+-- 2026-09-25: Zu-/Absage und Spieltags-Erinnerung (Phase 4). Additive: nullable columns only.
+ALTER TABLE lineups ADD COLUMN IF NOT EXISTS response text;
+ALTER TABLE lineups ADD COLUMN IF NOT EXISTS responded_at timestamptz;
+ALTER TABLE lineups ADD COLUMN IF NOT EXISTS reminded_at timestamptz;
+ALTER TABLE lineups DROP CONSTRAINT IF EXISTS lineups_response_check;
+ALTER TABLE lineups ADD CONSTRAINT lineups_response_check CHECK (response in ('ja', 'nein'));

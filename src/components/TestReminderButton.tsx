@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { testReminderDryRun } from "@/app/admin/actions";
-import type { ReminderRunResult } from "@/lib/reminders";
 
 export function TestReminderButton({ adminKey }: { adminKey: string }) {
-  const [result, setResult] = useState<ReminderRunResult | null>(null);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof testReminderDryRun>> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

@@ -79,7 +79,7 @@ export async function MatchList({
               <div className="space-y-3">
                 {shown.map((m) => (
                   <MatchCard key={m.id} match={m}>
-                    <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewerId={viewer?.playerId ?? null} />
+                    <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewer={viewer} />
                     <RideSection
                       match={m}
                       data={ridesByMatch.get(m.id) ?? { rides: [], requests: [] }}

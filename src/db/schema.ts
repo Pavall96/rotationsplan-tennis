@@ -270,10 +270,16 @@ export const lineups = pgTable(
     role: text("role").notNull(),
     // When this player was emailed about the published lineup — so re-publishing only emails newcomers.
     notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    // The player's answer to the published lineup: 'ja' (dabei / bereit) or 'nein' (Absage); null = no answer yet.
+    response: text("response"),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    // When the match-day reminder went out, so the cron never sends it twice.
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     unique("lineups_match_player_unique").on(table.matchId, table.playerId),
     check("lineups_role_check", sql`${table.role} in ('stamm', 'ersatz')`),
+    check("lineups_response_check", sql`${table.response} in ('ja', 'nein')`),
   ],
 );

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { InfoIcon } from "@/components/icons";
 
-export function FirstVisitGuide({ token }: { token: string }) {
+export function FirstVisitGuide({ token, trains }: { token: string; trains: boolean }) {
   const storageKey = `rotationsplan-anleitung-gesehen-${token}`;
   const [visible, setVisible] = useState(false);
 
@@ -40,8 +40,17 @@ export function FirstVisitGuide({ token }: { token: string }) {
         <h2 className="font-display font-bold">Willkommen!</h2>
       </div>
       <ul className="mb-3 space-y-1.5 text-xs text-[var(--color-ink-muted)]">
-        <li>Hier siehst du deine Trainingstermine und wer sonst dabei ist.</li>
-        <li>Sag bei jedem Termin kurz zu oder ab – so weiß die Runde früh genug Bescheid.</li>
+        {trains ? (
+          <>
+            <li>Hier siehst du deine Trainingstermine und wer sonst dabei ist.</li>
+            <li>Sag bei jedem Termin kurz zu oder ab – so weiß die Runde früh genug Bescheid.</li>
+          </>
+        ) : (
+          <>
+            <li>Hier organisieren wir die Winterspiele der Mannschaften.</li>
+            <li>Trag ein, an welchen Spieltagen du kannst – daraus stellen die Mannschaftsführer die Teams auf.</li>
+          </>
+        )}
         <li>Abonniere den Kalender, dann erscheinen neue oder geänderte Termine automatisch.</li>
         <li>Dieser Link ist persönlich – speichere ihn als Lesezeichen, um jederzeit zurückzufinden.</li>
       </ul>

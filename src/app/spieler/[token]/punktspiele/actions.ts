@@ -4,13 +4,14 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { players, matches, teams, rides, ridePassengers, rideRequests, rosterEntries, availability } from "@/db/schema";
+import { players, matches, teams, rides, ridePassengers, rideRequests, rosterEntries, availability, lineups } from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
 import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
 import { DEFAULT_MEETING_POINT } from "@/lib/rides";
 import { canBeAsked, type PlayerRoster } from "@/lib/eligibility";
 import type { AgeClass } from "@/lib/matches";
+import { getLineups, responseAlerts, type LineupResponse, type LineupRole } from "@/lib/lineups";
 
 export type RideActionResult = { error?: string } | void;
 
@@ -50,7 +51,17 @@ function matchLine(m: MatchInfo): string {
 }
 
 /** Emails the given players after the response is sent; players without an email are skipped. Never throws. */
-async function notify(playerIds: number[], matchId: number, subject: string, line: (p: Player) => string, detail: string) {
+async function notify(
+  playerIds: number[],
+  matchId: number,
+  subject: string,
+  line: (p: Player) => string,
+  detail: string,
+  cta: { path: (p: Player) => string; label: string } = {
+    path: (p) => `/spieler/${p.token}/punktspiele#spiel-${matchId}`,
+    label: "Fahrgemeinschaft ansehen",
+  },
+) {
   const ids = [...new Set(playerIds)];
   if (ids.length === 0) return;
   const baseUrl = await getBaseUrl();
@@ -71,7 +82,7 @@ async function notify(playerIds: number[], matchId: number, subject: string, lin
             subject,
             line: line(p),
             detail,
-            cta: { url: `${baseUrl}/spieler/${p.token}/punktspiele#spiel-${matchId}`, label: "Fahrgemeinschaft ansehen" },
+            cta: { url: `${baseUrl}${cta.path(p)}`, label: cta.label },
             token: p.token,
             baseUrl,
           },
@@ -285,4 +296,65 @@ export async function setAvailability(formData: FormData): Promise<RideActionRes
   revalidatePath("/spieler/[token]", "page");
   revalidatePath("/spieler/[token]/punktspiele", "page");
   revalidatePath("/spieler/[token]/mannschaftsfuehrer", "page");
+}
+
+const CAPTAIN_LINES: Record<NonNullable<ReturnType<typeof responseAlerts>["captain"]>, (name: string) => string> = {
+  absage: (name) => `${name} hat abgesagt.`,
+  "doch-dabei": (name) => `${name} ist doch dabei.`,
+  "springt-ein": (name) => `${name} (Ersatz) kann einspringen.`,
+  "ersatz-kann-nicht": (name) => `${name} (Ersatz) kann leider auch nicht.`,
+};
+
+/** A lined-up player confirms or cancels. Alerts the Mannschaftsführer and asks the Ersatz where needed. */
+export async function respondToLineup(formData: FormData): Promise<RideActionResult> {
+  const player = await loadPlayer(formData);
+  const matchId = Number(formData.get("matchId"));
+  const response = String(formData.get("response")) as LineupResponse;
+  if (response !== "ja" && response !== "nein") return { error: "Ungültige Antwort." };
+
+  const match = await loadUpcomingMatch(matchId);
+  if (!match) return { error: "Das Spiel ist schon vorbei." };
+
+  const db = getDb();
+  const [row] = await db
+    .select({ role: lineups.role, response: lineups.response, captainId: teams.captainPlayerId, published: matches.lineupPublishedAt })
+    .from(lineups)
+    .innerJoin(matches, eq(lineups.matchId, matches.id))
+    .innerJoin(teams, eq(matches.teamId, teams.id))
+    .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, player.id)))
+    .limit(1);
+  if (!row || !row.published) return { error: "Du bist für dieses Spiel nicht aufgestellt." };
+
+  await db
+    .update(lineups)
+    .set({ response, respondedAt: new Date() })
+    .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, player.id)));
+
+  const lineupNow = (await getLineups()).get(matchId) ?? [];
+  const alerts = responseAlerts(row.role as LineupRole, row.response as LineupResponse | null, response, lineupNow);
+  const name = playerLabel(player);
+  const detail = matchLine(match);
+
+  if (alerts.captain && row.captainId && row.captainId !== player.id) {
+    const line = CAPTAIN_LINES[alerts.captain](name);
+    await notify([row.captainId], matchId, `${match.teamName} am ${formatDayShort(match.startsAt)}: ${line}`, () => line, detail, {
+      path: (p) => `/spieler/${p.token}/mannschaftsfuehrer/spiel/${matchId}`,
+      label: "Aufstellung öffnen",
+    });
+  }
+  if (alerts.askErsatz) {
+    const ersatz = lineupNow.filter((e) => e.role === "ersatz" && e.response !== "nein").map((e) => e.playerId);
+    await notify(
+      ersatz,
+      matchId,
+      `Ersatz gesucht: ${match.teamName} am ${formatDayShort(match.startsAt)}`,
+      () => `${name} hat abgesagt. Du bist Ersatz – kannst du einspringen? Bitte antworte kurz in der App.`,
+      detail,
+      { path: (p) => `/spieler/${p.token}#spiel-${matchId}`, label: "Jetzt antworten" },
+    );
+  }
+
+  revalidatePath("/spieler/[token]", "page");
+  revalidatePath("/spieler/[token]/punktspiele", "page");
+  revalidatePath("/spieler/[token]/mannschaftsfuehrer/spiel/[matchId]", "page");
 }

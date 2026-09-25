@@ -1,4 +1,5 @@
 import { runReminders } from "@/lib/reminders";
+import { runMatchReminders } from "@/lib/match-reminders";
 import { getBaseUrl } from "@/lib/base-url";
 
 export async function GET(request: Request) {
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
 
   try {
     const result = await runReminders({ dryRun, baseUrl });
-    return Response.json(result);
+    const punktspiele = await runMatchReminders({ dryRun, baseUrl });
+    return Response.json({ ...result, punktspiele });
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : "Unbekannter Fehler" }, { status: 500 });
   }
