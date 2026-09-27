@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
 import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded } from "@/lib/vacancy";
+import { cancelledStarters, ersatzNeeded, openSlots } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
 
@@ -30,7 +30,8 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-type Buttons = { yesUrl: string; noUrl: string; ja: string; nein: string };
+/** A "nein" button is optional: the Platz-frei email only offers to jump in. */
+type Buttons = { yesUrl: string; ja: string; noUrl?: string; nein?: string };
 
 /** Header, greeting, session card, optional Ja/Nein buttons and footer — shared by every email we send. */
 function renderShell(opts: {
@@ -49,19 +50,24 @@ function renderShell(opts: {
   const routeLine = session.address
     ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#11324e;font-size:13px;">Route öffnen →</a></p>`
     : "";
-  const buttonRow = buttons
-    ? `
+  const yesButton = (b: Buttons) =>
+    `<a href="${b.yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${b.ja}</a>`;
+  const buttonRow = !buttons
+    ? ""
+    : buttons.noUrl && buttons.nein
+      ? `
       <table role="presentation" width="100%" style="margin-bottom:20px;">
         <tr>
           <td style="padding-right:6px;width:50%;">
-            <a href="${buttons.yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${buttons.ja}</a>
+            ${yesButton(buttons)}
           </td>
           <td style="padding-left:6px;width:50%;">
             <a href="${buttons.noUrl}" style="display:block;text-align:center;background:#ffffff;color:#b42318;border:1.5px solid #b42318;text-decoration:none;padding:11.5px 0;border-radius:6px;font-weight:600;font-size:14px;">${buttons.nein}</a>
           </td>
         </tr>
       </table>`
-    : "";
+      : `
+      <div style="margin-bottom:20px;">${yesButton(buttons)}</div>`;
 
   return `
   <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;border-radius:8px;overflow:hidden;">
@@ -124,7 +130,8 @@ function answerButtons(
 function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
   const { playerName, role, session, token, baseUrl } = input;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
-  const others = session.starters.map((a) => a.displayName).join(", ");
+  const lineup = [...session.starters, ...session.einspringer];
+  const others = lineup.map((a) => a.displayName).join(", ");
   const time = formatTimeRange(session.startsAt, session.endsAt);
   const date = formatDate(session.startsAt);
   const needed = role === "ersatz" && ersatzNeeded(session);
@@ -150,7 +157,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
 
   const cardBody = roleLine
     ? strongLine(roleLine)
-    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${session.starters
+    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${lineup
         .map(
           (a) =>
             `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
@@ -279,6 +286,49 @@ export async function sendErsatzAlert(input: ErsatzAlertInput, opts: { from: str
   return error ? { to: input.to, error: error.message } : { to: input.to, id: data?.id };
 }
 
+export type OpenSlotEmailInput = {
+  kind: "platz-frei";
+  to: string;
+  playerName: string;
+  session: SessionView;
+  token: string;
+  baseUrl: string;
+};
+
+/** Match-day email to every rotation player who is free: a starter cancelled and the place is still open. */
+export function renderOpenSlot(input: OpenSlotEmailInput): { subject: string; html: string; text: string } {
+  const { playerName, session, token, baseUrl } = input;
+  const open = openSlots(session);
+  const places = open === 1 ? "1 Platz frei" : `${open} Plätze frei`;
+  const subject = `Heute ${formatTimeRangeStart(session)} ${session.hallName}: ${places} – springst du ein?`;
+  const line = `${cancelledStarters(session)} abgesagt – heute Abend ist ${open === 1 ? "ein Platz" : `${open} Plätze`} frei. Wer zuerst zusagt, spielt.`;
+  const yesUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=ja`;
+  const html = renderShell({
+    preheader: line,
+    playerName,
+    intro: "Für heute Abend wird noch jemand gesucht.",
+    session,
+    cardBody: strongLine(line),
+    buttons: { yesUrl, ja: "Ja, ich springe ein" },
+    note: "Du bekommst diese Mail, weil du im Rotationsplan stehst und heute Abend frei bist. Ist der Platz schon vergeben, siehst du das nach dem Klick.",
+    token,
+    baseUrl,
+  });
+  const text = [
+    `Hallo ${playerName},`,
+    ``,
+    line,
+    `${formatDate(session.startsAt)} · ${formatTimeRange(session.startsAt, session.endsAt)}`,
+    `Halle: ${session.hallName}`,
+    ``,
+    `Ja, ich springe ein: ${yesUrl}`,
+    ``,
+    `Ganzer Plan: ${baseUrl}/`,
+    `Dein persönlicher Link: ${baseUrl}/spieler/${token}`,
+  ].join("\n");
+  return { subject, html, text };
+}
+
 function formatTimeRangeStart(session: SessionView): string {
   return formatTimeRange(session.startsAt, session.endsAt).split(" – ")[0];
 }
@@ -286,12 +336,12 @@ function formatTimeRangeStart(session: SessionView): string {
 export type SendResult = { to: string; id?: string; error?: string };
 
 export async function sendReminderBatch(
-  inputs: ReminderEmailInput[],
+  inputs: (ReminderEmailInput | OpenSlotEmailInput)[],
   opts: { from: string; replyTo?: string },
 ): Promise<SendResult[]> {
   const resend = getResend();
   const messages = inputs.map((input) => {
-    const { subject, html, text } = renderReminder(input);
+    const { subject, html, text } = "kind" in input ? renderOpenSlot(input) : renderReminder(input);
     return {
       from: opts.from,
       to: input.to,

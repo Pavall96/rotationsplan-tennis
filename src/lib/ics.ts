@@ -93,7 +93,7 @@ export function sessionToIcsEvent(
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const summary = `Tennis · ${session.hallName} (${withCoach})`;
   const descriptionParts = [
-    `Mit dabei: ${session.starters.map((a) => a.displayName).join(", ")}`,
+    `Mit dabei: ${[...session.starters, ...session.einspringer].map((a) => a.displayName).join(", ")}`,
     session.trainer ? `Trainer: ${session.trainer.displayName}` : null,
     session.ersatz ? `Ersatz: ${session.ersatz.displayName}` : null,
     session.note ? `Hinweis: ${session.note}` : null,
@@ -102,6 +102,7 @@ export function sessionToIcsEvent(
 
   const mySelf = [
     ...session.starters,
+    ...session.einspringer,
     ...(session.ersatz ? [session.ersatz] : []),
     ...(session.trainer ? [session.trainer] : []),
   ].find((a) => a.playerId === player.id);
