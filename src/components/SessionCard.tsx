@@ -18,8 +18,9 @@ export function SessionCard({
     ? "text-[var(--color-platz1)] bg-[var(--color-platz1-bg)]"
     : "text-[var(--color-platz2)] bg-[var(--color-platz2-bg)]";
   const chipLabel = `${session.hallName}${session.withCoach ? " · mit Trainer" : ""}`;
-  const goingCount = session.starters.filter((a) => a.rsvpStatus === "ja").length;
   const vacancy = vacancyStatus(session);
+  const goingCount = [...session.starters, ...session.einspringer].filter((a) => a.rsvpStatus === "ja").length;
+  const canStillJumpIn = !!vacancy && vacancy.open > 0 && session.endsAt > new Date();
 
   if (variant === "compact") {
     return (
@@ -102,6 +103,19 @@ export function SessionCard({
             <RsvpBadge status={a.rsvpStatus} />
           </li>
         ))}
+        {session.einspringer.map((a) => (
+          <li
+            key={a.playerId}
+            className={`flex items-center justify-between text-sm ${
+              a.playerId === highlightPlayerId ? "font-semibold" : ""
+            }`}
+          >
+            <span>
+              {a.displayName} <span className="text-xs text-[var(--color-ink-muted)]">· eingesprungen</span>
+            </span>
+            <RsvpBadge status={a.rsvpStatus} />
+          </li>
+        ))}
       </ul>
 
       {session.trainer && (
@@ -140,6 +154,10 @@ export function SessionCard({
           {vacancy.open > 0 ? <AlertIcon className="h-3 w-3 shrink-0" /> : <CheckIcon className="h-3 w-3 shrink-0" />}
           {vacancy.label}
         </p>
+      )}
+
+      {canStillJumpIn && (
+        <p className="mt-1.5 text-xs text-[var(--color-ink-muted)]">Einspringen kannst du über deine persönliche Seite.</p>
       )}
     </div>
   );
