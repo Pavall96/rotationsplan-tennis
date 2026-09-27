@@ -5,10 +5,12 @@ import { playerLabel } from "@/lib/format";
 
 export type RsvpStatus = "ja" | "nein" | "offen";
 
+export type AssignmentRole = "starter" | "ersatz" | "trainer" | "einspringer";
+
 export type SessionAssignmentView = {
   playerId: number;
   displayName: string;
-  role: "starter" | "ersatz" | "trainer";
+  role: AssignmentRole;
   slot: number | null;
   rsvpStatus: RsvpStatus;
 };
@@ -29,6 +31,8 @@ export type SessionView = {
   starters: SessionAssignmentView[];
   ersatz: SessionAssignmentView | null;
   trainer: SessionAssignmentView | null;
+  /** Players who took a place a starter cancelled, first come first served. */
+  einspringer: SessionAssignmentView[];
 };
 
 /** Fetches every session with its court, assignments and RSVP status, joined in JS (dataset is tiny: ~58 sessions). */
@@ -77,7 +81,7 @@ export async function getFullSchedule(): Promise<SessionView[]> {
     bySession.get(a.sessionId)!.push({
       playerId: a.playerId,
       displayName: playerLabel(a),
-      role: a.role as "starter" | "ersatz" | "trainer",
+      role: a.role as AssignmentRole,
       slot: a.slot,
       rsvpStatus: (a.rsvpStatus as RsvpStatus | null) ?? "offen",
     });
@@ -88,7 +92,10 @@ export async function getFullSchedule(): Promise<SessionView[]> {
     const starters = all.filter((a) => a.role === "starter").sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
     const ersatz = all.find((a) => a.role === "ersatz") ?? null;
     const trainer = all.find((a) => a.role === "trainer") ?? null;
-    return { ...s, starters, ersatz, trainer };
+    const einspringer = all
+      .filter((a) => a.role === "einspringer")
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, "de"));
+    return { ...s, starters, ersatz, trainer, einspringer };
   });
 }
 
@@ -105,20 +112,13 @@ export async function getPlayerById(playerId: number) {
 }
 
 export function sessionsForPlayer(schedule: SessionView[], playerId: number) {
-  return schedule.filter(
-    (s) =>
-      s.starters.some((a) => a.playerId === playerId) ||
-      s.ersatz?.playerId === playerId ||
-      s.trainer?.playerId === playerId,
-  );
+  return schedule.filter((s) => myRoleInSession(s, playerId) !== null);
 }
 
-export function myRoleInSession(
-  session: SessionView,
-  playerId: number,
-): "starter" | "ersatz" | "trainer" | null {
+export function myRoleInSession(session: SessionView, playerId: number): AssignmentRole | null {
   if (session.starters.some((a) => a.playerId === playerId)) return "starter";
   if (session.ersatz?.playerId === playerId) return "ersatz";
   if (session.trainer?.playerId === playerId) return "trainer";
+  if (session.einspringer.some((a) => a.playerId === playerId)) return "einspringer";
   return null;
 }

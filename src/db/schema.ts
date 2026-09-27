@@ -79,7 +79,8 @@ export const sessionAssignments = pgTable(
   },
   (table) => [
     unique("session_assignments_session_player_unique").on(table.sessionId, table.playerId),
-    check("session_assignments_role_check", sql`${table.role} in ('starter', 'ersatz', 'trainer')`),
+    // 'einspringer': a rotation player who took a place a starter cancelled (always paired with an rsvps 'ja').
+    check("session_assignments_role_check", sql`${table.role} in ('starter', 'ersatz', 'trainer', 'einspringer')`),
   ],
 );
 

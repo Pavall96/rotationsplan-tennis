@@ -1,6 +1,7 @@
 import { getFullSchedule, getPlayerById, type SessionView } from "@/lib/queries";
 import { sendErsatzAlert, type ErsatzAlertInput } from "@/lib/email";
 import { playerLabel } from "@/lib/format";
+import { ersatzNoLongerNeeded } from "@/lib/vacancy";
 
 type Answer = "ja" | "nein";
 
@@ -24,6 +25,28 @@ export function ersatzAlertKind(
   return null;
 }
 
+async function emailErsatz(
+  session: SessionView,
+  kind: ErsatzAlertInput["kind"],
+  changedBy: string,
+  baseUrl: string,
+): Promise<void> {
+  const ersatz = await getPlayerById(session.ersatz!.playerId);
+  if (!ersatz?.email) return;
+
+  const from = process.env.MAIL_FROM;
+  if (!from) {
+    console.warn("MAIL_FROM ist nicht gesetzt – Ersatz-Benachrichtigung übersprungen.");
+    return;
+  }
+
+  const result = await sendErsatzAlert(
+    { to: ersatz.email, playerName: playerLabel(ersatz), session, token: ersatz.token, baseUrl, kind, changedBy },
+    { from, replyTo: process.env.REPLY_TO },
+  );
+  if (result.error) console.error(`Ersatz-Benachrichtigung (${kind}) fehlgeschlagen:`, result.error);
+}
+
 /** Emails the session's Ersatz after a starter cancelled or took a cancellation back. Never throws. */
 export async function notifyErsatz(opts: {
   sessionId: number;
@@ -40,29 +63,26 @@ export async function notifyErsatz(opts: {
     const kind = ersatzAlertKind(session, opts.previous, opts.status, new Date());
     if (!kind) return;
 
-    const ersatz = await getPlayerById(session.ersatz!.playerId);
-    if (!ersatz?.email) return;
-
-    const from = process.env.MAIL_FROM;
-    if (!from) {
-      console.warn("MAIL_FROM ist nicht gesetzt – Ersatz-Benachrichtigung übersprungen.");
-      return;
-    }
-
     const changedBy = session.starters.find((a) => a.playerId === opts.starterId)?.displayName ?? "Jemand";
-    const result = await sendErsatzAlert(
-      {
-        to: ersatz.email,
-        playerName: playerLabel(ersatz),
-        session,
-        token: ersatz.token,
-        baseUrl: opts.baseUrl,
-        kind,
-        changedBy,
-      },
-      { from, replyTo: process.env.REPLY_TO },
-    );
-    if (result.error) console.error(`Ersatz-Benachrichtigung (${kind}) fehlgeschlagen:`, result.error);
+    await emailErsatz(session, kind, changedBy, opts.baseUrl);
+  } catch (err) {
+    console.error("Ersatz-Benachrichtigung fehlgeschlagen:", err);
+  }
+}
+
+/** Tells the Ersatz they're off the hook when someone else jumped into the last free place. Never throws. */
+export async function notifyErsatzTakenOver(opts: {
+  sessionId: number;
+  einspringerId: number;
+  baseUrl: string;
+}): Promise<void> {
+  try {
+    const schedule = await getFullSchedule();
+    const session = schedule.find((s) => s.id === opts.sessionId);
+    if (!session || !ersatzNoLongerNeeded(session, new Date())) return;
+
+    const changedBy = session.einspringer.find((a) => a.playerId === opts.einspringerId)?.displayName ?? "Jemand";
+    await emailErsatz(session, "uebernommen", changedBy, opts.baseUrl);
   } catch (err) {
     console.error("Ersatz-Benachrichtigung fehlgeschlagen:", err);
   }

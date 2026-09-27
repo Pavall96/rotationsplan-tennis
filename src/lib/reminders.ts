@@ -1,7 +1,9 @@
 import { getDb } from "@/db";
 import { players, reminderLog } from "@/db/schema";
 import { getFullSchedule } from "@/lib/queries";
-import { sendReminderBatch, type ReminderEmailInput } from "@/lib/email";
+import { sendReminderBatch, type OpenSlotEmailInput, type ReminderEmailInput } from "@/lib/email";
+import { openSlotRecipients } from "@/lib/einspringen";
+import { openSlots } from "@/lib/vacancy";
 import { formatDateForFile, playerLabel } from "@/lib/format";
 
 export type ReminderRunResult =
@@ -38,40 +40,73 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
 
   let skippedNoEmail = 0;
   let skippedAlreadySent = 0;
-  const toSend: { input: ReminderEmailInput; sessionId: number; playerId: number }[] = [];
+  const toSend: { input: ReminderEmailInput | OpenSlotEmailInput; sessionId: number; playerId: number }[] = [];
   const dryRunList: { to: string; subject: string }[] = [];
 
+  // One email per session and player: reminders for everyone on the session, then — while a cancelled place is
+  // still free — a "Platz frei" email to every rotation player who is free tonight. reminder_log covers both.
+  const queue = (
+    session: (typeof todaysSessions)[number],
+    playerId: number,
+    makeInput: (player: (typeof allPlayers)[number]) => ReminderEmailInput | OpenSlotEmailInput,
+    label: string,
+  ) => {
+    const key = `${session.id}:${playerId}`;
+    if (alreadySent.has(key)) {
+      skippedAlreadySent++;
+      return;
+    }
+    const player = playerById.get(playerId);
+    if (!player?.email) {
+      skippedNoEmail++;
+      return;
+    }
+    if (opts.dryRun) {
+      dryRunList.push({ to: player.email, subject: `(${label}) ${session.hallName} ${today}` });
+    } else {
+      toSend.push({ input: makeInput(player), sessionId: session.id, playerId });
+    }
+  };
+
+  const now = new Date();
   for (const session of todaysSessions) {
     const recipients = [
       ...session.starters.map((a) => ({ playerId: a.playerId, role: "starter" as const })),
+      ...session.einspringer.map((a) => ({ playerId: a.playerId, role: "starter" as const })),
       ...(session.ersatz ? [{ playerId: session.ersatz.playerId, role: "ersatz" as const }] : []),
       ...(session.trainer ? [{ playerId: session.trainer.playerId, role: "trainer" as const }] : []),
     ];
-
     for (const r of recipients) {
-      const key = `${session.id}:${r.playerId}`;
-      if (alreadySent.has(key)) {
-        skippedAlreadySent++;
-        continue;
-      }
-      const player = playerById.get(r.playerId);
-      if (!player?.email) {
-        skippedNoEmail++;
-        continue;
-      }
-      const input: ReminderEmailInput = {
-        to: player.email,
-        playerName: playerLabel(player),
-        role: r.role,
+      queue(
         session,
-        token: player.token,
-        baseUrl: opts.baseUrl,
-      };
-      if (opts.dryRun) {
-        dryRunList.push({ to: player.email, subject: `(${r.role}) ${session.hallName} ${today}` });
-      } else {
-        toSend.push({ input, sessionId: session.id, playerId: r.playerId });
-      }
+        r.playerId,
+        (player) => ({
+          to: player.email!,
+          playerName: playerLabel(player),
+          role: r.role,
+          session,
+          token: player.token,
+          baseUrl: opts.baseUrl,
+        }),
+        r.role,
+      );
+    }
+
+    if (openSlots(session) === 0) continue;
+    for (const playerId of openSlotRecipients(schedule, session, now)) {
+      queue(
+        session,
+        playerId,
+        (player) => ({
+          kind: "platz-frei",
+          to: player.email!,
+          playerName: playerLabel(player),
+          session,
+          token: player.token,
+          baseUrl: opts.baseUrl,
+        }),
+        "platz-frei",
+      );
     }
   }
 

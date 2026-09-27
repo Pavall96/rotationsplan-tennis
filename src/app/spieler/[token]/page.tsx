@@ -20,11 +20,15 @@ import { AvailabilityPicker } from "@/components/AvailabilityPicker";
 import { getLineups } from "@/lib/lineups";
 import { MatchCard } from "@/components/MatchCard";
 import { LineupLine } from "@/components/LineupLine";
+import { FreeSlotCard } from "@/components/FreeSlotCard";
+import { jumpInOptions } from "@/lib/einspringen";
+import { openSlots } from "@/lib/vacancy";
 
 export const dynamic = "force-dynamic";
 
-export default async function PlayerPage({ params }: PageProps<"/spieler/[token]">) {
+export default async function PlayerPage({ params, searchParams }: PageProps<"/spieler/[token]">) {
   const { token } = await params;
+  const { vergeben } = await searchParams;
 
   const player = await getPlayerByToken(token);
   if (!player) notFound();
@@ -63,6 +67,10 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
 
   // Players who only play team matches (added by a Mannschaftsführer) have no training sessions at all.
   const trains = mySessions.length > 0;
+
+  const freeSlots = jumpInOptions(schedule, player.id, new Date());
+  // Set when "Ich springe ein" lost the race; the place went to someone quicker.
+  const missedSlot = vergeben ? schedule.find((s) => s.id === Number(vergeben)) : undefined;
 
   const webcalUrl = `${baseUrl.replace(/^https?:/, "webcal:")}/api/ics/${token}/rotationsplan.ics`;
   const httpsIcsUrl = `${baseUrl}/api/ics/${token}/rotationsplan.ics`;
@@ -167,15 +175,42 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
 
           {calendarSection}
 
+          {(freeSlots.length > 0 || missedSlot) && (
+            <section id="freie-plaetze" className="mb-6">
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
+                Freie Plätze
+              </h2>
+              {missedSlot && (
+                <p
+                  role="status"
+                  className="mb-3 rounded-2xl bg-[var(--color-offen-bg)] px-4 py-3 text-sm text-[var(--color-offen)]"
+                >
+                  Der Platz am {formatDate(missedSlot.startsAt)} ist schon vergeben. Danke trotzdem!
+                </p>
+              )}
+              <div className="space-y-3">
+                {freeSlots.map((s) => (
+                  <FreeSlotCard key={s.id} token={token} session={s} />
+                ))}
+              </div>
+            </section>
+          )}
+
           <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
             Deine nächsten Termine
           </h2>
           <div className="space-y-3">
             {upcoming.map((s) => {
               const role = myRoleInSession(s, player.id);
-              const myAssignment = [s.trainer, ...s.starters].find((a) => a?.playerId === player.id)!;
+              const myAssignment = [s.trainer, ...s.starters, ...s.einspringer].find(
+                (a) => a?.playerId === player.id,
+              )!;
               const myStatus = myAssignment.rsvpStatus;
-              const others = s.starters.filter((a) => a.playerId !== player.id).map((a) => a.displayName);
+              const others = [...s.starters, ...s.einspringer]
+                .filter((a) => a.playerId !== player.id)
+                .map((a) => a.displayName);
+              // A starter who cancelled can't take it back once someone else has their place.
+              const placeTaken = role === "starter" && myStatus === "nein" && openSlots(s) === 0;
               const isPlatz1 = s.courtSlug === "happy-match";
               const chipColorClasses = isPlatz1
                 ? "text-[var(--color-platz1)] bg-[var(--color-platz1-bg)]"
@@ -224,13 +259,22 @@ export default async function PlayerPage({ params }: PageProps<"/spieler/[token]
                   {role === "trainer" ? (
                     <p className="mb-1 text-sm font-medium">Du bist als Trainer eingeteilt.</p>
                   ) : (
-                    <p className="text-sm">
-                      Mit dabei: {others.join(", ")}
-                      {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
-                    </p>
+                    <>
+                      {role === "einspringer" && <p className="mb-1 text-sm font-medium">Du bist eingesprungen.</p>}
+                      <p className="text-sm">
+                        Mit dabei: {others.join(", ")}
+                        {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
+                      </p>
+                    </>
                   )}
 
-                  <RsvpForm token={token} sessionId={s.id} current={myStatus} />
+                  {placeTaken ? (
+                    <p className="mt-3 rounded-[14px] bg-[var(--color-offen-bg)] px-4 py-3 text-sm text-[var(--color-offen)]">
+                      Du hast abgesagt, dein Platz wurde übernommen.
+                    </p>
+                  ) : (
+                    <RsvpForm token={token} sessionId={s.id} current={myStatus} />
+                  )}
 
                   <a
                     href={`/api/ics/${token}/termin/${s.id}`}
