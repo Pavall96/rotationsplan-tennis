@@ -1,8 +1,8 @@
 import type { SessionView } from "@/lib/queries";
 
-/** Whether a session is short of players after cancellations, and whether the Ersatz covers it. */
+/** Whether a session is short of players after cancellations, and whether the gap is covered. */
 export type Vacancy = {
-  /** Players still missing after counting an Ersatz who said yes. */
+  /** Places still free after counting players who jumped in and an Ersatz who said yes. */
   open: number;
   /** Full wording for the session card banner. */
   label: string;
@@ -14,38 +14,64 @@ function spielerFehlen(n: number) {
   return n === 1 ? "1 Spieler fehlt" : `${n} Spieler fehlen`;
 }
 
-export function vacancyStatus(session: SessionView): Vacancy | null {
-  const cancelled = session.starters.filter((a) => a.rsvpStatus === "nein").length;
-  if (cancelled === 0) return null;
+function cancelledCount(session: SessionView) {
+  return session.starters.filter((a) => a.rsvpStatus === "nein").length;
+}
 
+/** Places cancelled starters left that nobody has taken yet — neither someone who jumped in nor the Ersatz. */
+export function openSlots(session: SessionView): number {
+  const ersatzPlays = session.ersatz?.rsvpStatus === "ja" ? 1 : 0;
+  return Math.max(0, cancelledCount(session) - session.einspringer.length - ersatzPlays);
+}
+
+export function vacancyStatus(session: SessionView): Vacancy | null {
+  if (cancelledCount(session) === 0) return null;
+
+  const open = openSlots(session);
   const ersatz = session.ersatz?.rsvpStatus;
 
-  if (ersatz === "ja") {
-    const open = cancelled - 1;
-    return open === 0
+  if (open === 0) {
+    return ersatz === "ja" && session.einspringer.length === 0
       ? { open, label: "Ersatz springt ein", short: "Ersatz kommt" }
-      : { open, label: `Ersatz springt ein – ${spielerFehlen(open)} noch`, short: spielerFehlen(open) };
+      : { open, label: "Vollständig", short: "Vollständig" };
+  }
+
+  if (ersatz === "ja") {
+    return { open, label: `Ersatz springt ein – ${spielerFehlen(open)} noch`, short: spielerFehlen(open) };
   }
 
   if (ersatz === "offen") {
     return {
-      open: cancelled,
-      label: cancelled === 1 ? "Ersatz gesucht" : `Ersatz gesucht – ${cancelled} Absagen`,
+      open,
+      label: open === 1 ? "Ersatz gesucht" : `Ersatz gesucht – ${spielerFehlen(open)}`,
       short: "Ersatz gesucht",
     };
   }
 
   // No Ersatz assigned, or the Ersatz can't come either.
   return {
-    open: cancelled,
-    label: ersatz === "nein" ? `${spielerFehlen(cancelled)} – Ersatz kann auch nicht` : spielerFehlen(cancelled),
-    short: spielerFehlen(cancelled),
+    open,
+    label: ersatz === "nein" ? `${spielerFehlen(open)} – Ersatz kann auch nicht` : spielerFehlen(open),
+    short: spielerFehlen(open),
   };
 }
 
-/** True once a starter has said no, i.e. the Ersatz actually has to play. */
+/** True while a cancelled place isn't taken by someone who jumped in, i.e. the Ersatz would actually play. */
 export function ersatzNeeded(session: SessionView): boolean {
-  return session.starters.some((a) => a.rsvpStatus === "nein");
+  return cancelledCount(session) - session.einspringer.length > 0;
+}
+
+/**
+ * After someone jumped in: true when that filled the last free place while the Ersatz still hadn't answered,
+ * so the Ersatz should hear they're off the hook.
+ */
+export function ersatzNoLongerNeeded(session: SessionView, now: Date): boolean {
+  return (
+    session.ersatz?.rsvpStatus === "offen" &&
+    session.einspringer.length > 0 &&
+    openSlots(session) === 0 &&
+    session.endsAt > now
+  );
 }
 
 /** "Anna hat" / "Anna und Ben haben" — the starters who cancelled, ready to be followed by "abgesagt". */
