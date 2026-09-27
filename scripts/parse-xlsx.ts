@@ -35,7 +35,7 @@ const COURTS = [
   {
     slug: "frankenbach" as const,
     label: "Platz 2",
-    hallName: "Tennishalle Frankenbach",
+    hallName: "Sportivo",
     withCoach: false,
     startLocal: "20:00",
     endLocal: "21:30",

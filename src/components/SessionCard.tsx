@@ -1,5 +1,6 @@
+import Link from "next/link";
 import type { SessionView } from "@/lib/queries";
-import { formatDate, formatTimeRange, mapsUrl } from "@/lib/format";
+import { calendarHref, formatDate, formatDateForFile, formatTimeRange, mapsUrl } from "@/lib/format";
 import { RsvpBadge } from "@/components/RsvpBadge";
 import { AlertIcon, CheckIcon, PinIcon } from "@/components/icons";
 import { vacancyStatus } from "@/lib/vacancy";
@@ -22,8 +23,13 @@ export function SessionCard({
   const vacancy = vacancyStatus(session);
 
   if (variant === "compact") {
+    // Tapping a compact card opens that day in the calendar, where the full cards (players, RSVPs) are shown.
+    const day = formatDateForFile(session.startsAt);
     return (
-      <div className="flex items-center justify-between gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3">
+      <Link
+        href={calendarHref(day.slice(0, 7), day)}
+        className="flex items-center justify-between gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 transition-colors active:bg-[var(--color-tabs-bg)]"
+      >
         <div className="min-w-0 whitespace-nowrap">
           <p className="truncate text-sm font-semibold">{formatDate(session.startsAt)}</p>
           <p className="text-xs text-[var(--color-ink-muted)]">
@@ -49,7 +55,7 @@ export function SessionCard({
             {goingCount} zugesagt
           </span>
         </div>
-      </div>
+      </Link>
     );
   }
 
