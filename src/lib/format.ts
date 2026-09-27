@@ -68,7 +68,7 @@ export function formatDayShort(d: Date | string): string {
  * Answer-button wording for the reminder email and its confirmation page. Ersatz answers mean "standing by",
  * unless a starter has already cancelled (`ersatzNeeded`) — then the Ersatz is answering whether they'll play.
  */
-export function rsvpLabels(role: "starter" | "ersatz" | "trainer", ersatzNeeded = false): { ja: string; nein: string } {
+export function rsvpLabels(role: "starter" | "ersatz" | "trainer" | "einspringer", ersatzNeeded = false): { ja: string; nein: string } {
   if (role === "ersatz") {
     return ersatzNeeded
       ? { ja: "Ja, ich springe ein", nein: "Nein, ich kann nicht" }

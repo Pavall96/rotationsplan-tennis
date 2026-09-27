@@ -138,3 +138,8 @@ ALTER TABLE rides ADD COLUMN IF NOT EXISTS taken smallint NOT NULL DEFAULT 0;
 UPDATE rides SET taken = (SELECT count(*) FROM ride_passengers WHERE ride_passengers.ride_id = rides.id);
 ALTER TABLE rides DROP CONSTRAINT IF EXISTS rides_taken_check;
 ALTER TABLE rides ADD CONSTRAINT rides_taken_check CHECK (taken >= 0 AND taken <= seats);
+
+-- 2026-09-27: allow the 'einspringer' session_assignments role (a player who took a cancelled place).
+ALTER TABLE session_assignments DROP CONSTRAINT session_assignments_role_check;
+ALTER TABLE session_assignments ADD CONSTRAINT session_assignments_role_check
+  CHECK (role in ('starter', 'ersatz', 'trainer', 'einspringer'));
