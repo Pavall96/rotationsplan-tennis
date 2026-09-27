@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SessionView } from "@/lib/queries";
-import { formatDateForFile } from "@/lib/format";
+import { calendarHref, formatDateForFile } from "@/lib/format";
 import { SessionCard } from "@/components/SessionCard";
 import { ArrowLeftIcon } from "@/components/icons";
 import { vacancyStatus } from "@/lib/vacancy";
@@ -26,10 +26,6 @@ function monthGrid(month: string): (string | null)[] {
   for (let day = 1; day <= daysInMonth; day++) cells.push(`${month}-${String(day).padStart(2, "0")}`);
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
-}
-
-function calendarHref(month: string, day?: string) {
-  return `/?ansicht=kalender&monat=${month}${day ? `&tag=${day}` : ""}#kalender`;
 }
 
 export function SeasonCalendar({

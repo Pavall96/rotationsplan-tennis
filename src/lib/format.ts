@@ -81,3 +81,8 @@ export function rsvpLabels(role: "starter" | "ersatz" | "trainer" | "einspringer
 export function isAppleRelayEmail(email: string): boolean {
   return /@privaterelay\.appleid\.com$/i.test(email.trim());
 }
+
+/** Home page calendar view, optionally with one day ("YYYY-MM-DD") selected. */
+export function calendarHref(month: string, day?: string) {
+  return `/?ansicht=kalender&monat=${month}${day ? `&tag=${day}` : ""}#kalender`;
+}
