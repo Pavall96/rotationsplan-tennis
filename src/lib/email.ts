@@ -197,8 +197,11 @@ export type ErsatzAlertInput = {
   session: SessionView;
   token: string;
   baseUrl: string;
-  /** "gebraucht": a starter just cancelled. "entwarnung": the cancellation was taken back, nobody is missing any more. */
-  kind: "gebraucht" | "entwarnung";
+  /**
+   * "gebraucht": a starter just cancelled. "entwarnung": the cancellation was taken back.
+   * "uebernommen": someone else jumped in and took the last free place. Both of the latter mean nobody is missing.
+   */
+  kind: "gebraucht" | "entwarnung" | "uebernommen";
   /** The starter whose answer triggered this email. */
   changedBy: string;
 };
@@ -210,9 +213,12 @@ export function renderErsatzAlert(input: ErsatzAlertInput): { subject: string; h
   const time = formatTimeRange(session.startsAt, session.endsAt);
   const personalUrl = `${baseUrl}/spieler/${token}`;
 
-  if (kind === "entwarnung") {
+  if (kind === "entwarnung" || kind === "uebernommen") {
     const subject = `Entwarnung für ${shortDate} – du wirst doch nicht gebraucht`;
-    const line = `${changedBy} kommt doch – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`;
+    const line =
+      kind === "entwarnung"
+        ? `${changedBy} kommt doch – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`
+        : `${changedBy} springt ein – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`;
     const html = renderShell({
       preheader: line,
       playerName,
