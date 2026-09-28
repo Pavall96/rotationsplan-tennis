@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { MatchView } from "@/lib/matches";
 import type { RosterRow } from "@/lib/roster";
 import { canBeAsked, type PlayerRoster } from "@/lib/eligibility";
@@ -20,11 +21,14 @@ export function AvailabilityOverview({
   roster,
   rosters,
   answers,
+  lineupHref,
 }: {
   days: { date: string; matches: MatchView[] }[];
   roster: RosterRow[];
   rosters: Map<number, PlayerRoster>;
   answers: Map<string, AvailabilityStatus>;
+  /** Where to line up a match, for the matches the viewer may line up. */
+  lineupHref?: (match: MatchView) => string | null;
 }) {
   const people = new Map<number, Person>();
   for (const r of roster) {
@@ -55,14 +59,25 @@ export function AvailabilityOverview({
                   {yes} von {needed} nötigen können
                 </span>
               </p>
-              {matches.map((m) => (
-                <p key={m.id} className="flex items-center gap-2 py-0.5 text-sm">
-                  <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
-                  <span className="min-w-0 truncate">
-                    {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
-                  </span>
-                </p>
-              ))}
+              {matches.map((m) => {
+                const href = lineupHref?.(m);
+                return (
+                  <p key={m.id} className="flex items-center gap-2 py-0.5 text-sm">
+                    <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
+                    <span className="min-w-0 flex-1 truncate">
+                      {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+                    </span>
+                    {href && (
+                      <Link
+                        href={href}
+                        className="shrink-0 rounded-full bg-[var(--color-brand)] px-2.5 py-1 text-[11px] font-semibold text-white"
+                      >
+                        Aufstellen ›
+                      </Link>
+                    )}
+                  </p>
+                );
+              })}
               <p className="mt-1 text-[11px] text-[var(--color-ink-muted)]">
                 {byStatus("vielleicht").length} vielleicht · {byStatus("nein").length} nicht ·{" "}
                 {byStatus("offen").length} offen <span className="group-open:hidden">· Namen anzeigen ▾</span>
