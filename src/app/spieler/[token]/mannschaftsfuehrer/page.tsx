@@ -3,15 +3,15 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/db";
 import { players } from "@/db/schema";
 import { getPlayerByToken } from "@/lib/queries";
-import { getTeams, getAllMatches, groupByDay, type AgeClass } from "@/lib/matches";
+import { getTeams, getAllMatches, groupByDay, type AgeClass, type MatchView } from "@/lib/matches";
 import { getRoster, rosterByPlayer, activeRows } from "@/lib/roster";
 import { setPlaysMatches } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
-import { getAvailability } from "@/lib/availability";
-import { getLineups } from "@/lib/lineups";
+import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
+import { getLineups, type LineupEntry } from "@/lib/lineups";
 import { AvailabilityOverview } from "@/components/AvailabilityOverview";
 import { AvailabilityReminder } from "@/components/AvailabilityReminder";
-import { AGE_CLASS_LABEL, FIXED_POSITIONS } from "@/lib/eligibility";
+import { AGE_CLASS_LABEL, FIXED_POSITIONS, canBeAsked } from "@/lib/eligibility";
 import { getBaseUrl } from "@/lib/base-url";
 import { formatDateForFile, formatDayShort, formatTime, playerLabel } from "@/lib/format";
 import { inviteText, whatsappUrl } from "@/lib/invite";
@@ -52,6 +52,20 @@ export default async function CaptainPage({
   const registerUrl = `${baseUrl}/registrieren`;
   const today = formatDateForFile(new Date());
   const days = groupByDay(allMatches.filter((m) => m.matchDate >= today));
+  const upcoming = days.flatMap(({ matches: dayMatches }) => dayMatches);
+  const myMatches = upcoming.filter((m) => myTeamIds.has(m.team.id));
+  const otherMatches = upcoming.filter((m) => !myTeamIds.has(m.team.id));
+  const active = activeRows(roster);
+  const activeRosters = rosterByPlayer(active);
+  const activeIds = [...new Set(active.map((r) => r.playerId))];
+  const answerCounts = (m: MatchView): AnswerCounts => {
+    const counts: AnswerCounts = { ja: 0, vielleicht: 0, nein: 0, offen: 0 };
+    for (const id of activeIds) {
+      if (!canBeAsked(activeRosters.get(id) ?? {}, m.team)) continue;
+      counts[answers.get(availabilityKey(id, m.matchDate)) ?? "offen"]++;
+    }
+    return counts;
+  };
   const groupText =
     "Winterspiele 2026/27: Bitte tragt in der App ein, an welchen Spieltagen ihr könnt – " +
     `daraus stellen wir die Teams auf. Einfach hier öffnen: ${baseUrl}/punktspiele`;
@@ -76,69 +90,72 @@ export default async function CaptainPage({
       </header>
 
       <section className="mb-6">
-        <h2 className="mb-1 font-display font-bold">Aufstellungen</h2>
+        <h2 className="mb-1 font-display font-bold">Deine Spiele</h2>
         <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          Deine Spiele zum Aufstellen, die anderen Teams zum Mitlesen – wer dort steht, ist am selben Tag für dich
-          gesperrt.
+          Spiel antippen, Spieler aufstellen, dann veröffentlichen – erst dann sehen die Spieler die Aufstellung und
+          bekommen eine E-Mail.
         </p>
-        <div className="overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)]">
-          {days.flatMap(({ matches: dayMatches }) => dayMatches).map((m) => {
-            const entries = lineupsByMatch.get(m.id) ?? [];
-            const stamm = entries.filter((e) => e.role === "stamm");
-            const mine = myTeamIds.has(m.team.id);
-            const status = (
-              <span
-                className={`shrink-0 text-[11px] font-semibold ${
-                  m.lineupPublishedAt ? "text-[var(--color-ja)]" : "text-[var(--color-ink-muted)]"
-                }`}
-              >
-                {stamm.length}/{m.playersNeeded}
-                {m.lineupPublishedAt ? " · veröffentlicht" : ""}
+        <div className="space-y-2.5">
+          {myMatches.map((m) => (
+            <OwnMatchCard
+              key={m.id}
+              href={`/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}`}
+              match={m}
+              entries={lineupsByMatch.get(m.id) ?? []}
+              answers={answerCounts(m)}
+            />
+          ))}
+          {myMatches.length === 0 && (
+            <p className="text-sm text-[var(--color-ink-muted)]">Keine anstehenden Spiele mehr.</p>
+          )}
+        </div>
+      </section>
+
+      {otherMatches.length > 0 && (
+        <details className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)]">
+          <summary className="cursor-pointer list-none px-3.5 py-2.5">
+            <span className="flex items-center justify-between gap-2 text-sm font-semibold">
+              Andere Teams
+              <span className="shrink-0 whitespace-nowrap text-xs font-normal text-[var(--color-ink-muted)]">
+                zum Mitlesen ▾
               </span>
-            );
-            const body = (
-              <>
-                <span className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
-                    <span className="truncate text-sm">
-                      {formatDayShort(m.startsAt)} {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+            </span>
+            <span className="mt-0.5 block text-xs text-[var(--color-ink-muted)]">
+              Wer dort steht, ist am selben Tag für dich gesperrt.
+            </span>
+          </summary>
+          <div className="border-t border-[var(--color-border)]">
+            {otherMatches.map((m) => {
+              const stamm = (lineupsByMatch.get(m.id) ?? []).filter((e) => e.role === "stamm");
+              return (
+                <div key={m.id} className="border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
+                      <span className="truncate text-sm">
+                        {formatDayShort(m.startsAt)} {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 text-[11px] font-semibold ${
+                        m.lineupPublishedAt ? "text-[var(--color-ja)]" : "text-[var(--color-ink-muted)]"
+                      }`}
+                    >
+                      {stamm.length}/{m.playersNeeded}
+                      {m.lineupPublishedAt ? " · veröffentlicht" : ""}
                     </span>
                   </span>
-                  {mine ? <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" /> : status}
-                </span>
-                {mine ? (
-                  <span className="mt-0.5 flex justify-between text-xs">
-                    <span className="truncate text-[var(--color-ink-muted)]">
-                      {stamm.length ? stamm.map((e) => e.name).join(", ") : "Noch niemand aufgestellt"}
-                    </span>
-                    {status}
-                  </span>
-                ) : (
-                  stamm.length > 0 && (
+                  {stamm.length > 0 && (
                     <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-muted)]">
                       {stamm.map((e) => e.name).join(", ")}
                     </span>
-                  )
-                )}
-              </>
-            );
-            return mine ? (
-              <Link
-                key={m.id}
-                href={`/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}`}
-                className="block border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0"
-              >
-                {body}
-              </Link>
-            ) : (
-              <div key={m.id} className="border-b border-[var(--color-border)] px-3.5 py-2.5 opacity-80 last:border-b-0">
-                {body}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      )}
 
       <section className="mb-6">
         <h2 className="mb-1 font-display font-bold">Wer kann wann?</h2>
@@ -151,9 +168,10 @@ export default async function CaptainPage({
         </div>
         <AvailabilityOverview
           days={days}
-          roster={activeRows(roster)}
-          rosters={rosterByPlayer(activeRows(roster))}
+          roster={active}
+          rosters={activeRosters}
           answers={answers}
+          lineupHref={(m) => (myTeamIds.has(m.team.id) ? `/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}` : null)}
         />
       </section>
 
@@ -239,5 +257,71 @@ export default async function CaptainPage({
       )}
 
     </main>
+  );
+}
+
+type AnswerCounts = Record<AvailabilityStatus | "offen", number>;
+
+/** One of the captain's own matches: where the lineup stands and one clear way in. */
+function OwnMatchCard({
+  href,
+  match,
+  entries,
+  answers,
+}: {
+  href: string;
+  match: MatchView;
+  entries: LineupEntry[];
+  answers: AnswerCounts;
+}) {
+  const stamm = entries.filter((e) => e.role === "stamm");
+  const declined = stamm.filter((e) => e.response === "nein").length;
+  const published = Boolean(match.lineupPublishedAt);
+  const unpublishedChanges = published && entries.some((e) => !e.published);
+  const full = stamm.length - declined >= match.playersNeeded;
+
+  const status = !published
+    ? { text: stamm.length ? "Noch nicht veröffentlicht" : "Noch niemand aufgestellt", color: "text-[var(--color-ink-muted)]" }
+    : declined > 0
+      ? { text: `${declined} ${declined === 1 ? "Absage" : "Absagen"} – Ersatz nötig`, color: "text-[var(--color-nein)]" }
+      : unpublishedChanges
+        ? { text: "Änderungen noch nicht veröffentlicht", color: "text-[var(--color-h30)]" }
+        : { text: "Veröffentlicht", color: "text-[var(--color-ja)]" };
+  const action = !stamm.length ? "Aufstellen" : published && !declined && !unpublishedChanges ? "Ansehen" : "Weiter";
+
+  return (
+    <Link
+      href={href}
+      className="block rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-3.5"
+    >
+      <span className="flex items-center justify-between gap-2">
+        <TeamChip name={match.team.name} ageClass={match.team.ageClass} />
+        <span className="text-xs font-semibold text-[var(--color-ink-muted)]">
+          {formatDayShort(match.startsAt)} · {formatTime(match.startsAt)}
+        </span>
+      </span>
+      <span className="mt-2 block font-display text-lg font-bold leading-tight">
+        {match.isHome ? "gegen" : "bei"} {match.opponent}
+      </span>
+      <span className="mt-0.5 block text-xs text-[var(--color-ink-muted)]">
+        <span className="font-semibold text-[var(--color-ja)]">{answers.ja} können</span> · {answers.vielleicht}{" "}
+        vielleicht · {answers.nein} nicht · {answers.offen} offen
+      </span>
+      {stamm.length > 0 && (
+        <span className="mt-1.5 block truncate text-xs">{stamm.map((e) => e.name).join(", ")}</span>
+      )}
+      <span className="mt-3 flex items-center justify-between gap-2">
+        <span className="min-w-0">
+          <span className={`block text-sm font-bold ${full ? "text-[var(--color-ja)]" : ""}`}>
+            {stamm.length - declined} von {match.playersNeeded} aufgestellt
+          </span>
+          <span className={`block text-[11px] font-semibold ${status.color}`}>{status.text}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--color-brand)] py-2 pl-4 pr-3 text-sm font-semibold text-white">
+          {action}
+          <ChevronRightIcon className="h-4 w-4" />
+        </span>
+      </span>
+    </Link>
   );
 }
