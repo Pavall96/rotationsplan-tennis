@@ -130,6 +130,8 @@ Produktion: `CREATE TABLE` von Hand, erst nach Pablos OK, eingetragen in `drizzl
     selben Tag: `{ match, kind: "aufgestellt" | "vorgemerkt", captainName, captainPlayerId }[]`. Rein, getestet.
   - `appearances(playerId, allMatches, lineupsByMatch)` → `{ teamName, count }[]` in Team-Reihenfolge. Rein, getestet.
   - `canMark(roster, team, ctx)` → `lineupCheck` mit `sameDayTeam: null`. Rein, getestet.
+  - `conflictTeams(match, allMatches, lineupsByMatch, marksByMatch)` → Namen der Teams, mit denen es bei diesem Spiel
+    einen Konflikt gibt (für den Hinweis in der Übersicht). Rein, getestet.
 - `src/lib/invite.ts`: `coordinationText(...)` und `sameDayText(...)` für die beiden WhatsApp-Texte.
 - `src/app/spieler/[token]/mannschaftsfuehrer/spiel/[matchId]/actions.ts`: `markPlayer`, `unmarkPlayer`;
   `addToLineup` löscht nach dem Eintragen die Vormerkung desselben Spiels.
@@ -137,12 +139,13 @@ Produktion: `CREATE TABLE` von Hand, erst nach Pablos OK, eingetragen in `drizzl
 
 ## Tests
 
-- Unit-Tests (Vitest):
+- Unit-Tests (`node:test`, `npm test`):
   - `sameDayClaims`: kein Konflikt; woanders Stamm; woanders Ersatz; woanders vorgemerkt; eigenes Spiel zählt nicht;
     anderer Tag zählt nicht; Mannschaftsführer beider Teams.
   - `appearances`: Stamm zählt; Ersatz und Absage nicht; getrennt pro Team.
   - `canMark`: erlaubt trotz Spiel am selben Tag; verboten bei fester Position, fehlender Meldeliste, festgespielt,
     „spielt nicht“.
+  - `conflictTeams`: Konflikt über Aufstellung und über Vormerkung; kein Konflikt ohne Anspruch am selben Tag.
   - `coordinationText` / `sameDayText`.
 - SQL der neuen Actions gegen die Produktions-DB in einem `db.batch`, der mit `select 1/0` zurückgerollt wird
   (wie `scripts/check-slots-sql.ts`).
