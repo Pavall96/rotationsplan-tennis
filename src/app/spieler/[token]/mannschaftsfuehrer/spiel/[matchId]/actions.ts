@@ -9,6 +9,7 @@ import { getAllMatches, type MatchView } from "@/lib/matches";
 import { getLineups, lineupContext, type LineupRole } from "@/lib/lineups";
 import { getPlayerRoster, getRoster, rosterByPlayer } from "@/lib/roster";
 import { lineupCheck, isNonGerman, tooManyNonGermans } from "@/lib/eligibility";
+import { canMark, markStatement, unmarkStatement } from "@/lib/marks";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
 import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
@@ -85,6 +86,8 @@ export async function addToLineup(formData: FormData): Promise<Result> {
       // A new role is a change the players only see (and the player is only told about) on the next publish.
       set: previousRole && previousRole !== role ? { role, publishedAt: null, notifiedAt: null } : { role },
     });
+  // Lining up replaces this team's own mark; other teams' marks for the day stay, so the conflict stays visible.
+  await unmarkStatement(matchId, playerId);
   refresh();
 }
 
@@ -125,6 +128,41 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
       if (result.error) console.error(`Aufstellungs-Mail an ${p.email} fehlgeschlagen: ${result.error}`);
     });
   }
+  refresh();
+}
+
+export async function markPlayer(formData: FormData): Promise<Result> {
+  const token = String(formData.get("token") ?? "");
+  const matchId = Number(formData.get("matchId"));
+  const playerId = Number(formData.get("playerId"));
+
+  const ctx = await captainMatch(token, matchId);
+  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann vormerken." };
+  const { match, all } = ctx;
+
+  const [player] = await getDb().select().from(players).where(eq(players.id, playerId)).limit(1);
+  if (!player) return { error: "Spieler nicht gefunden." };
+
+  const [roster, lineupsByMatch] = await Promise.all([getPlayerRoster(playerId), getLineups()]);
+  if ((lineupsByMatch.get(matchId) ?? []).some((e) => e.playerId === playerId)) {
+    return { error: `${playerLabel(player)} steht schon in der Aufstellung.` };
+  }
+  const check = canMark(roster, match.team, lineupContext(playerId, player.playsMatches, match, all, lineupsByMatch));
+  if (!check.ok) return { error: `${playerLabel(player)}: ${check.reason}` };
+
+  await markStatement(matchId, playerId);
+  refresh();
+}
+
+export async function unmarkPlayer(formData: FormData): Promise<Result> {
+  const token = String(formData.get("token") ?? "");
+  const matchId = Number(formData.get("matchId"));
+  const playerId = Number(formData.get("playerId"));
+
+  const ctx = await captainMatch(token, matchId);
+  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann Vormerkungen entfernen." };
+
+  await unmarkStatement(matchId, playerId);
   refresh();
 }
 

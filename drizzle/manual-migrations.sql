@@ -143,3 +143,12 @@ ALTER TABLE rides ADD CONSTRAINT rides_taken_check CHECK (taken >= 0 AND taken <
 ALTER TABLE session_assignments DROP CONSTRAINT session_assignments_role_check;
 ALTER TABLE session_assignments ADD CONSTRAINT session_assignments_role_check
   CHECK (role in ('starter', 'ersatz', 'trainer', 'einspringer'));
+
+-- 2026-09-29: Vormerkungen der Mannschaftsführer. Additive — new table only.
+CREATE TABLE IF NOT EXISTS lineup_marks (
+  id serial PRIMARY KEY,
+  match_id integer NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  player_id integer NOT NULL REFERENCES players(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT lineup_marks_match_player_unique UNIQUE (match_id, player_id)
+);

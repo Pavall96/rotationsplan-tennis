@@ -1,7 +1,7 @@
 // Vormerkungen: a Mannschaftsführer's "I'd like this player" for one match, and what follows from them. Captain pages
 // only — players never see marks. The pure functions take everything as arguments so the rules can be tested.
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { lineupMarks, players } from "@/db/schema";
 import { playerLabel } from "@/lib/format";
@@ -117,4 +117,15 @@ export function conflictTeams(
     }
   }
   return [...names];
+}
+
+/** Marking twice is a no-op. Returned unexecuted so scripts/check-marks-sql.ts can run it inside a rollback. */
+export function markStatement(matchId: number, playerId: number) {
+  return getDb().insert(lineupMarks).values({ matchId, playerId }).onConflictDoNothing();
+}
+
+export function unmarkStatement(matchId: number, playerId: number) {
+  return getDb()
+    .delete(lineupMarks)
+    .where(and(eq(lineupMarks.matchId, matchId), eq(lineupMarks.playerId, playerId)));
 }
