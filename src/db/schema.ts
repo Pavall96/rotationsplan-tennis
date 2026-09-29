@@ -294,3 +294,20 @@ export const lineups = pgTable(
     check("lineups_response_check", sql`${table.response} in ('ja', 'nein')`),
   ],
 );
+
+// Vormerkungen: a Mannschaftsführer's "I'd like this player" for one match. Deliberately separate from `lineups` —
+// a mark blocks nobody, is never published and players never see it.
+export const lineupMarks = pgTable(
+  "lineup_marks",
+  {
+    id: serial("id").primaryKey(),
+    matchId: integer("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique("lineup_marks_match_player_unique").on(table.matchId, table.playerId)],
+);
