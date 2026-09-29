@@ -6,12 +6,15 @@ import { getRoster, rosterByPlayer } from "@/lib/roster";
 import { getLineups, lineupContext, singlesOrder, type LineupEntry } from "@/lib/lineups";
 import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
 import { lineupCheck, isNonGerman, tooManyNonGermans, type LineupCheck } from "@/lib/eligibility";
+import { getMarks, sameDayClaims, appearances, canMark, type Claim, type Appearance } from "@/lib/marks";
+import { coordinationText, sameDayText, whatsappUrl } from "@/lib/invite";
 import { formatDayShort, formatTime } from "@/lib/format";
-import { addToLineup, removeFromLineup } from "./actions";
+import { addToLineup, removeFromLineup, markPlayer, unmarkPlayer } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamChip } from "@/components/MatchCard";
 import { PublishLineupButton } from "@/components/PublishLineupButton";
+import { SameDayBlock, type SameDayMatch } from "@/components/SameDayBlock";
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,24 @@ type Candidate = {
   countsAsGerman: boolean;
   status: AvailabilityStatus | "offen";
   check: LineupCheck;
+  markable: boolean;
+  claims: Claim[];
+  appearances: Appearance[];
+};
+
+type MarkedRow = {
+  playerId: number;
+  name: string;
+  lists: string;
+  position: number | null;
+  check: LineupCheck;
+  /** Another team has lined this player up the same day since the mark was set. */
+  linedUpElsewhere: Claim | null;
+  /** Other teams that marked this player the same day. */
+  claims: Claim[];
+  status: AvailabilityStatus | "offen";
+  /** Name of the non-German starter when this player would be a second one — only Ersatz is possible then. */
+  nonGermanHint: string | null;
 };
 
 const GROUPS: { key: AvailabilityStatus | "offen"; label: string; color: string }[] = [
@@ -33,7 +54,15 @@ const GROUPS: { key: AvailabilityStatus | "offen"; label: string; color: string 
   { key: "nein", label: "Können nicht", color: "text-[var(--color-nein)]" },
 ];
 
+const STATUS_LABEL: Record<AvailabilityStatus | "offen", string> = {
+  ja: "kann",
+  vielleicht: "vielleicht",
+  nein: "kann nicht",
+  offen: "keine Antwort",
+};
+
 const smallButton = "rounded-full px-2.5 py-1 text-[11px] font-semibold";
+const markButton = `${smallButton} border border-dashed border-[var(--color-border-strong)] text-[var(--color-ink-muted)]`;
 
 export default async function LineupPage({ params }: PageProps<"/spieler/[token]/mannschaftsfuehrer/spiel/[matchId]">) {
   const { token, matchId: matchIdParam } = await params;
@@ -41,19 +70,20 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const captain = await getPlayerByToken(token);
   if (!captain) notFound();
 
-  const [allMatches, teamList, roster, lineupsByMatch, answers] = await Promise.all([
+  const [allMatches, teamList, roster, lineupsByMatch, answers, marksByMatch] = await Promise.all([
     getAllMatches(),
     getTeams(),
     getRoster(),
     getLineups(),
     getAvailability(),
+    getMarks(),
   ]);
   const match = allMatches.find((m) => m.id === matchId);
   const team = teamList.find((t) => t.id === match?.team.id);
   if (!match || !team || team.captainPlayerId !== captain.id) notFound();
 
   const rosters = rosterByPlayer(roster);
-  const people = new Map<number, Omit<Candidate, "status" | "check"> & { playsMatches: boolean }>();
+  const people = new Map<number, Omit<Candidate, "status" | "check" | "markable" | "claims" | "appearances"> & { playsMatches: boolean }>();
   for (const r of roster) {
     const p = people.get(r.playerId) ?? {
       playerId: r.playerId,
@@ -71,34 +101,69 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
 
   const lineup = lineupsByMatch.get(matchId) ?? [];
   const inLineup = new Set(lineup.map((e) => e.playerId));
+  const marksHere = (marksByMatch.get(matchId) ?? []).filter((m) => m.playsMatches && !inLineup.has(m.playerId));
+  const markedIds = new Set(marksHere.map((m) => m.playerId));
+  const day = formatDayShort(match.startsAt);
+
+  const assess = (playerId: number) => {
+    const playerRoster = rosters.get(playerId) ?? {};
+    const ctx = lineupContext(playerId, people.get(playerId)?.playsMatches ?? true, match, allMatches, lineupsByMatch);
+    return { check: lineupCheck(playerRoster, match.team, ctx), markable: canMark(playerRoster, match.team, ctx).ok };
+  };
+  const claimsOf = (playerId: number) =>
+    sameDayClaims(playerId, match, allMatches, lineupsByMatch, marksByMatch, teamList);
+  const talkUrl = (playerName: string, claim: Claim) =>
+    claim.captainName && claim.captainPlayerId !== captain.id
+      ? whatsappUrl(
+          coordinationText({
+            captainName: claim.captainName,
+            day,
+            player: playerName,
+            myTeam: match.team.name,
+            theirTeam: claim.match.team.name,
+            kind: claim.kind,
+          }),
+        )
+      : null;
+
   // Re-checked on every visit: another team's lineup can make an earlier choice invalid (same day, Festspielen).
   const withMeta = (e: LineupEntry) => {
-    const check = lineupCheck(
-      rosters.get(e.playerId) ?? {},
-      match.team,
-      lineupContext(e.playerId, people.get(e.playerId)?.playsMatches ?? true, match, allMatches, lineupsByMatch),
-    );
+    const check = assess(e.playerId).check;
     return {
       ...e,
       position: people.get(e.playerId)?.position ?? null,
       lists: people.get(e.playerId)?.lists ?? "",
       countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}),
       problem: check.ok ? null : check.reason,
+      claims: claimsOf(e.playerId),
     };
   };
   const stamm = singlesOrder(lineup.filter((e) => e.role === "stamm").map(withMeta));
   const ersatz = singlesOrder(lineup.filter((e) => e.role === "ersatz").map(withMeta));
+  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
+  const markedRows: MarkedRow[] = singlesOrder(
+    marksHere.map((m) => ({
+      playerId: m.playerId,
+      name: m.name,
+      lists: people.get(m.playerId)?.lists ?? "",
+      position: people.get(m.playerId)?.position ?? null,
+      check: assess(m.playerId).check,
+      linedUpElsewhere: claimsOf(m.playerId).find((c) => c.kind === "aufgestellt") ?? null,
+      claims: claimsOf(m.playerId).filter((c) => c.kind === "vorgemerkt"),
+      status: answers.get(availabilityKey(m.playerId, match.matchDate)) ?? "offen",
+      nonGermanHint:
+        nonGermanStarter && isNonGerman(rosters.get(m.playerId) ?? {}) ? nonGermanStarter.name : null,
+    })),
+  );
 
   const candidates: Candidate[] = [...people.values()]
-    .filter((p) => !inLineup.has(p.playerId))
+    .filter((p) => !inLineup.has(p.playerId) && !markedIds.has(p.playerId))
     .map((p) => ({
       ...p,
       status: answers.get(availabilityKey(p.playerId, match.matchDate)) ?? "offen",
-      check: lineupCheck(
-        rosters.get(p.playerId) ?? {},
-        match.team,
-        lineupContext(p.playerId, p.playsMatches, match, allMatches, lineupsByMatch),
-      ),
+      ...assess(p.playerId),
+      claims: claimsOf(p.playerId),
+      appearances: appearances(p.playerId, allMatches, lineupsByMatch),
     }));
   const eligible = singlesOrder(candidates.filter((c) => c.check.ok));
   const blocked = candidates.filter((c) => !c.check.ok && c.check.reason !== "Spielt diese Saison nicht");
@@ -108,7 +173,6 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   for (const e of [...stamm, ...ersatz]) {
     if (e.problem) warnings.push(`${e.name} ist nicht mehr spielberechtigt: ${e.problem}.`);
   }
-  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
   if (stamm.some((e) => e.position === null)) {
     warnings.push("Nicht jeder steht auf dieser Meldeliste – die Einzel-Reihenfolge ergibt sich erst aus der Wintermeldung.");
   }
@@ -120,7 +184,26 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       }, dann Änderungen veröffentlichen.`,
     );
   }
-  const otherToday = allMatches.filter((m) => m.matchDate === match.matchDate && m.id !== match.id);
+
+  const sameDay: SameDayMatch[] = allMatches
+    .filter((m) => m.matchDate === match.matchDate && m.id !== match.id)
+    .map((m) => {
+      const entries = lineupsByMatch.get(m.id) ?? [];
+      const other = teamList.find((t) => t.id === m.team.id);
+      const own = other?.captainPlayerId === captain.id;
+      return {
+        match: m,
+        stamm: entries.filter((e) => e.role === "stamm").map((e) => ({ name: e.name, declined: e.response === "nein" })),
+        ersatz: entries.filter((e) => e.role === "ersatz").map((e) => e.name),
+        marked: (marksByMatch.get(m.id) ?? []).filter((x) => x.playsMatches).map((x) => x.name),
+        captainName: other?.captainName ?? null,
+        whatsapp:
+          other?.captainName && !own
+            ? whatsappUrl(sameDayText({ captainName: other.captainName, day, teams: [m.team.name, match.team.name] }))
+            : null,
+        own,
+      };
+    });
   const hidden = { token, matchId };
 
   return (
@@ -139,14 +222,11 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
           {match.isHome ? "gegen" : "bei"} {match.opponent}
         </h1>
         <p className="text-sm text-[var(--color-ink-muted)]">
-          {formatDayShort(match.startsAt)} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
+          {day} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
-        {otherToday.length > 0 && (
-          <p className="mt-1 text-xs text-[var(--color-nein)]">
-            Am selben Tag: {otherToday.map((m) => m.team.name).join(", ")} – dort Aufgestellte sind hier gesperrt.
-          </p>
-        )}
       </header>
+
+      {sameDay.length > 0 && <SameDayBlock matches={sameDay} />}
 
       <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
         <div className="mb-2 flex items-baseline justify-between">
@@ -171,6 +251,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               label={`${i + 1}`}
               entry={e}
               hidden={hidden}
+              talkFor={(cl) => talkUrl(e.name, cl)}
               unpublished={Boolean(match.lineupPublishedAt) && !e.published}
             />
           ))}
@@ -186,8 +267,27 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   label="E"
                   entry={e}
                   hidden={hidden}
+                  talkFor={(cl) => talkUrl(e.name, cl)}
                   promote
                   unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                />
+              ))}
+            </ul>
+          </>
+        )}
+        {markedRows.length > 0 && (
+          <>
+            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
+              Vorgemerkt <span className="font-normal">– nur für Mannschaftsführer sichtbar</span>
+            </p>
+            <ul className="mb-3 space-y-1.5">
+              {markedRows.map((r) => (
+                <MarkRow
+                  key={r.playerId}
+                  row={r}
+                  hidden={hidden}
+                  talk={r.linedUpElsewhere ? talkUrl(r.name, r.linedUpElsewhere) : null}
+                  talkFor={(cl) => talkUrl(r.name, cl)}
                 />
               ))}
             </ul>
@@ -209,7 +309,8 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       <section className="mb-6">
         <h2 className="mb-1 font-display font-bold">Spielberechtigt</h2>
         <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          Nach Antwort für den {formatDayShort(match.startsAt)} gruppiert, innerhalb nach Meldeliste.
+          Nach Antwort für den {day} gruppiert, innerhalb nach Meldeliste. „Vormerken“ heißt: hätte ich gern – es
+          sperrt niemanden und die Spieler sehen es nicht.
         </p>
         <div className="space-y-4">
           {GROUPS.map((g) => {
@@ -227,24 +328,12 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                 <ul className="mt-2 divide-y divide-[var(--color-border)]">
                   {list.map((c) => (
                     <li key={c.playerId} className="py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm">{c.name}</span>
-                          <span className="text-[11px] text-[var(--color-ink-faint)]">{c.lists}</span>
-                        </span>
-                        <span className="flex shrink-0 gap-1.5">
-                          <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "stamm" }}>
-                            <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>
-                              Aufstellen
-                            </SubmitButton>
-                          </ActionForm>
-                          <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "ersatz" }}>
-                            <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
-                              Ersatz
-                            </SubmitButton>
-                          </ActionForm>
-                        </span>
-                      </div>
+                      <span className="block truncate text-sm">{c.name}</span>
+                      <span className="text-[11px] text-[var(--color-ink-faint)]">{c.lists}</span>
+                      <AppearanceLine appearances={c.appearances} />
+                      {c.claims.map((cl) => (
+                        <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+                      ))}
                       {nonGermanStarter && !c.countsAsGerman && (
                         <p className="mt-1 text-[11px] text-[var(--color-h30)]">
                           Nur als Ersatz – {nonGermanStarter.name} ist schon als Nicht-Deutscher aufgestellt
@@ -256,6 +345,21 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                             {w}
                           </p>
                         ))}
+                      <span className="mt-1.5 flex flex-wrap gap-1.5">
+                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "stamm" }}>
+                          <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>
+                            Aufstellen
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "ersatz" }}>
+                          <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
+                            Ersatz
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }}>
+                          <SubmitButton className={markButton}>Vormerken</SubmitButton>
+                        </ActionForm>
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -269,11 +373,21 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
             <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--color-ink-muted)]">
               Nicht spielberechtigt ({blocked.length})
             </summary>
-            <ul className="mt-2 space-y-1.5">
+            <ul className="mt-2 space-y-2">
               {blocked.map((c) => (
                 <li key={c.playerId} className="text-sm">
                   {c.name}
                   <span className="block text-[11px] text-[var(--color-ink-faint)]">{!c.check.ok && c.check.reason}</span>
+                  {c.markable && (
+                    <>
+                      {c.claims.map((cl) => (
+                        <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+                      ))}
+                      <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }} className="mt-1 inline-block">
+                        <SubmitButton className={markButton}>Vormerken</SubmitButton>
+                      </ActionForm>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -281,6 +395,94 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         )}
       </section>
     </main>
+  );
+}
+
+function AppearanceLine({ appearances }: { appearances: Appearance[] }) {
+  if (appearances.length === 0) return null;
+  return (
+    <p className="mt-0.5 text-[11px] text-[var(--color-ink-muted)]">
+      Einsätze: {appearances.map((a) => `${a.teamName} ${a.count}`).join(" · ")}
+    </p>
+  );
+}
+
+function ClaimNote({ claim, url }: { claim: Claim; url: string | null }) {
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-[var(--color-h30)]">
+      <span>
+        ⚠ {claim.kind === "aufgestellt" ? "Aufgestellt bei" : "Auch vorgemerkt von"} {claim.match.team.name}
+      </span>
+      {url && (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+          Absprechen ›
+        </a>
+      )}
+    </p>
+  );
+}
+
+function MarkRow({
+  row,
+  hidden,
+  talk,
+  talkFor,
+}: {
+  row: MarkedRow;
+  hidden: { token: string; matchId: number };
+  talk: string | null;
+  talkFor: (claim: Claim) => string | null;
+}) {
+  const elsewhere = row.linedUpElsewhere;
+  const problem = !elsewhere && !row.check.ok ? row.check.reason : null;
+  return (
+    <li
+      className={`flex items-center gap-2 rounded-[10px] border border-dashed border-[var(--color-border-strong)] px-3 py-2 ${
+        problem ? "bg-[var(--color-nein-bg)]" : ""
+      }`}
+    >
+      <span className="w-4 shrink-0 text-xs font-bold text-[var(--color-ink-muted)]">V</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{row.name}</span>
+        <span className="text-[11px] text-[var(--color-ink-faint)]">
+          {row.lists} · {STATUS_LABEL[row.status]}
+          {elsewhere ? (
+            <span className="font-semibold text-[var(--color-h30)]"> · inzwischen bei {elsewhere.match.team.name} aufgestellt</span>
+          ) : problem ? (
+            <span className="font-semibold text-[var(--color-nein)]"> · {problem}</span>
+          ) : null}
+        </span>
+        {row.nonGermanHint && (
+          <span className="mt-0.5 block text-[11px] text-[var(--color-h30)]">
+            Nur als Ersatz – {row.nonGermanHint} ist schon als Nicht-Deutscher aufgestellt
+          </span>
+        )}
+        {row.claims.map((cl) => (
+          <ClaimNote key={cl.match.id} claim={cl} url={talkFor(cl)} />
+        ))}
+      </span>
+      {elsewhere
+        ? talk && (
+            <a
+              href={talk}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-semibold text-[var(--color-brand)] underline underline-offset-2"
+            >
+              Absprechen ›
+            </a>
+          )
+        : row.check.ok && (
+            <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: row.playerId, role: "stamm" }}>
+              <SubmitButton className="text-[11px] font-semibold text-[var(--color-brand)] underline underline-offset-2">
+                Aufstellen
+              </SubmitButton>
+            </ActionForm>
+          )}
+      <ActionForm action={unmarkPlayer} hidden={{ ...hidden, playerId: row.playerId }}>
+        <SubmitButton className="text-[11px] text-[var(--color-nein)] underline underline-offset-2">Entfernen</SubmitButton>
+      </ActionForm>
+    </li>
   );
 }
 
@@ -293,12 +495,14 @@ function LineupRow({
   label,
   entry,
   hidden,
+  talkFor,
   promote = false,
   unpublished = false,
 }: {
   label: string;
-  entry: LineupEntry & { lists: string; problem: string | null };
+  entry: LineupEntry & { lists: string; problem: string | null; claims: Claim[] };
   hidden: { token: string; matchId: number };
+  talkFor: (claim: Claim) => string | null;
   promote?: boolean;
   /** Added or changed since the last publish — players don't see it yet. */
   unpublished?: boolean;
@@ -325,6 +529,9 @@ function LineupRow({
             ""
           )}
         </span>
+        {entry.claims.map((cl) => (
+          <ClaimNote key={cl.match.id} claim={cl} url={talkFor(cl)} />
+        ))}
       </span>
       {promote && (
         <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: entry.playerId, role: "stamm" }}>

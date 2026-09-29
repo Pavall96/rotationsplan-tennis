@@ -9,6 +9,7 @@ import { setPlaysMatches } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
 import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
 import { getLineups, type LineupEntry } from "@/lib/lineups";
+import { getMarks, conflictTeams } from "@/lib/marks";
 import { AvailabilityOverview } from "@/components/AvailabilityOverview";
 import { AvailabilityReminder } from "@/components/AvailabilityReminder";
 import { AGE_CLASS_LABEL, FIXED_POSITIONS, canBeAsked } from "@/lib/eligibility";
@@ -35,13 +36,14 @@ export default async function CaptainPage({
   if (myTeams.length === 0) notFound();
 
   const db = getDb();
-  const [allMatches, allPlayers, roster, answers, lineupsByMatch, baseUrl] = await Promise.all([
+  const [allMatches, allPlayers, roster, answers, lineupsByMatch, baseUrl, marksByMatch] = await Promise.all([
     getAllMatches(),
     db.select().from(players).orderBy(players.displayName),
     getRoster(),
     getAvailability(),
     getLineups(),
     getBaseUrl(),
+    getMarks(),
   ]);
   const myTeamIds = new Set(myTeams.map((t) => t.id));
   const listClass: AgeClass = liste === "herren" || liste === "h30" ? liste : myTeams[0].ageClass;
@@ -103,6 +105,7 @@ export default async function CaptainPage({
               match={m}
               entries={lineupsByMatch.get(m.id) ?? []}
               answers={answerCounts(m)}
+              conflicts={conflictTeams(m, allMatches, lineupsByMatch, marksByMatch)}
             />
           ))}
           {myMatches.length === 0 && (
@@ -268,11 +271,13 @@ function OwnMatchCard({
   match,
   entries,
   answers,
+  conflicts,
 }: {
   href: string;
   match: MatchView;
   entries: LineupEntry[];
   answers: AnswerCounts;
+  conflicts: string[];
 }) {
   const stamm = entries.filter((e) => e.role === "stamm");
   const declined = stamm.filter((e) => e.response === "nein").length;
@@ -307,6 +312,11 @@ function OwnMatchCard({
         <span className="font-semibold text-[var(--color-ja)]">{answers.ja} können</span> · {answers.vielleicht}{" "}
         vielleicht · {answers.nein} nicht · {answers.offen} offen
       </span>
+      {conflicts.length > 0 && (
+        <span className="mt-1 block text-xs font-semibold text-[var(--color-h30)]">
+          ⚠ Absprache mit {conflicts.join(", ")} offen
+        </span>
+      )}
       {stamm.length > 0 && (
         <span className="mt-1.5 block truncate text-xs">{stamm.map((e) => e.name).join(", ")}</span>
       )}
