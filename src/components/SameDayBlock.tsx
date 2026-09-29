@@ -4,7 +4,8 @@ import { TeamChip } from "@/components/MatchCard";
 
 export type SameDayMatch = {
   match: MatchView;
-  stamm: string[];
+  /** Stamm entries; `declined` ones said "nein" and don't count as lined up. */
+  stamm: { name: string; declined: boolean }[];
   ersatz: string[];
   marked: string[];
   captainName: string | null;
@@ -33,9 +34,9 @@ export function SameDayBlock({ matches }: { matches: SameDayMatch[] }) {
             </p>
             <p className="mt-1.5">
               <span className="font-semibold">
-                Aufgestellt {s.stamm.length}/{s.match.playersNeeded}:
+                Aufgestellt {s.stamm.filter((e) => !e.declined).length}/{s.match.playersNeeded}:
               </span>{" "}
-              {s.stamm.length ? s.stamm.join(", ") : "noch niemand"}
+              {s.stamm.length ? s.stamm.map((e) => (e.declined ? `${e.name} (abgesagt)` : e.name)).join(", ") : "noch niemand"}
             </p>
             {s.ersatz.length > 0 && (
               <p>

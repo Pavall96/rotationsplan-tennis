@@ -40,6 +40,11 @@ type MarkedRow = {
   check: LineupCheck;
   /** Another team has lined this player up the same day since the mark was set. */
   linedUpElsewhere: Claim | null;
+  /** Other teams that marked this player the same day. */
+  claims: Claim[];
+  status: AvailabilityStatus | "offen";
+  /** Name of the non-German starter when this player would be a second one — only Ersatz is possible then. */
+  nonGermanHint: string | null;
 };
 
 const GROUPS: { key: AvailabilityStatus | "offen"; label: string; color: string }[] = [
@@ -48,6 +53,13 @@ const GROUPS: { key: AvailabilityStatus | "offen"; label: string; color: string 
   { key: "offen", label: "Noch keine Antwort", color: "text-[var(--color-ink-muted)]" },
   { key: "nein", label: "Können nicht", color: "text-[var(--color-nein)]" },
 ];
+
+const STATUS_LABEL: Record<AvailabilityStatus | "offen", string> = {
+  ja: "kann",
+  vielleicht: "vielleicht",
+  nein: "kann nicht",
+  offen: "keine Antwort",
+};
 
 const smallButton = "rounded-full px-2.5 py-1 text-[11px] font-semibold";
 const markButton = `${smallButton} border border-dashed border-[var(--color-border-strong)] text-[var(--color-ink-muted)]`;
@@ -123,10 +135,12 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       lists: people.get(e.playerId)?.lists ?? "",
       countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}),
       problem: check.ok ? null : check.reason,
+      claims: claimsOf(e.playerId),
     };
   };
   const stamm = singlesOrder(lineup.filter((e) => e.role === "stamm").map(withMeta));
   const ersatz = singlesOrder(lineup.filter((e) => e.role === "ersatz").map(withMeta));
+  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
   const markedRows: MarkedRow[] = singlesOrder(
     marksHere.map((m) => ({
       playerId: m.playerId,
@@ -135,6 +149,10 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       position: people.get(m.playerId)?.position ?? null,
       check: assess(m.playerId).check,
       linedUpElsewhere: claimsOf(m.playerId).find((c) => c.kind === "aufgestellt") ?? null,
+      claims: claimsOf(m.playerId).filter((c) => c.kind === "vorgemerkt"),
+      status: answers.get(availabilityKey(m.playerId, match.matchDate)) ?? "offen",
+      nonGermanHint:
+        nonGermanStarter && isNonGerman(rosters.get(m.playerId) ?? {}) ? nonGermanStarter.name : null,
     })),
   );
 
@@ -155,7 +173,6 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   for (const e of [...stamm, ...ersatz]) {
     if (e.problem) warnings.push(`${e.name} ist nicht mehr spielberechtigt: ${e.problem}.`);
   }
-  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
   if (stamm.some((e) => e.position === null)) {
     warnings.push("Nicht jeder steht auf dieser Meldeliste – die Einzel-Reihenfolge ergibt sich erst aus der Wintermeldung.");
   }
@@ -176,7 +193,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       const own = other?.captainPlayerId === captain.id;
       return {
         match: m,
-        stamm: entries.filter((e) => e.role === "stamm").map((e) => e.name),
+        stamm: entries.filter((e) => e.role === "stamm").map((e) => ({ name: e.name, declined: e.response === "nein" })),
         ersatz: entries.filter((e) => e.role === "ersatz").map((e) => e.name),
         marked: (marksByMatch.get(m.id) ?? []).filter((x) => x.playsMatches).map((x) => x.name),
         captainName: other?.captainName ?? null,
@@ -234,6 +251,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               label={`${i + 1}`}
               entry={e}
               hidden={hidden}
+              talkFor={(cl) => talkUrl(e.name, cl)}
               unpublished={Boolean(match.lineupPublishedAt) && !e.published}
             />
           ))}
@@ -249,6 +267,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   label="E"
                   entry={e}
                   hidden={hidden}
+                  talkFor={(cl) => talkUrl(e.name, cl)}
                   promote
                   unpublished={Boolean(match.lineupPublishedAt) && !e.published}
                 />
@@ -268,6 +287,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   row={r}
                   hidden={hidden}
                   talk={r.linedUpElsewhere ? talkUrl(r.name, r.linedUpElsewhere) : null}
+                  talkFor={(cl) => talkUrl(r.name, cl)}
                 />
               ))}
             </ul>
@@ -360,22 +380,9 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   <span className="block text-[11px] text-[var(--color-ink-faint)]">{!c.check.ok && c.check.reason}</span>
                   {c.markable && (
                     <>
-                      {c.claims
-                        .filter((cl) => cl.kind === "aufgestellt")
-                        .map((cl) => {
-                          const url = talkUrl(c.name, cl);
-                          return url ? (
-                            <a
-                              key={cl.match.id}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mr-3 text-[11px] font-semibold text-[var(--color-brand)] underline underline-offset-2"
-                            >
-                              Absprechen ›
-                            </a>
-                          ) : null;
-                        })}
+                      {c.claims.map((cl) => (
+                        <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+                      ))}
                       <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }} className="mt-1 inline-block">
                         <SubmitButton className={markButton}>Vormerken</SubmitButton>
                       </ActionForm>
@@ -419,10 +426,12 @@ function MarkRow({
   row,
   hidden,
   talk,
+  talkFor,
 }: {
   row: MarkedRow;
   hidden: { token: string; matchId: number };
   talk: string | null;
+  talkFor: (claim: Claim) => string | null;
 }) {
   const elsewhere = row.linedUpElsewhere;
   const problem = !elsewhere && !row.check.ok ? row.check.reason : null;
@@ -436,13 +445,21 @@ function MarkRow({
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{row.name}</span>
         <span className="text-[11px] text-[var(--color-ink-faint)]">
-          {row.lists}
+          {row.lists} · {STATUS_LABEL[row.status]}
           {elsewhere ? (
             <span className="font-semibold text-[var(--color-h30)]"> · inzwischen bei {elsewhere.match.team.name} aufgestellt</span>
           ) : problem ? (
             <span className="font-semibold text-[var(--color-nein)]"> · {problem}</span>
           ) : null}
         </span>
+        {row.nonGermanHint && (
+          <span className="mt-0.5 block text-[11px] text-[var(--color-h30)]">
+            Nur als Ersatz – {row.nonGermanHint} ist schon als Nicht-Deutscher aufgestellt
+          </span>
+        )}
+        {row.claims.map((cl) => (
+          <ClaimNote key={cl.match.id} claim={cl} url={talkFor(cl)} />
+        ))}
       </span>
       {elsewhere
         ? talk && (
@@ -478,12 +495,14 @@ function LineupRow({
   label,
   entry,
   hidden,
+  talkFor,
   promote = false,
   unpublished = false,
 }: {
   label: string;
-  entry: LineupEntry & { lists: string; problem: string | null };
+  entry: LineupEntry & { lists: string; problem: string | null; claims: Claim[] };
   hidden: { token: string; matchId: number };
+  talkFor: (claim: Claim) => string | null;
   promote?: boolean;
   /** Added or changed since the last publish — players don't see it yet. */
   unpublished?: boolean;
@@ -510,6 +529,9 @@ function LineupRow({
             ""
           )}
         </span>
+        {entry.claims.map((cl) => (
+          <ClaimNote key={cl.match.id} claim={cl} url={talkFor(cl)} />
+        ))}
       </span>
       {promote && (
         <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: entry.playerId, role: "stamm" }}>

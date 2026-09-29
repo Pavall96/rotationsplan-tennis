@@ -78,16 +78,19 @@ export async function addToLineup(formData: FormData): Promise<Result> {
 
   // A role change (e.g. Ersatz moves up) means the player must be told again on the next publish.
   const previousRole = current.find((e) => e.playerId === playerId)?.role;
-  await db
-    .insert(lineups)
-    .values({ matchId, playerId, role })
-    .onConflictDoUpdate({
-      target: [lineups.matchId, lineups.playerId],
-      // A new role is a change the players only see (and the player is only told about) on the next publish.
-      set: previousRole && previousRole !== role ? { role, publishedAt: null, notifiedAt: null } : { role },
-    });
-  // Lining up replaces this team's own mark; other teams' marks for the day stay, so the conflict stays visible.
-  await unmarkStatement(matchId, playerId);
+  // One transaction: lining up replaces this team's own mark (other teams' marks for the day stay, so the conflict
+  // stays visible) — never a lineup entry without the mark going, or the other way round.
+  await db.batch([
+    db
+      .insert(lineups)
+      .values({ matchId, playerId, role })
+      .onConflictDoUpdate({
+        target: [lineups.matchId, lineups.playerId],
+        // A new role is a change the players only see (and the player is only told about) on the next publish.
+        set: previousRole && previousRole !== role ? { role, publishedAt: null, notifiedAt: null } : { role },
+      }),
+    unmarkStatement(matchId, playerId),
+  ]);
   refresh();
 }
 

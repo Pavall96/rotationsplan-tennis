@@ -3,7 +3,7 @@
 // Usage: node --env-file=<path to .env.local> --import tsx scripts/check-marks-sql.ts <matchId> <playerId>
 import { sql } from "drizzle-orm";
 import { getDb } from "../src/db";
-import { markStatement, unmarkStatement } from "../src/lib/marks";
+import { getMarks, markStatement, unmarkStatement } from "../src/lib/marks";
 
 async function runAndRollBack(name: string, statements: readonly unknown[]) {
   const db = getDb();
@@ -25,6 +25,8 @@ async function main() {
   const matchId = Number(process.argv[2]);
   const playerId = Number(process.argv[3]);
   if (!matchId || !playerId) throw new Error("Usage: check-marks-sql.ts <matchId> <playerId>");
+  const marks = await getMarks(); // read-only; verifies the join with players too
+  console.log(`OK getMarks – ${marks.size} matches with marks`);
   await runAndRollBack("mark twice + unmark", [
     markStatement(matchId, playerId),
     markStatement(matchId, playerId),
