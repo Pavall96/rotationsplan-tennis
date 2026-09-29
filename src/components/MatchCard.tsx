@@ -16,6 +16,19 @@ export function TeamChip({ name, ageClass }: { name: string; ageClass: AgeClass 
   );
 }
 
+/** Unmissable Heim/Auswärts marker: filled green pill for home, outlined neutral pill for away. */
+export function HomeAwayBadge({ isHome }: { isHome: boolean }) {
+  return isHome ? (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[var(--color-ja)] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
+      <span aria-hidden>⌂</span> Heimspiel
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[var(--color-border-strong)] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
+      <span aria-hidden>→</span> Auswärts
+    </span>
+  );
+}
+
 export function MatchCard({
   match,
   showDate = false,
@@ -31,13 +44,13 @@ export function MatchCard({
   return (
     <div
       id={`spiel-${match.id}`}
-      className="scroll-mt-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px] shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)]"
+      className={`scroll-mt-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-card)] p-[18px] shadow-[0_10px_24px_-16px_rgba(21,32,28,0.28)] ${
+        match.isHome ? "border-l-[5px] border-l-[var(--color-ja)]" : ""
+      }`}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <TeamChip name={match.team.name} ageClass={match.team.ageClass} />
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
-          {match.isHome ? "Heimspiel" : "Auswärts"}
-        </span>
+        <HomeAwayBadge isHome={match.isHome} />
       </div>
 
       <p className="font-display text-lg font-bold leading-snug">
@@ -46,6 +59,13 @@ export function MatchCard({
       <p className="mb-3 text-sm text-[var(--color-ink-muted)]">{showDate && `${formatDayShort(match.startsAt)} · `}
         {formatTime(match.startsAt)} Uhr
       </p>
+
+      {match.isHome && (
+        <p className="mb-3 rounded-[14px] bg-[var(--color-ja-bg)] px-3 py-2.5 text-sm text-[var(--color-ja)]">
+          <span className="font-semibold">Nicht vergessen:</span> Bälle mitbringen und nach dem Spiel den Spielbericht
+          ausfüllen.
+        </p>
+      )}
 
       {venue && (
         <div className="rounded-[14px] bg-[var(--color-tabs-bg)] px-3 py-2.5">

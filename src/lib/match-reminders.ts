@@ -29,6 +29,8 @@ export function carpoolLine(playerId: number, rides: MatchRides | undefined): st
   return "Noch keine Mitfahrt? Schau in die Fahrgemeinschaft.";
 }
 
+const HOME_DUTIES = " Heimspiel: Bälle nicht vergessen – und danach den Spielbericht ausfüllen.";
+
 function subjectFor(match: MatchView): string {
   return `Heute: ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} um ${formatTime(match.startsAt)} Uhr`;
 }
@@ -90,7 +92,7 @@ export async function runMatchReminders(opts: { dryRun: boolean; baseUrl: string
         subject: subjectFor(match),
         line:
           entry.role === "stamm"
-            ? `Heute spielst du für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}. ${carpoolLine(p.id, ridesByMatch.get(match.id))}`
+            ? `Heute spielst du für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}.${match.isHome ? HOME_DUTIES : ""} ${carpoolLine(p.id, ridesByMatch.get(match.id))}`
             : `Heute ist Punktspiel – du bist Ersatz${missing ? " und wirst gebraucht" : ""}. ${carpoolLine(p.id, ridesByMatch.get(match.id))}`,
         detail: [`${formatTime(match.startsAt)} Uhr`, venue, `Aufstellung: ${stamm.map((e) => e.name).join(", ")}`]
           .filter(Boolean)
