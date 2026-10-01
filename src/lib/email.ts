@@ -16,6 +16,8 @@ export type ReminderEmailInput = {
   to: string;
   playerName: string;
   role: "starter" | "ersatz" | "trainer";
+  /** Already said yes (or jumped in): then there's nothing to ask, the email only tells them about tonight. */
+  confirmed: boolean;
   session: SessionView;
   token: string;
   baseUrl: string;
@@ -41,11 +43,13 @@ function renderShell(opts: {
   session: SessionView;
   cardBody: string;
   buttons: Buttons | null;
+  /** A small text link in place of the buttons, e.g. to cancel after having said yes. */
+  textLink?: { url: string; label: string };
   note: string;
   token: string;
   baseUrl: string;
 }): string {
-  const { session, buttons, baseUrl, token } = opts;
+  const { session, buttons, textLink, baseUrl, token } = opts;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const routeLine = session.address
     ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#11324e;font-size:13px;">Route öffnen →</a></p>`
@@ -53,7 +57,10 @@ function renderShell(opts: {
   const yesButton = (b: Buttons) =>
     `<a href="${b.yesUrl}" style="display:block;text-align:center;background:#0e3b2e;color:#fff;text-decoration:none;padding:13px 0;border-radius:6px;font-weight:600;font-size:14px;">${b.ja}</a>`;
   const buttonRow = !buttons
-    ? ""
+    ? textLink
+      ? `
+      <p style="margin:0 0 20px;font-size:13px;"><a href="${textLink.url}" style="color:#b42318;">${escapeHtml(textLink.label)}</a></p>`
+      : ""
     : buttons.noUrl && buttons.nein
       ? `
       <table role="presentation" width="100%" style="margin-bottom:20px;">
@@ -116,6 +123,15 @@ function strongLine(text: string): string {
   return `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${escapeHtml(text)}</p>`;
 }
 
+function namePills(players: SessionView["starters"]): string {
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;">${players
+    .map(
+      (a) =>
+        `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
+    )
+    .join("")}</div>`;
+}
+
 /** Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message. */
 function answerButtons(
   session: SessionView,
@@ -127,7 +143,8 @@ function answerButtons(
   return { yesUrl: `${answerUrl}ja`, noUrl: `${answerUrl}nein`, ...rsvpLabels(role, ersatzNeeded(session)) };
 }
 
-function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
+export function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
+  if (input.confirmed) return renderConfirmedReminder(input);
   const { playerName, role, session, token, baseUrl } = input;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const players = lineup(session);
@@ -155,14 +172,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
         ? `Du bist heute als Trainer eingeteilt.`
         : null;
 
-  const cardBody = roleLine
-    ? strongLine(roleLine)
-    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${players
-        .map(
-          (a) =>
-            `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,
-        )
-        .join("")}</div>`;
+  const cardBody = roleLine ? strongLine(roleLine) : namePills(players);
 
   const html = renderShell({
     preheader: "Bitte kurz abstimmen: Ja oder Nein.",
@@ -188,6 +198,73 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
     `Bist du heute dabei? Bitte abstimmen:`,
     `Ja: ${buttons.yesUrl}`,
     `Nein: ${buttons.noUrl}`,
+    ``,
+    `Ganzer Plan: ${baseUrl}/`,
+    `Dein persönlicher Link: ${baseUrl}/spieler/${token}`,
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
+
+  return { subject, html, text };
+}
+
+/** The morning email for someone who already said yes: no question, just tonight's details and a way out. */
+function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
+  const { playerName, role, session, token, baseUrl } = input;
+  const start = formatTimeRangeStart(session);
+  const standingBy = role === "ersatz" && !ersatzNeeded(session);
+  const players = lineup(session);
+
+  const subject =
+    role === "ersatz"
+      ? standingBy
+        ? `Ersatz heute ${start} ${session.hallName} – danke, dass du dich bereithältst`
+        : `Heute ${start} ${session.hallName} – du springst ein, bis heute Abend!`
+      : role === "trainer"
+        ? `Training heute ${start} ${session.hallName} – bis heute Abend!`
+        : `Heute ${start} ${session.hallName} – bis heute Abend!`;
+  const roleLine =
+    role === "ersatz"
+      ? standingBy
+        ? "Du hältst dich heute als Ersatz bereit. Sagt jemand ab, bekommst du sofort eine Mail."
+        : `Du springst heute als Ersatz ein – ${cancelledStarters(session)} abgesagt.`
+      : role === "trainer"
+        ? "Du bist heute als Trainer eingeteilt."
+        : null;
+  // Who's on court tonight matters to anyone playing; the Ersatz on standby and the coach just get their role.
+  const cardBody =
+    standingBy || role === "trainer"
+      ? strongLine(roleLine!)
+      : (roleLine ? `<div style="margin-bottom:10px;">${strongLine(roleLine)}</div>` : "") + namePills(players);
+  const cancel = {
+    url: `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=nein`,
+    label: standingBy ? "Kannst du doch nicht? Hier absagen" : "Doch nicht dabei? Hier absagen",
+  };
+
+  const html = renderShell({
+    preheader: standingBy ? "Danke, dass du dich bereithältst." : "Du hast zugesagt – bis heute Abend!",
+    playerName,
+    intro: standingBy ? "Heute ist Wintertraining – du bist als Ersatz bereit." : "Heute ist Wintertraining – du hast zugesagt.",
+    session,
+    cardBody,
+    buttons: null,
+    textLink: cancel,
+    note: "Falls sich etwas ändert, sag bitte so früh wie möglich ab – dann kann jemand anderes einspringen.",
+    token,
+    baseUrl,
+  });
+
+  const text = [
+    `Hallo ${playerName},`,
+    ``,
+    standingBy ? `heute ist Wintertraining, du bist als Ersatz bereit:` : `heute ist Wintertraining, du hast zugesagt:`,
+    `${formatDate(session.startsAt)} · ${formatTimeRange(session.startsAt, session.endsAt)}`,
+    `Halle: ${session.hallName} (${session.withCoach ? "mit Trainer" : "ohne Trainer"})`,
+    roleLine ?? ``,
+    standingBy || role === "trainer" ? `` : `Mit dabei: ${players.map((a) => a.displayName).join(", ")}`,
+    session.address ? `Route: ${mapsUrl(session.address)}` : ``,
+    ``,
+    `${cancel.label}: ${cancel.url}`,
     ``,
     `Ganzer Plan: ${baseUrl}/`,
     `Dein persönlicher Link: ${baseUrl}/spieler/${token}`,

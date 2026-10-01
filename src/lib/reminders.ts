@@ -7,13 +7,14 @@ import { openSlots } from "@/lib/vacancy";
 import { formatDateForFile, playerLabel } from "@/lib/format";
 
 export type ReminderRunResult =
-  | { date: string; sessions: number; sent: number; skippedNoEmail: number; skippedAlreadySent: number }
+  | { date: string; sessions: number; sent: number; skippedNoEmail: number; skippedAlreadySent: number; skippedDeclined: number }
   | {
       date: string;
       sessions: number;
       wouldSend: { to: string; subject: string }[];
       skippedNoEmail: number;
       skippedAlreadySent: number;
+      skippedDeclined: number;
     };
 
 export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): Promise<ReminderRunResult> {
@@ -22,7 +23,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
   const todaysSessions = schedule.filter((s) => formatDateForFile(s.startsAt) === today);
 
   if (todaysSessions.length === 0) {
-    return { date: today, sessions: 0, sent: 0, skippedNoEmail: 0, skippedAlreadySent: 0 };
+    return { date: today, sessions: 0, sent: 0, skippedNoEmail: 0, skippedAlreadySent: 0, skippedDeclined: 0 };
   }
 
   const db = getDb();
@@ -40,6 +41,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
 
   let skippedNoEmail = 0;
   let skippedAlreadySent = 0;
+  let skippedDeclined = 0;
   const toSend: { input: ReminderEmailInput | OpenSlotEmailInput; sessionId: number; playerId: number }[] = [];
   const dryRunList: { to: string; subject: string }[] = [];
 
@@ -70,13 +72,19 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
 
   const now = new Date();
   for (const session of todaysSessions) {
+    // Only who hasn't answered yet is asked; who said yes gets tonight's details, who cancelled nothing.
+    // Jumping in already was the yes.
     const recipients = [
-      ...session.starters.map((a) => ({ playerId: a.playerId, role: "starter" as const })),
-      ...session.einspringer.map((a) => ({ playerId: a.playerId, role: "starter" as const })),
-      ...(session.ersatz ? [{ playerId: session.ersatz.playerId, role: "ersatz" as const }] : []),
-      ...(session.trainer ? [{ playerId: session.trainer.playerId, role: "trainer" as const }] : []),
+      ...session.starters.map((a) => ({ playerId: a.playerId, role: "starter" as const, rsvp: a.rsvpStatus })),
+      ...session.einspringer.map((a) => ({ playerId: a.playerId, role: "starter" as const, rsvp: "ja" as const })),
+      ...(session.ersatz ? [{ playerId: session.ersatz.playerId, role: "ersatz" as const, rsvp: session.ersatz.rsvpStatus }] : []),
+      ...(session.trainer ? [{ playerId: session.trainer.playerId, role: "trainer" as const, rsvp: session.trainer.rsvpStatus }] : []),
     ];
     for (const r of recipients) {
+      if (r.rsvp === "nein") {
+        skippedDeclined++;
+        continue;
+      }
       queue(
         session,
         r.playerId,
@@ -84,11 +92,12 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
           to: player.email!,
           playerName: playerLabel(player),
           role: r.role,
+          confirmed: r.rsvp === "ja",
           session,
           token: player.token,
           baseUrl: opts.baseUrl,
         }),
-        r.role,
+        r.rsvp === "ja" ? `${r.role}, zugesagt` : r.role,
       );
     }
 
@@ -111,7 +120,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
   }
 
   if (opts.dryRun) {
-    return { date: today, sessions: todaysSessions.length, wouldSend: dryRunList, skippedNoEmail, skippedAlreadySent };
+    return { date: today, sessions: todaysSessions.length, wouldSend: dryRunList, skippedNoEmail, skippedAlreadySent, skippedDeclined };
   }
 
   const results = await sendReminderBatch(
@@ -134,5 +143,5 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
     sent++;
   }
 
-  return { date: today, sessions: todaysSessions.length, sent, skippedNoEmail, skippedAlreadySent };
+  return { date: today, sessions: todaysSessions.length, sent, skippedNoEmail, skippedAlreadySent, skippedDeclined };
 }
