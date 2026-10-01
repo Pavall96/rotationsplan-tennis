@@ -71,8 +71,9 @@ export function buildIcsCalendar(events: IcsEvent[], calendarName: string): stri
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(calendarName)}`,
     "X-WR-TIMEZONE:Europe/Berlin",
-    "REFRESH-INTERVAL;VALUE=DURATION:PT12H",
-    "X-PUBLISHED-TTL:PT12H",
+    // Only a hint (Apple and Google keep their own schedule), but apps that honour it pick up jump-ins the same hour.
+    "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+    "X-PUBLISHED-TTL:PT1H",
     ...events.flatMap(buildEvent),
     "END:VCALENDAR",
   ];
