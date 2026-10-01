@@ -41,7 +41,9 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      // Never from Vercel's CDN: a cached copy hid a just-claimed place (or a fresh cancellation) for up to an hour,
+      // on top of however long the calendar app waits before it polls again.
+      "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex, nofollow",
       "Referrer-Policy": "no-referrer",
     },
