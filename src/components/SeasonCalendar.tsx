@@ -4,6 +4,7 @@ import { calendarHref, formatDateForFile } from "@/lib/format";
 import { SessionCard } from "@/components/SessionCard";
 import { ArrowLeftIcon } from "@/components/icons";
 import { vacancyStatus } from "@/lib/vacancy";
+import type { JumpInViewer } from "@/lib/einspringen";
 
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -32,10 +33,12 @@ export function SeasonCalendar({
   schedule,
   month: requestedMonth,
   day: requestedDay,
+  viewer,
 }: {
   schedule: SessionView[];
   month?: string;
   day?: string;
+  viewer?: JumpInViewer | null;
 }) {
   const today = formatDateForFile(new Date());
 
@@ -165,7 +168,7 @@ export function SeasonCalendar({
       {selectedDay && (
         <div className="mt-4 space-y-3">
           {byDate.get(selectedDay)!.map((s) => (
-            <SessionCard key={s.id} session={s} />
+            <SessionCard key={s.id} session={s} viewer={viewer} />
           ))}
         </div>
       )}

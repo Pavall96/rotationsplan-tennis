@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded, playingErsatz } from "./vacancy";
+import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded, playingErsatz, lineup } from "./vacancy";
 import { assignment, makeSession } from "./test-fixtures";
 
 const oneCancelled = [assignment(1, "nein"), assignment(2), assignment(3), assignment(4)];
@@ -97,4 +97,16 @@ test("the Ersatz is only named as playing once they said yes and a cancelled pla
   );
   // Hasn't answered yet.
   assert.equal(playingErsatz(makeSession({ starters: oneCancelled })), null);
+});
+
+test("lineup lists the Ersatz only once they really play", () => {
+  const ja = assignment(5, "ja", "ersatz");
+  const ids = (s: Parameters<typeof lineup>[0]) => lineup(s).map((a) => a.playerId);
+  assert.deepEqual(ids(makeSession({ starters: twoCancelled, ersatz: ja })), [1, 2, 3, 4, 5]);
+  assert.deepEqual(
+    ids(makeSession({ starters: twoCancelled, ersatz: ja, einspringer: [assignment(9, "ja", "einspringer")] })),
+    [1, 2, 3, 4, 9, 5],
+  );
+  // Standing by while nobody cancelled.
+  assert.deepEqual(ids(makeSession({ ersatz: ja })), [1, 2, 3, 4]);
 });

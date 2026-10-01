@@ -1,6 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getFullSchedule } from "@/lib/queries";
+import { cookies } from "next/headers";
+import { getFullSchedule, getPlayerByToken } from "@/lib/queries";
+import { jumpInOptions, type JumpInViewer } from "@/lib/einspringen";
+import { MY_TOKEN_KEY } from "@/lib/my-token";
 import { SessionCard } from "@/components/SessionCard";
 import { formatDateForFile } from "@/lib/format";
 import { MyPageLink } from "@/components/MyPageLink";
@@ -15,6 +18,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const showCalendar = ansicht === "kalender" || ansicht === "alle";
 
   const schedule = await getFullSchedule();
+
+  // Known device: let the player take a free place right on the card.
+  const myToken = (await cookies()).get(MY_TOKEN_KEY)?.value;
+  const me = myToken ? await getPlayerByToken(myToken) : null;
+  const viewer: JumpInViewer | null = me
+    ? { token: me.token, sessionIds: new Set(jumpInOptions(schedule, me.id, new Date()).map((s) => s.id)) }
+    : null;
   const today = formatDateForFile(new Date());
   const upcoming = schedule.filter((s) => formatDateForFile(s.startsAt) >= today);
 
@@ -55,7 +65,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           </h2>
           <div className="space-y-3">
             {nextSessions.map((s) => (
-              <SessionCard key={s.id} session={s} />
+              <SessionCard key={s.id} session={s} viewer={viewer} />
             ))}
           </div>
         </section>
@@ -89,6 +99,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           schedule={schedule}
           month={typeof monat === "string" ? monat : undefined}
           day={typeof tag === "string" ? tag : undefined}
+          viewer={viewer}
         />
       ) : (
         <section className="space-y-3">

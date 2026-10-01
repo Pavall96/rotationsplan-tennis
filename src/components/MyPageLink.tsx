@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { ChevronRightIcon } from "@/components/icons";
+import { MY_TOKEN_KEY as STORAGE_KEY } from "@/lib/my-token";
 
-// The home page has no token, so it can't know who is looking. Remember the last opened
-// player page on this device so the home page can link back to it.
-const STORAGE_KEY = "rotationsplan-mein-token";
+function hasTokenCookie(token: string) {
+  return document.cookie.split("; ").includes(`${STORAGE_KEY}=${encodeURIComponent(token)}`);
+}
+
+function setTokenCookie(token: string) {
+  const secure = location.protocol === "https:" ? "; secure" : "";
+  document.cookie = `${STORAGE_KEY}=${encodeURIComponent(token)}; path=/; max-age=31536000; samesite=lax${secure}`;
+}
 
 export function RememberMyPage({ token }: { token: string }) {
   useEffect(() => {
+    setTokenCookie(token);
     try {
       localStorage.setItem(STORAGE_KEY, token);
     } catch {
@@ -38,6 +46,15 @@ function getServerSnapshot() {
 
 export function MyPageLink() {
   const token = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const router = useRouter();
+
+  // Devices that remembered the player before the cookie existed: hand it to the server once, so the cards
+  // can offer "Ich springe ein" right away.
+  useEffect(() => {
+    if (!token || hasTokenCookie(token)) return;
+    setTokenCookie(token);
+    router.refresh();
+  }, [token, router]);
 
   return (
     <Link

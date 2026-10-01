@@ -22,7 +22,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { LineupLine } from "@/components/LineupLine";
 import { FreeSlotCard } from "@/components/FreeSlotCard";
 import { jumpInOptions } from "@/lib/einspringen";
-import { openSlots, playingErsatz } from "@/lib/vacancy";
+import { lineup, openSlots } from "@/lib/vacancy";
 
 export const dynamic = "force-dynamic";
 
@@ -206,8 +206,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
                 (a) => a?.playerId === player.id,
               )!;
               const myStatus = myAssignment.rsvpStatus;
-              const ersatzPlays = playingErsatz(s);
-              const others = [...s.starters, ...s.einspringer, ...(ersatzPlays ? [ersatzPlays] : [])]
+              const others = lineup(s)
                 .filter((a) => a.playerId !== player.id)
                 .map((a) => a.displayName);
               // A starter who cancelled can't take it back once someone else has their place.

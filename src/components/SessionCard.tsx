@@ -4,15 +4,21 @@ import { calendarHref, formatDate, formatDateForFile, formatTimeRange, mapsUrl }
 import { RsvpBadge } from "@/components/RsvpBadge";
 import { AlertIcon, CheckIcon, PinIcon } from "@/components/icons";
 import { playingErsatz, vacancyStatus } from "@/lib/vacancy";
+import type { JumpInViewer } from "@/lib/einspringen";
+import { jumpIn } from "@/app/spieler/[token]/actions";
+import { JumpInForm } from "@/components/JumpInForm";
 
 export function SessionCard({
   session,
   highlightPlayerId,
   variant = "full",
+  viewer,
 }: {
   session: SessionView;
   highlightPlayerId?: number;
   variant?: "full" | "compact";
+  /** Set on public pages when this device is known — then a free place can be taken right on the card. */
+  viewer?: JumpInViewer | null;
 }) {
   const isPlatz1 = session.courtSlug === "happy-match";
   const chipColorClasses = isPlatz1
@@ -175,9 +181,11 @@ export function SessionCard({
         </p>
       )}
 
-      {canStillJumpIn && (
+      {canStillJumpIn && viewer?.sessionIds.has(session.id) ? (
+        <JumpInForm token={viewer.token} sessionId={session.id} action={jumpIn} />
+      ) : canStillJumpIn && !viewer ? (
         <p className="mt-1.5 text-xs text-[var(--color-ink-muted)]">Einspringen kannst du über deine persönliche Seite.</p>
-      )}
+      ) : null}
     </div>
   );
 }

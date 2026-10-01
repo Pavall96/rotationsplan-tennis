@@ -40,6 +40,9 @@ export function jumpInOptions(schedule: SessionView[], playerId: number, now: Da
   return schedule.filter((s) => canJumpIn(schedule, s, playerId, now));
 }
 
+/** Who is looking at a public page (known from the remembered personal link) and where they may jump in. */
+export type JumpInViewer = { token: string; sessionIds: Set<number> };
+
 /** Everyone who should get the "Platz frei" email for this session. */
 export function openSlotRecipients(schedule: SessionView[], session: SessionView, now: Date): number[] {
   return [...rotationPlayerIds(schedule)].filter((id) => canJumpIn(schedule, session, id, now));
