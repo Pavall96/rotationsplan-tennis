@@ -20,6 +20,7 @@ async function main() {
         to,
         playerName: player.displayName,
         role: "starter",
+        confirmed: false,
         session,
         token: player.token,
         baseUrl: "https://rotationsplan-tennis.vercel.app",
