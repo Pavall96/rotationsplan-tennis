@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
 import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded, openSlots } from "@/lib/vacancy";
+import { cancelledStarters, ersatzNeeded, lineup, openSlots } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
 
@@ -130,8 +130,8 @@ function answerButtons(
 function renderReminder(input: ReminderEmailInput): { subject: string; html: string; text: string } {
   const { playerName, role, session, token, baseUrl } = input;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
-  const lineup = [...session.starters, ...session.einspringer];
-  const others = lineup.map((a) => a.displayName).join(", ");
+  const players = lineup(session);
+  const others = players.map((a) => a.displayName).join(", ");
   const time = formatTimeRange(session.startsAt, session.endsAt);
   const date = formatDate(session.startsAt);
   const needed = role === "ersatz" && ersatzNeeded(session);
@@ -157,7 +157,7 @@ function renderReminder(input: ReminderEmailInput): { subject: string; html: str
 
   const cardBody = roleLine
     ? strongLine(roleLine)
-    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${lineup
+    : `<div style="display:flex;flex-wrap:wrap;gap:6px;">${players
         .map(
           (a) =>
             `<span style="background:#f3f4f2;color:#374151;font-size:12px;padding:4px 10px;border-radius:999px;">${escapeHtml(a.displayName)}</span>`,

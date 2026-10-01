@@ -79,6 +79,12 @@ export function playingErsatz(session: SessionView): SessionAssignmentView | nul
   return session.ersatz?.rsvpStatus === "ja" && ersatzNeeded(session) ? session.ersatz : null;
 }
 
+/** Everyone on court: starters (whatever they answered), who jumped in, and the Ersatz once they really play. */
+export function lineup(session: SessionView): SessionAssignmentView[] {
+  const ersatz = playingErsatz(session);
+  return [...session.starters, ...session.einspringer, ...(ersatz ? [ersatz] : [])];
+}
+
 /** "Anna hat" / "Anna und Ben haben" — the starters who cancelled, ready to be followed by "abgesagt". */
 export function cancelledStarters(session: SessionView): string {
   const names = session.starters.filter((a) => a.rsvpStatus === "nein").map((a) => a.displayName);
