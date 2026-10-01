@@ -1,4 +1,4 @@
-import type { SessionView } from "@/lib/queries";
+import type { SessionAssignmentView, SessionView } from "@/lib/queries";
 
 /** Whether a session is short of players after cancellations, and whether the gap is covered. */
 export type Vacancy = {
@@ -72,6 +72,11 @@ export function ersatzNoLongerNeeded(session: SessionView, now: Date): boolean {
     openSlots(session) === 0 &&
     session.endsAt > now
   );
+}
+
+/** The Ersatz once they said yes and a cancelled place is still theirs to fill — then they really play, so it's no secret. */
+export function playingErsatz(session: SessionView): SessionAssignmentView | null {
+  return session.ersatz?.rsvpStatus === "ja" && ersatzNeeded(session) ? session.ersatz : null;
 }
 
 /** "Anna hat" / "Anna und Ben haben" — the starters who cancelled, ready to be followed by "abgesagt". */

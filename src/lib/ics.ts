@@ -84,18 +84,22 @@ export function buildSingleIcsEvent(event: IcsEvent): string {
 }
 
 import type { SessionView } from "@/lib/queries";
+import { playingErsatz } from "@/lib/vacancy";
 
 export function sessionToIcsEvent(
   session: SessionView,
   player: { id: number; token: string },
   baseUrl: string,
 ): IcsEvent {
+  const ersatzPlays = playingErsatz(session);
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const summary = `Tennis · ${session.hallName} (${withCoach})`;
   const descriptionParts = [
-    `Mit dabei: ${[...session.starters, ...session.einspringer].map((a) => a.displayName).join(", ")}`,
+    `Mit dabei: ${[...session.starters, ...session.einspringer, ...(ersatzPlays ? [ersatzPlays] : [])]
+      .map((a) => a.displayName)
+      .join(", ")}`,
     session.trainer ? `Trainer: ${session.trainer.displayName}` : null,
-    session.ersatz ? `Ersatz: ${session.ersatz.displayName}` : null,
+    session.ersatz && !ersatzPlays ? `Ersatz: ${session.ersatz.displayName}` : null,
     session.note ? `Hinweis: ${session.note}` : null,
     `Rückmeldung: ${baseUrl}/spieler/${player.token}`,
   ].filter((x): x is string => Boolean(x));
