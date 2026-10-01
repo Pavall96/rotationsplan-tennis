@@ -3,6 +3,7 @@ import { getFullSchedule, getPlayerByToken, sessionsForPlayer, myRoleInSession }
 import { buildIcsCalendar, sessionToIcsEvent, matchToIcsEvent } from "@/lib/ics";
 import { getAllMatches } from "@/lib/matches";
 import { getLineups } from "@/lib/lineups";
+import { playingErsatz } from "@/lib/vacancy";
 import { getBaseUrl } from "@/lib/base-url";
 
 export async function GET(_request: Request, { params }: RouteContext<"/api/ics/[token]/rotationsplan.ics">) {
@@ -11,10 +12,15 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   if (!player) notFound();
 
   const schedule = await getFullSchedule();
-  // Only real commitments (playing, coaching or jumped in), not standby (Ersatz) sessions.
+  // Only real commitments (playing, coaching or jumped in), not standby (Ersatz) sessions — unless the Ersatz is needed and said yes.
   const mine = sessionsForPlayer(schedule, player.id).filter((s) => {
     const role = myRoleInSession(s, player.id);
-    return role === "starter" || role === "trainer" || role === "einspringer";
+    return (
+      role === "starter" ||
+      role === "trainer" ||
+      role === "einspringer" ||
+      (role === "ersatz" && playingErsatz(s)?.playerId === player.id)
+    );
   });
   const baseUrl = await getBaseUrl();
 

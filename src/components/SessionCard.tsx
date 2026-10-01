@@ -3,7 +3,7 @@ import type { SessionView } from "@/lib/queries";
 import { calendarHref, formatDate, formatDateForFile, formatTimeRange, mapsUrl } from "@/lib/format";
 import { RsvpBadge } from "@/components/RsvpBadge";
 import { AlertIcon, CheckIcon, PinIcon } from "@/components/icons";
-import { vacancyStatus } from "@/lib/vacancy";
+import { playingErsatz, vacancyStatus } from "@/lib/vacancy";
 
 export function SessionCard({
   session,
@@ -20,7 +20,8 @@ export function SessionCard({
     : "text-[var(--color-platz2)] bg-[var(--color-platz2-bg)]";
   const chipLabel = `${session.hallName}${session.withCoach ? " · mit Trainer" : ""}`;
   const vacancy = vacancyStatus(session);
-  const goingCount = [...session.starters, ...session.einspringer].filter((a) => a.rsvpStatus === "ja").length;
+  const ersatzPlays = playingErsatz(session);
+  const goingCount = [...session.starters, ...session.einspringer, ...(ersatzPlays ? [ersatzPlays] : [])].filter((a) => a.rsvpStatus === "ja").length;
   const canStillJumpIn = !!vacancy && vacancy.open > 0 && session.endsAt > new Date();
 
   if (variant === "compact") {
@@ -122,6 +123,18 @@ export function SessionCard({
             <RsvpBadge status={a.rsvpStatus} />
           </li>
         ))}
+        {ersatzPlays && (
+          <li
+            className={`flex items-center justify-between text-sm ${
+              ersatzPlays.playerId === highlightPlayerId ? "font-semibold" : ""
+            }`}
+          >
+            <span>
+              {ersatzPlays.displayName} <span className="text-xs text-[var(--color-ink-muted)]">· springt ein</span>
+            </span>
+            <RsvpBadge status={ersatzPlays.rsvpStatus} />
+          </li>
+        )}
       </ul>
 
       {session.trainer && (
@@ -140,7 +153,7 @@ export function SessionCard({
         </div>
       )}
 
-      {session.ersatz && (
+      {session.ersatz && !ersatzPlays && (
         <div className="flex items-center justify-between py-0.5">
           <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-ink-faint)]">
             Ersatz

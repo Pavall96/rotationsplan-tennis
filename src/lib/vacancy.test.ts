@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded } from "./vacancy";
+import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded, playingErsatz } from "./vacancy";
 import { assignment, makeSession } from "./test-fixtures";
 
 const oneCancelled = [assignment(1, "nein"), assignment(2), assignment(3), assignment(4)];
@@ -83,4 +83,18 @@ test("the Ersatz gets the all-clear only when a jump-in filled the last place an
   assert.equal(ersatzNoLongerNeeded(filled, new Date("2026-11-03T22:00:00Z")), false);
   const stillOpen = makeSession({ starters: twoCancelled, einspringer: [assignment(9, "ja", "einspringer")] });
   assert.equal(ersatzNoLongerNeeded(stillOpen, before), false);
+});
+
+test("the Ersatz is only named as playing once they said yes and a cancelled place is theirs", () => {
+  const ja = assignment(5, "ja", "ersatz");
+  assert.equal(playingErsatz(makeSession({ starters: oneCancelled, ersatz: ja }))?.playerId, 5);
+  // Said yes, but nobody cancelled: just standing by.
+  assert.equal(playingErsatz(makeSession({ ersatz: ja })), null);
+  // Someone else already took the only free place.
+  assert.equal(
+    playingErsatz(makeSession({ starters: oneCancelled, ersatz: ja, einspringer: [assignment(9, "ja", "einspringer")] })),
+    null,
+  );
+  // Hasn't answered yet.
+  assert.equal(playingErsatz(makeSession({ starters: oneCancelled })), null);
 });
