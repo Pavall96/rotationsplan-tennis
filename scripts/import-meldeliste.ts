@@ -38,6 +38,11 @@ const EXISTING_APP_PLAYERS: Record<string, string> = {
   "19158856": "Daniel",
   "18555117": "Philipp Wilson",
   "18151754": "Motzi",
+  "19301251": "Moritz",
+  "19259708": "Mario",
+  "19765040": "Louis",
+  "17054401": "Martin",
+  "19000370": "Leander",
 };
 
 async function main() {
