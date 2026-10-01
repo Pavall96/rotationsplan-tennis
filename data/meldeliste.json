@@ -1,332 +1,6 @@
 {
-  "source": "Namentliche Mannschaftsmeldung Sommer 2026 (Status endgültig, 28.04.2026)",
+  "source": "Namentliche Mannschaftsmeldung Winter 2026/2027 (Status vorläufig, 01.10.2026)",
   "lists": {
-    "h30": [
-      {
-        "position": 1,
-        "firstName": "Dennis",
-        "lastName": "Böttinger",
-        "wtbId": "18901958",
-        "lk": 10.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 2,
-        "firstName": "Patrick",
-        "lastName": "Böttinger",
-        "wtbId": "18550455",
-        "lk": 12.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 3,
-        "firstName": "Carmelo",
-        "lastName": "Pellegrino",
-        "wtbId": "18456574",
-        "lk": 13.0,
-        "nationality": "ITA",
-        "countsAsGerman": true
-      },
-      {
-        "position": 4,
-        "firstName": "Tobias",
-        "lastName": "Urban",
-        "wtbId": "18996976",
-        "lk": 13.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 5,
-        "firstName": "Sebastian",
-        "lastName": "Hesse",
-        "wtbId": "18152806",
-        "lk": 13.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 6,
-        "firstName": "Jörg",
-        "lastName": "Hees",
-        "wtbId": "17051137",
-        "lk": 13.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 7,
-        "firstName": "Philipp",
-        "lastName": "Weingart",
-        "wtbId": "18555117",
-        "lk": 17.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 8,
-        "firstName": "Michael",
-        "lastName": "Blietschau",
-        "wtbId": "18151754",
-        "lk": 17.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 9,
-        "firstName": "Dennis",
-        "lastName": "Riekert",
-        "wtbId": "18550024",
-        "lk": 17.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 10,
-        "firstName": "Ulrich",
-        "lastName": "Menzel",
-        "wtbId": "18151753",
-        "lk": 20.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 11,
-        "firstName": "Hakan",
-        "lastName": "Tekin",
-        "wtbId": "19158295",
-        "lk": 20.0,
-        "nationality": "TUR",
-        "countsAsGerman": true
-      },
-      {
-        "position": 12,
-        "firstName": "Christoph",
-        "lastName": "Ast",
-        "wtbId": "18654122",
-        "lk": 21.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 13,
-        "firstName": "Evgenij",
-        "lastName": "Pastler",
-        "wtbId": "16990509",
-        "lk": 21.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 14,
-        "firstName": "Mustafa",
-        "lastName": "Cehri",
-        "wtbId": "17552964",
-        "lk": 21.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 15,
-        "firstName": "Marcel",
-        "lastName": "Hoffmann",
-        "wtbId": "19076017",
-        "lk": 21.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 16,
-        "firstName": "Pablo",
-        "lastName": "Vallendor",
-        "wtbId": "19662285",
-        "lk": 21.0,
-        "nationality": "GUA",
-        "countsAsGerman": false
-      },
-      {
-        "position": 17,
-        "firstName": "Jürgen",
-        "lastName": "Wege",
-        "wtbId": "16710760",
-        "lk": 22.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 18,
-        "firstName": "Rares",
-        "lastName": "Groapa",
-        "wtbId": "18254028",
-        "lk": 22.0,
-        "nationality": "ROU",
-        "countsAsGerman": true
-      },
-      {
-        "position": 19,
-        "firstName": "Hendrik",
-        "lastName": "Jung",
-        "wtbId": "19459740",
-        "lk": 23.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 20,
-        "firstName": "Joachim",
-        "lastName": "Merz",
-        "wtbId": "16754237",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 21,
-        "firstName": "Marcus",
-        "lastName": "Völkl",
-        "wtbId": "17454518",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 22,
-        "firstName": "Daniel",
-        "lastName": "Rohrmann",
-        "wtbId": "19158856",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 23,
-        "firstName": "Florian",
-        "lastName": "Reich",
-        "wtbId": "18153661",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 24,
-        "firstName": "Philipp",
-        "lastName": "Heinrich",
-        "wtbId": "18651925",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 25,
-        "firstName": "Valentino",
-        "lastName": "Dore",
-        "wtbId": "17854801",
-        "lk": 25.0,
-        "nationality": "ITA",
-        "countsAsGerman": true
-      },
-      {
-        "position": 26,
-        "firstName": "Lars-Ole",
-        "lastName": "Herzberg",
-        "wtbId": "17354549",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 27,
-        "firstName": "Achim",
-        "lastName": "Teichmann",
-        "wtbId": "17283835",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 28,
-        "firstName": "Patrick",
-        "lastName": "Kutterolf",
-        "wtbId": "17954682",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 29,
-        "firstName": "Christian",
-        "lastName": "Sträter",
-        "wtbId": "18654432",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 30,
-        "firstName": "Markus",
-        "lastName": "Gleißner",
-        "wtbId": "17056075",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 31,
-        "firstName": "Dennis",
-        "lastName": "Hollands",
-        "wtbId": "18453616",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 32,
-        "firstName": "Daniel",
-        "lastName": "Roggenkamp",
-        "wtbId": "18552987",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 33,
-        "firstName": "Martin",
-        "lastName": "Hesse",
-        "wtbId": "17163640",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 34,
-        "firstName": "Matthias",
-        "lastName": "Körber",
-        "wtbId": "17856436",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 35,
-        "firstName": "Ulrich",
-        "lastName": "Kremer",
-        "wtbId": "16990522",
-        "lk": 22.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 36,
-        "firstName": "Thomas",
-        "lastName": "Fuchslocher",
-        "wtbId": "17163656",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      }
-    ],
     "herren": [
       {
         "position": 1,
@@ -375,11 +49,364 @@
       },
       {
         "position": 6,
+        "firstName": "Sebastian",
+        "lastName": "Hesse",
+        "wtbId": "18152806",
+        "lk": 13.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 7,
+        "firstName": "Mats",
+        "lastName": "Wortelmann",
+        "wtbId": "19754514",
+        "lk": 14.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 8,
+        "firstName": "Moritz",
+        "lastName": "Grießhaber",
+        "wtbId": "19301251",
+        "lk": 14.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 9,
         "firstName": "Tobias",
         "lastName": "Urban",
         "wtbId": "18996976",
-        "lk": 13.0,
+        "lk": 14.0,
         "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 10,
+        "firstName": "Leander",
+        "lastName": "Wallmann",
+        "wtbId": "19000370",
+        "lk": 14.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 11,
+        "firstName": "Philipp",
+        "lastName": "Weingart",
+        "wtbId": "18555117",
+        "lk": 15.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 12,
+        "firstName": "Hakan",
+        "lastName": "Tekin",
+        "wtbId": "19158295",
+        "lk": 15.0,
+        "nationality": "TUR",
+        "countsAsGerman": true
+      },
+      {
+        "position": 13,
+        "firstName": "Yassin",
+        "lastName": "Zouari",
+        "wtbId": "10300931",
+        "lk": 15.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 14,
+        "firstName": "Niclas",
+        "lastName": "Großmann",
+        "wtbId": "10350638",
+        "lk": 16.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 15,
+        "firstName": "Dennis",
+        "lastName": "Riekert",
+        "wtbId": "18550024",
+        "lk": 16.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 16,
+        "firstName": "Michael",
+        "lastName": "Blietschau",
+        "wtbId": "18151754",
+        "lk": 17.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 17,
+        "firstName": "Thomas",
+        "lastName": "Pauly",
+        "wtbId": "19210162",
+        "lk": 17.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 18,
+        "firstName": "Nils",
+        "lastName": "Saxinger",
+        "wtbId": "10913897",
+        "lk": 18.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 19,
+        "firstName": "Ben",
+        "lastName": "Baier",
+        "wtbId": "10768663",
+        "lk": 19.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 20,
+        "firstName": "Ulrich",
+        "lastName": "Menzel",
+        "wtbId": "18151753",
+        "lk": 20.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 21,
+        "firstName": "Pablo",
+        "lastName": "Vallendor",
+        "wtbId": "19662285",
+        "lk": 20.0,
+        "nationality": "GUA",
+        "countsAsGerman": false
+      },
+      {
+        "position": 22,
+        "firstName": "Leo",
+        "lastName": "Hesse",
+        "wtbId": "11158373",
+        "lk": 21.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 23,
+        "firstName": "Sergey",
+        "lastName": "Belogorodov",
+        "wtbId": "16355121",
+        "lk": 21.0,
+        "nationality": "RUS",
+        "countsAsGerman": false
+      },
+      {
+        "position": 24,
+        "firstName": "Marcel",
+        "lastName": "Hoffmann",
+        "wtbId": "19076017",
+        "lk": 21.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 25,
+        "firstName": "Rares",
+        "lastName": "Groapa",
+        "wtbId": "18254028",
+        "lk": 22.0,
+        "nationality": "ROU",
+        "countsAsGerman": true
+      },
+      {
+        "position": 26,
+        "firstName": "Christoph",
+        "lastName": "Ast",
+        "wtbId": "18654122",
+        "lk": 22.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 27,
+        "firstName": "Ulrich",
+        "lastName": "Kremer",
+        "wtbId": "16990522",
+        "lk": 22.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 28,
+        "firstName": "Hendrik",
+        "lastName": "Jung",
+        "wtbId": "19459740",
+        "lk": 23.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 29,
+        "firstName": "Matteo",
+        "lastName": "Baio",
+        "wtbId": "11085145",
+        "lk": 23.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 30,
+        "firstName": "Mario",
+        "lastName": "Willms",
+        "wtbId": "19259708",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 31,
+        "firstName": "Marcus",
+        "lastName": "Völkl",
+        "wtbId": "17454518",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 32,
+        "firstName": "Pascal",
+        "lastName": "Hecker",
+        "wtbId": "19865483",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 33,
+        "firstName": "Daniel",
+        "lastName": "Rohrmann",
+        "wtbId": "19158856",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 34,
+        "firstName": "Valentino",
+        "lastName": "Dore",
+        "wtbId": "17854801",
+        "lk": 24.0,
+        "nationality": "ITA",
+        "countsAsGerman": true
+      },
+      {
+        "position": 35,
+        "firstName": "Joachim",
+        "lastName": "Merz",
+        "wtbId": "16754237",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 36,
+        "firstName": "Dennis",
+        "lastName": "Hollands",
+        "wtbId": "18453616",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 37,
+        "firstName": "Louis",
+        "lastName": "Schmidtke",
+        "wtbId": "19765040",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 38,
+        "firstName": "Manuel",
+        "lastName": "Bueno Reyes",
+        "wtbId": "17356671",
+        "lk": 25.0,
+        "nationality": "ESP",
+        "countsAsGerman": true
+      },
+      {
+        "position": 39,
+        "firstName": "Philipp",
+        "lastName": "Heinrich",
+        "wtbId": "18651925",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      }
+    ],
+    "h30": [
+      {
+        "position": 1,
+        "firstName": "Robin",
+        "lastName": "Hiltgen",
+        "wtbId": "19572523",
+        "lk": 7.0,
+        "nationality": "LUX",
+        "countsAsGerman": true
+      },
+      {
+        "position": 2,
+        "firstName": "Steffen",
+        "lastName": "Sommer",
+        "wtbId": "17250008",
+        "lk": 10.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 3,
+        "firstName": "Dennis",
+        "lastName": "Böttinger",
+        "wtbId": "18901958",
+        "lk": 10.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 4,
+        "firstName": "Patrick",
+        "lastName": "Böttinger",
+        "wtbId": "18550455",
+        "lk": 12.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 5,
+        "firstName": "Jörg",
+        "lastName": "Hees",
+        "wtbId": "17051137",
+        "lk": 12.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 6,
+        "firstName": "Carmelo",
+        "lastName": "Pellegrino",
+        "wtbId": "18456574",
+        "lk": 13.0,
+        "nationality": "ITA",
         "countsAsGerman": true
       },
       {
@@ -393,28 +420,28 @@
       },
       {
         "position": 8,
-        "firstName": "Niclas",
-        "lastName": "Großmann",
-        "wtbId": "10350638",
-        "lk": 16.0,
+        "firstName": "Moritz",
+        "lastName": "Grießhaber",
+        "wtbId": "19301251",
+        "lk": 14.0,
         "nationality": null,
         "countsAsGerman": true
       },
       {
         "position": 9,
-        "firstName": "Lukas",
-        "lastName": "Feeser",
-        "wtbId": "19856304",
-        "lk": 17.0,
+        "firstName": "Tobias",
+        "lastName": "Urban",
+        "wtbId": "18996976",
+        "lk": 14.0,
         "nationality": null,
         "countsAsGerman": true
       },
       {
         "position": 10,
-        "firstName": "Yassin",
-        "lastName": "Zouari",
-        "wtbId": "10300931",
-        "lk": 17.0,
+        "firstName": "Leander",
+        "lastName": "Wallmann",
+        "wtbId": "19000370",
+        "lk": 14.0,
         "nationality": null,
         "countsAsGerman": true
       },
@@ -423,21 +450,48 @@
         "firstName": "Philipp",
         "lastName": "Weingart",
         "wtbId": "18555117",
-        "lk": 17.0,
+        "lk": 15.0,
         "nationality": null,
         "countsAsGerman": true
       },
       {
         "position": 12,
-        "firstName": "Nils",
-        "lastName": "Saxinger",
-        "wtbId": "10913897",
-        "lk": 19.0,
-        "nationality": null,
+        "firstName": "Hakan",
+        "lastName": "Tekin",
+        "wtbId": "19158295",
+        "lk": 15.0,
+        "nationality": "TUR",
         "countsAsGerman": true
       },
       {
         "position": 13,
+        "firstName": "Dennis",
+        "lastName": "Riekert",
+        "wtbId": "18550024",
+        "lk": 16.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 14,
+        "firstName": "Michael",
+        "lastName": "Blietschau",
+        "wtbId": "18151754",
+        "lk": 17.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 15,
+        "firstName": "Thomas",
+        "lastName": "Pauly",
+        "wtbId": "19210162",
+        "lk": 17.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 16,
         "firstName": "Ulrich",
         "lastName": "Menzel",
         "wtbId": "18151753",
@@ -446,46 +500,19 @@
         "countsAsGerman": true
       },
       {
-        "position": 14,
-        "firstName": "Ben",
-        "lastName": "Baier",
-        "wtbId": "10768663",
-        "lk": 20.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 15,
-        "firstName": "Hakan",
-        "lastName": "Tekin",
-        "wtbId": "19158295",
-        "lk": 20.0,
-        "nationality": "TUR",
-        "countsAsGerman": true
-      },
-      {
-        "position": 16,
-        "firstName": "Jack",
-        "lastName": "Fuchslocher",
-        "wtbId": "11160657",
-        "lk": 20.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
         "position": 17,
-        "firstName": "Christoph",
-        "lastName": "Ast",
-        "wtbId": "18654122",
-        "lk": 21.0,
-        "nationality": null,
-        "countsAsGerman": true
+        "firstName": "Pablo",
+        "lastName": "Vallendor",
+        "wtbId": "19662285",
+        "lk": 20.0,
+        "nationality": "GUA",
+        "countsAsGerman": false
       },
       {
         "position": 18,
-        "firstName": "Evgenij",
-        "lastName": "Pastler",
-        "wtbId": "16990509",
+        "firstName": "Martin",
+        "lastName": "May",
+        "wtbId": "17054401",
         "lk": 21.0,
         "nationality": null,
         "countsAsGerman": true
@@ -501,12 +528,12 @@
       },
       {
         "position": 20,
-        "firstName": "Pablo",
-        "lastName": "Vallendor",
-        "wtbId": "19662285",
+        "firstName": "Evgenij",
+        "lastName": "Pastler",
+        "wtbId": "16990509",
         "lk": 21.0,
-        "nationality": "GUA",
-        "countsAsGerman": false
+        "nationality": null,
+        "countsAsGerman": true
       },
       {
         "position": 21,
@@ -519,96 +546,15 @@
       },
       {
         "position": 22,
-        "firstName": "Leo",
-        "lastName": "Hesse",
-        "wtbId": "11158373",
+        "firstName": "Christoph",
+        "lastName": "Ast",
+        "wtbId": "18654122",
         "lk": 22.0,
         "nationality": null,
         "countsAsGerman": true
       },
       {
         "position": 23,
-        "firstName": "Hendrik",
-        "lastName": "Jung",
-        "wtbId": "19459740",
-        "lk": 23.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 24,
-        "firstName": "Daniel",
-        "lastName": "Rohrmann",
-        "wtbId": "19158856",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 25,
-        "firstName": "Lukas",
-        "lastName": "Filipon",
-        "wtbId": "10660607",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 26,
-        "firstName": "Florian",
-        "lastName": "Reich",
-        "wtbId": "18153661",
-        "lk": 24.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 27,
-        "firstName": "Philipp",
-        "lastName": "Heinrich",
-        "wtbId": "18651925",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 28,
-        "firstName": "Valentino",
-        "lastName": "Dore",
-        "wtbId": "17854801",
-        "lk": 25.0,
-        "nationality": "ITA",
-        "countsAsGerman": true
-      },
-      {
-        "position": 29,
-        "firstName": "Achim",
-        "lastName": "Teichmann",
-        "wtbId": "17283835",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 30,
-        "firstName": "Patrick",
-        "lastName": "Kutterolf",
-        "wtbId": "17954682",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 31,
-        "firstName": "Martin",
-        "lastName": "Hesse",
-        "wtbId": "17163640",
-        "lk": 25.0,
-        "nationality": null,
-        "countsAsGerman": true
-      },
-      {
-        "position": 32,
         "firstName": "Ulrich",
         "lastName": "Kremer",
         "wtbId": "16990522",
@@ -617,19 +563,154 @@
         "countsAsGerman": true
       },
       {
-        "position": 33,
-        "firstName": "Pascal",
-        "lastName": "Hecker",
-        "wtbId": "19865483",
+        "position": 24,
+        "firstName": "Jürgen",
+        "lastName": "Wege",
+        "wtbId": "16710760",
+        "lk": 22.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 25,
+        "firstName": "Hendrik",
+        "lastName": "Jung",
+        "wtbId": "19459740",
+        "lk": 23.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 26,
+        "firstName": "Mario",
+        "lastName": "Willms",
+        "wtbId": "19259708",
         "lk": 24.0,
         "nationality": null,
         "countsAsGerman": true
       },
       {
+        "position": 27,
+        "firstName": "Marcus",
+        "lastName": "Völkl",
+        "wtbId": "17454518",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 28,
+        "firstName": "Daniel",
+        "lastName": "Rohrmann",
+        "wtbId": "19158856",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 29,
+        "firstName": "Valentino",
+        "lastName": "Dore",
+        "wtbId": "17854801",
+        "lk": 24.0,
+        "nationality": "ITA",
+        "countsAsGerman": true
+      },
+      {
+        "position": 30,
+        "firstName": "Joachim",
+        "lastName": "Merz",
+        "wtbId": "16754237",
+        "lk": 24.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 31,
+        "firstName": "Florian",
+        "lastName": "Reich",
+        "wtbId": "18153661",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 32,
+        "firstName": "Dennis",
+        "lastName": "Hollands",
+        "wtbId": "18453616",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 33,
+        "firstName": "Philipp",
+        "lastName": "Heinrich",
+        "wtbId": "18651925",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
         "position": 34,
+        "firstName": "Markus",
+        "lastName": "Gleißner",
+        "wtbId": "17056075",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 35,
+        "firstName": "Martin",
+        "lastName": "Hesse",
+        "wtbId": "17163640",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 36,
         "firstName": "Thomas",
         "lastName": "Fuchslocher",
         "wtbId": "17163656",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 37,
+        "firstName": "Michael",
+        "lastName": "Nöthen",
+        "wtbId": "16852574",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 38,
+        "firstName": "Patrick",
+        "lastName": "Kutterolf",
+        "wtbId": "17954682",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 39,
+        "firstName": "Achim",
+        "lastName": "Teichmann",
+        "wtbId": "17283835",
+        "lk": 25.0,
+        "nationality": null,
+        "countsAsGerman": true
+      },
+      {
+        "position": 40,
+        "firstName": "Uwe",
+        "lastName": "Saxinger",
+        "wtbId": "17455375",
         "lk": 25.0,
         "nationality": null,
         "countsAsGerman": true

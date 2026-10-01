@@ -190,7 +190,7 @@ export default async function CaptainPage({
       <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
         <h2 className="mb-1 font-display font-bold">Meldeliste</h2>
         <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          Sommer 2026 · {list.filter((r) => r.registered).length} von {list.length} in der App eingetragen. Plätze
+          Winter 2026/27 · {list.filter((r) => r.registered).length} von {list.length} in der App eingetragen. Plätze
           1–{FIXED_POSITIONS} sind fest in der 1. Mannschaft.
         </p>
         <div className="mb-3 flex gap-1 rounded-full bg-[var(--color-tabs-bg)] p-1 text-xs">
