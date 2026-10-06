@@ -1,5 +1,5 @@
 import { getFullSchedule, sessionsForPlayer, getPlayerByToken } from "../src/lib/queries";
-import { sendReminderBatch } from "../src/lib/email";
+import { renderReminder, sendEmailBatch } from "../src/lib/email";
 
 async function main() {
   const token = process.argv[2];
@@ -14,20 +14,16 @@ async function main() {
   const session = mine[0];
   if (!session) throw new Error("Keine Termine für diesen Spieler.");
 
-  const results = await sendReminderBatch(
-    [
-      {
-        to,
-        playerName: player.displayName,
-        role: "starter",
-        confirmed: false,
-        session,
-        token: player.token,
-        baseUrl: "https://rotationsplan-tennis.vercel.app",
-      },
-    ],
-    { from: process.env.MAIL_FROM! },
-  );
+  const rendered = renderReminder({
+    to,
+    playerName: player.displayName,
+    role: "starter",
+    confirmed: false,
+    session,
+    token: player.token,
+    baseUrl: "https://rotationsplan-tennis.vercel.app",
+  });
+  const results = await sendEmailBatch([{ to, ...rendered }], { from: process.env.MAIL_FROM! });
   console.log(results);
 }
 
