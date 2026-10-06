@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
 import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded, lineup, openSlots } from "@/lib/vacancy";
+import { ersatzNeeded, lineup, openSlots, playingErsatz } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
 
@@ -132,6 +132,11 @@ function namePills(players: SessionView["starters"]): string {
     .join("")}</div>`;
 }
 
+/** Who the emails list as playing tonight: the lineup without whoever cancelled — no email says who that was. */
+function stillComing(session: SessionView): SessionView["starters"] {
+  return lineup(session).filter((a) => a.rsvpStatus !== "nein");
+}
+
 /** Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message. */
 function answerButtons(
   session: SessionView,
@@ -147,7 +152,7 @@ export function renderReminder(input: ReminderEmailInput): { subject: string; ht
   if (input.confirmed) return renderConfirmedReminder(input);
   const { playerName, role, session, token, baseUrl } = input;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
-  const players = lineup(session);
+  const players = stillComing(session);
   const others = players.map((a) => a.displayName).join(", ");
   const time = formatTimeRange(session.startsAt, session.endsAt);
   const date = formatDate(session.startsAt);
@@ -166,7 +171,7 @@ export function renderReminder(input: ReminderEmailInput): { subject: string; ht
   const roleLine =
     role === "ersatz"
       ? needed
-        ? `Du bist heute als Ersatz eingetragen – ${cancelledStarters(session)} abgesagt, du wirst gebraucht.`
+        ? `Du bist heute als Ersatz eingetragen und wirst gebraucht – ein Platz ist frei.`
         : `Du bist heute als Ersatz eingetragen.`
       : role === "trainer"
         ? `Du bist heute als Trainer eingeteilt.`
@@ -213,7 +218,7 @@ function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; 
   const { playerName, role, session, token, baseUrl } = input;
   const start = formatTimeRangeStart(session);
   const standingBy = role === "ersatz" && !ersatzNeeded(session);
-  const players = lineup(session);
+  const players = stillComing(session);
 
   const subject =
     role === "ersatz"
@@ -227,7 +232,7 @@ function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; 
     role === "ersatz"
       ? standingBy
         ? "Du hältst dich heute als Ersatz bereit. Sagt jemand ab, bekommst du sofort eine Mail."
-        : `Du springst heute als Ersatz ein – ${cancelledStarters(session)} abgesagt.`
+        : "Du springst heute als Ersatz ein."
       : role === "trainer"
         ? "Du bist heute als Trainer eingeteilt."
         : null;
@@ -286,12 +291,12 @@ export type ErsatzAlertInput = {
    * "uebernommen": someone else jumped in and took the last free place. Both of the latter mean nobody is missing.
    */
   kind: "gebraucht" | "entwarnung" | "uebernommen";
-  /** The starter whose answer triggered this email. */
-  changedBy: string;
+  /** Who took the place, for "uebernommen". Who cancelled is never named. */
+  jumpedIn?: string;
 };
 
 export function renderErsatzAlert(input: ErsatzAlertInput): { subject: string; html: string; text: string } {
-  const { playerName, session, token, baseUrl, kind, changedBy } = input;
+  const { playerName, session, token, baseUrl, kind, jumpedIn } = input;
   const date = formatDate(session.startsAt);
   const shortDate = date.replace(/\d{4}$/, "");
   const time = formatTimeRange(session.startsAt, session.endsAt);
@@ -301,8 +306,8 @@ export function renderErsatzAlert(input: ErsatzAlertInput): { subject: string; h
     const subject = `Entwarnung für ${shortDate} – du wirst doch nicht gebraucht`;
     const line =
       kind === "entwarnung"
-        ? `${changedBy} kommt doch – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`
-        : `${changedBy} springt ein – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`;
+        ? `Die Absage wurde zurückgenommen – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`
+        : `${jumpedIn ?? "Jemand"} springt ein – am ${date} fehlt niemand mehr. Du musst nicht einspringen.`;
     const html = renderShell({
       preheader: line,
       playerName,
@@ -320,11 +325,11 @@ export function renderErsatzAlert(input: ErsatzAlertInput): { subject: string; h
 
   const buttons = answerButtons(session, "ersatz", token, baseUrl);
   const subject = `Ersatz gesucht: ${shortDate} ${formatTimeRangeStart(session)} ${session.hallName} – kannst du einspringen?`;
-  const line = `${changedBy} hat abgesagt. Du bist als Ersatz eingetragen – kannst du einspringen?`;
+  const line = "Ein Platz ist frei geworden. Du bist als Ersatz eingetragen – kannst du einspringen?";
   const html = renderShell({
     preheader: line,
     playerName,
-    intro: "Für einen deiner Ersatz-Termine hat jemand abgesagt.",
+    intro: "An einem deiner Ersatz-Termine wird jemand gebraucht.",
     session,
     cardBody: strongLine(line),
     buttons,
@@ -372,13 +377,13 @@ export type OpenSlotEmailInput = {
   baseUrl: string;
 };
 
-/** Match-day email to every rotation player who is free: a starter cancelled and the place is still open. */
+/** Match-day email to every rotation player who is free: a place is open. It doesn't say who cancelled. */
 export function renderOpenSlot(input: OpenSlotEmailInput): { subject: string; html: string; text: string } {
   const { playerName, session, token, baseUrl } = input;
   const open = openSlots(session);
   const places = open === 1 ? "1 Platz frei" : `${open} Plätze frei`;
   const subject = `Heute ${formatTimeRangeStart(session)} ${session.hallName}: ${places} – springst du ein?`;
-  const line = `${cancelledStarters(session)} abgesagt – heute Abend ist ${open === 1 ? "ein Platz" : `${open} Plätze`} frei. Wer zuerst zusagt, spielt.`;
+  const line = `Heute Abend ${open === 1 ? "ist ein Platz" : `sind ${open} Plätze`} frei. Wer zuerst zusagt, spielt.`;
   const yesUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=ja`;
   const html = renderShell({
     preheader: line,
@@ -406,6 +411,66 @@ export function renderOpenSlot(input: OpenSlotEmailInput): { subject: string; ht
   return { subject, html, text };
 }
 
+export type CancellationNoticeInput = {
+  kind: "absage";
+  to: string;
+  playerName: string;
+  /** The session as it is after the cancellation. */
+  session: SessionView;
+  /** It was the coach who cancelled — then the news is the missing coach, not a free place. */
+  coachCancelled: boolean;
+  token: string;
+  baseUrl: string;
+};
+
+/** Same-day email to everyone still coming tonight: what a cancellation means for the round, not who cancelled. */
+export function renderCancellationNotice(input: CancellationNoticeInput): { subject: string; html: string; text: string } {
+  const { playerName, session, coachCancelled, token, baseUrl } = input;
+  const open = openSlots(session);
+  const ersatz = playingErsatz(session);
+  const news = coachCancelled
+    ? { subject: "ohne Trainer", line: "Heute Abend ist das Training ohne Trainer.", more: "" }
+    : open > 0
+      ? {
+          subject: open === 1 ? "1 Platz frei" : `${open} Plätze frei`,
+          line: `Für heute Abend ${open === 1 ? "ist ein Platz" : `sind ${open} Plätze`} frei geworden.`,
+          more: "Springt jemand ein, steht es im Plan.",
+        }
+      : {
+          subject: "Änderung in der Runde",
+          line: "Für heute Abend gab es eine Absage.",
+          more: ersatz ? `${ersatz.displayName} springt als Ersatz ein.` : "Die Runde ist trotzdem vollständig.",
+        };
+  const subject = `Heute ${formatTimeRangeStart(session)} ${session.hallName}: ${news.subject}`;
+  const players = stillComing(session);
+
+  const html = renderShell({
+    preheader: [news.line, news.more].filter(Boolean).join(" "),
+    playerName,
+    intro: "Kurze Info zum Training heute Abend.",
+    session,
+    cardBody:
+      strongLine(news.line) +
+      (news.more ? `<p style="margin:6px 0 0;font-size:14px;color:#374151;">${escapeHtml(news.more)}</p>` : "") +
+      `<p style="margin:12px 0 6px;font-size:12px;color:#6b7280;">Noch dabei</p>${namePills(players)}`,
+    buttons: null,
+    note: "Du bekommst diese Mail, weil du heute Abend dabei bist.",
+    token,
+    baseUrl,
+  });
+  const text = [
+    `Hallo ${playerName},`,
+    ``,
+    [news.line, news.more].filter(Boolean).join(" "),
+    `${formatDate(session.startsAt)} · ${formatTimeRange(session.startsAt, session.endsAt)} · ${session.hallName}`,
+    `Noch dabei: ${players.map((a) => a.displayName).join(", ")}`,
+    ``,
+    `Ganzer Plan: ${baseUrl}/`,
+    `Dein persönlicher Link: ${baseUrl}/spieler/${token}`,
+  ].join("\n");
+  return { subject, html, text };
+}
+
 function formatTimeRangeStart(session: SessionView): string {
   return formatTimeRange(session.startsAt, session.endsAt).split(" – ")[0];
 }
@@ -413,12 +478,16 @@ function formatTimeRangeStart(session: SessionView): string {
 export type SendResult = { to: string; id?: string; error?: string };
 
 export async function sendReminderBatch(
-  inputs: (ReminderEmailInput | OpenSlotEmailInput)[],
+  inputs: (ReminderEmailInput | OpenSlotEmailInput | CancellationNoticeInput)[],
   opts: { from: string; replyTo?: string },
 ): Promise<SendResult[]> {
   const resend = getResend();
   const messages = inputs.map((input) => {
-    const { subject, html, text } = "kind" in input ? renderOpenSlot(input) : renderReminder(input);
+    const { subject, html, text } = !("kind" in input)
+      ? renderReminder(input)
+      : input.kind === "platz-frei"
+        ? renderOpenSlot(input)
+        : renderCancellationNotice(input);
     return {
       from: opts.from,
       to: input.to,

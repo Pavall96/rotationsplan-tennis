@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFullSchedule, getPlayerByToken, myRoleInSession } from "@/lib/queries";
 import { formatDate, formatTimeRange, playerLabel, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded, lineup, openSlots, vacancyStatus } from "@/lib/vacancy";
+import { ersatzNeeded, lineup, openSlots, vacancyStatus } from "@/lib/vacancy";
 import { canJumpIn } from "@/lib/einspringen";
 import { confirmRsvpFromEmail, jumpInFromEmail } from "@/app/spieler/[token]/actions";
 import { JumpInForm } from "@/components/JumpInForm";
@@ -64,7 +64,7 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
         <div className={cardClasses}>
           {sessionHeader}
           <p className="mt-2 text-sm">
-            {cancelledStarters(session)} abgesagt. Wer zuerst zusagt, spielt – mit „Ich springe ein“ ist der Platz
+            An diesem Termin ist ein Platz frei. Wer zuerst zusagt, spielt – mit „Ich springe ein“ ist der Platz
             deiner.
           </p>
           <JumpInForm token={token} sessionId={session.id} action={jumpInFromEmail} />
@@ -163,8 +163,8 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
 
         {role === "ersatz" && needed ? (
           <p className="mt-2 text-sm">
-            Du bist an diesem Termin <span className="font-semibold">Ersatz</span>, und {cancelledStarters(session)}{" "}
-            abgesagt. Mit „Ja“ sagst du, dass du einspringst.
+            Du bist an diesem Termin <span className="font-semibold">Ersatz</span>, und ein Platz ist frei. Mit „Ja“
+            sagst du, dass du einspringst.
           </p>
         ) : role === "ersatz" ? (
           <p className="mt-2 text-sm">

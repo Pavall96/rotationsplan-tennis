@@ -28,8 +28,8 @@ export function ersatzAlertKind(
 async function emailErsatz(
   session: SessionView,
   kind: ErsatzAlertInput["kind"],
-  changedBy: string,
   baseUrl: string,
+  jumpedIn?: string,
 ): Promise<void> {
   const ersatz = await getPlayerById(session.ersatz!.playerId);
   if (!ersatz?.email) return;
@@ -41,7 +41,7 @@ async function emailErsatz(
   }
 
   const result = await sendErsatzAlert(
-    { to: ersatz.email, playerName: playerLabel(ersatz), session, token: ersatz.token, baseUrl, kind, changedBy },
+    { to: ersatz.email, playerName: playerLabel(ersatz), session, token: ersatz.token, baseUrl, kind, jumpedIn },
     { from, replyTo: process.env.REPLY_TO },
   );
   if (result.error) console.error(`Ersatz-Benachrichtigung (${kind}) fehlgeschlagen:`, result.error);
@@ -50,7 +50,6 @@ async function emailErsatz(
 /** Emails the session's Ersatz after a starter cancelled or took a cancellation back. Never throws. */
 export async function notifyErsatz(opts: {
   sessionId: number;
-  starterId: number;
   previous: Answer | null;
   status: Answer;
   baseUrl: string;
@@ -63,8 +62,7 @@ export async function notifyErsatz(opts: {
     const kind = ersatzAlertKind(session, opts.previous, opts.status, new Date());
     if (!kind) return;
 
-    const changedBy = session.starters.find((a) => a.playerId === opts.starterId)?.displayName ?? "Jemand";
-    await emailErsatz(session, kind, changedBy, opts.baseUrl);
+    await emailErsatz(session, kind, opts.baseUrl);
   } catch (err) {
     console.error("Ersatz-Benachrichtigung fehlgeschlagen:", err);
   }
@@ -81,8 +79,8 @@ export async function notifyErsatzTakenOver(opts: {
     const session = schedule.find((s) => s.id === opts.sessionId);
     if (!session || !ersatzNoLongerNeeded(session, new Date())) return;
 
-    const changedBy = session.einspringer.find((a) => a.playerId === opts.einspringerId)?.displayName ?? "Jemand";
-    await emailErsatz(session, "uebernommen", changedBy, opts.baseUrl);
+    const jumpedIn = session.einspringer.find((a) => a.playerId === opts.einspringerId)?.displayName;
+    await emailErsatz(session, "uebernommen", opts.baseUrl, jumpedIn);
   } catch (err) {
     console.error("Ersatz-Benachrichtigung fehlgeschlagen:", err);
   }
