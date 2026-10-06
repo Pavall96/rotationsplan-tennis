@@ -10,6 +10,8 @@ export type AssignmentRole = "starter" | "ersatz" | "trainer" | "einspringer";
 export type SessionAssignmentView = {
   playerId: number;
   displayName: string;
+  /** Leistungsklasse as stored, e.g. "24.1"; coaches have none. */
+  lk: string | null;
   role: AssignmentRole;
   slot: number | null;
   rsvpStatus: RsvpStatus;
@@ -64,6 +66,7 @@ export async function getFullSchedule(): Promise<SessionView[]> {
       playerId: sessionAssignments.playerId,
       displayName: players.displayName,
       nickname: players.nickname,
+      lk: players.lk,
       role: sessionAssignments.role,
       slot: sessionAssignments.slot,
       rsvpStatus: rsvps.status,
@@ -81,6 +84,7 @@ export async function getFullSchedule(): Promise<SessionView[]> {
     bySession.get(a.sessionId)!.push({
       playerId: a.playerId,
       displayName: playerLabel(a),
+      lk: a.lk,
       role: a.role as AssignmentRole,
       slot: a.slot,
       rsvpStatus: (a.rsvpStatus as RsvpStatus | null) ?? "offen",

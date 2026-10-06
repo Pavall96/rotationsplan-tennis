@@ -42,10 +42,13 @@ export type TrainerEmailInput = {
   baseUrl: string;
 };
 
-function nameWithRole(a: SessionAssignmentView): string {
-  if (a.role === "einspringer") return `${a.displayName} (springt ein)`;
-  if (a.role === "ersatz") return `${a.displayName} (Ersatz)`;
-  return a.displayName;
+/** "Anna (LK 20,1, springt ein)": the level tells the coach what kind of group to expect. */
+function nameWithLk(a: SessionAssignmentView): string {
+  const details = [
+    a.lk ? `LK ${a.lk.replace(".", ",")}` : "",
+    a.role === "einspringer" ? "springt ein" : a.role === "ersatz" ? "Ersatz" : "",
+  ].filter(Boolean);
+  return details.length ? `${a.displayName} (${details.join(", ")})` : a.displayName;
 }
 
 function headline(stand: TrainerStand, lauf: TrainerEmailInput["lauf"]): string {
@@ -75,8 +78,8 @@ export function renderTrainerEmail(input: TrainerEmailInput): { subject: string;
 
   const title = headline(stand, lauf);
   const groups = [
-    { label: "Zugesagt", names: stand.zugesagt.map(nameWithRole) },
-    { label: "Noch keine Antwort", names: stand.offen.map((a) => a.displayName) },
+    { label: "Zugesagt", names: stand.zugesagt.map(nameWithLk) },
+    { label: "Noch keine Antwort", names: stand.offen.map(nameWithLk) },
     { label: "Abgesagt", names: stand.abgesagt.map((a) => a.displayName) },
   ].filter((g) => g.names.length > 0);
   const freeLine = stand.frei === 0 ? "" : stand.frei === 1 ? "1 Platz ist noch frei." : `${stand.frei} Plätze sind noch frei.`;
