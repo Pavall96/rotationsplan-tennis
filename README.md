@@ -86,5 +86,6 @@ Ohne `RESEND_API_KEY` werden E-Mails nur in die Konsole geloggt, nicht verschick
 - `src/app/page.tsx` – öffentliche Gesamtübersicht
 - `src/app/spieler/[token]/` – persönliche Seite mit Zu-/Absage und Kalender-Abo
 - `src/app/api/cron/erinnerungen/` – tägliche Erinnerungs-E-Mail (Vercel Cron, `vercel.json`)
+- `src/app/api/cron/trainer-stand/` – Nachmittags-Mail an den Trainer, solange Zusagen fehlen (Vercel Cron, `vercel.json`)
 - `src/app/api/ics/` – Kalender-Feed und Einzeltermin-Download
 - `src/app/admin/` – Linkliste, geschützt per `?key=`

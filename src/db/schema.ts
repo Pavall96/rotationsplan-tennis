@@ -114,10 +114,15 @@ export const reminderLog = pgTable(
     playerId: integer("player_id")
       .notNull()
       .references(() => players.id),
+    // 'morgen': the daily email. 'nachmittag': the coach's follow-up while the round is still short of players.
+    kind: text("kind").notNull().default("morgen"),
     sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
     providerMessageId: text("provider_message_id"),
   },
-  (table) => [unique("reminder_log_session_player_unique").on(table.sessionId, table.playerId)],
+  (table) => [
+    unique("reminder_log_session_player_kind_unique").on(table.sessionId, table.playerId, table.kind),
+    check("reminder_log_kind_check", sql`${table.kind} in ('morgen', 'nachmittag')`),
+  ],
 );
 
 // ---- Mannschaften / Winterspiele ----

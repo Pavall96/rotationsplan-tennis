@@ -15,7 +15,7 @@ function getResend(): Resend | null {
 export type ReminderEmailInput = {
   to: string;
   playerName: string;
-  role: "starter" | "ersatz" | "trainer";
+  role: "starter" | "ersatz";
   /** Already said yes (or jumped in): then there's nothing to ask, the email only tells them about tonight. */
   confirmed: boolean;
   session: SessionView;
@@ -23,7 +23,7 @@ export type ReminderEmailInput = {
   baseUrl: string;
 };
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -33,14 +33,16 @@ function escapeHtml(s: string): string {
 }
 
 /** A "nein" button is optional: the Platz-frei email only offers to jump in. */
-type Buttons = { yesUrl: string; ja: string; noUrl?: string; nein?: string };
+export type Buttons = { yesUrl: string; ja: string; noUrl?: string; nein?: string };
 
 /** Header, greeting, session card, optional Ja/Nein buttons and footer — shared by every email we send. */
-function renderShell(opts: {
+export function renderShell(opts: {
   preheader: string;
   playerName: string;
   intro: string;
   session: SessionView;
+  /** Line under the date; defaults to the hall and whether a coach is there. */
+  sessionLine?: string;
   cardBody: string;
   buttons: Buttons | null;
   /** A small text link in place of the buttons, e.g. to cancel after having said yes. */
@@ -50,7 +52,7 @@ function renderShell(opts: {
   baseUrl: string;
 }): string {
   const { session, buttons, textLink, baseUrl, token } = opts;
-  const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
+  const sessionLine = opts.sessionLine ?? `${session.hallName} · ${session.withCoach ? "mit Trainer" : "ohne Trainer"}`;
   const routeLine = session.address
     ? `<p style="margin:10px 0 0;"><a href="${mapsUrl(session.address)}" style="color:#11324e;font-size:13px;">Route öffnen →</a></p>`
     : "";
@@ -103,7 +105,7 @@ function renderShell(opts: {
             <td style="font-size:13px;color:#6b7280;text-align:right;">${formatTimeRange(session.startsAt, session.endsAt)}</td>
           </tr>
         </table>
-        <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${escapeHtml(session.hallName)} · ${withCoach}</p>
+        <p style="margin:6px 0 12px;font-size:13px;color:#6b7280;">${escapeHtml(sessionLine)}</p>
         ${opts.cardBody}
         ${routeLine}
       </div>
@@ -119,7 +121,7 @@ ${buttonRow}
   </div>`;
 }
 
-function strongLine(text: string): string {
+export function strongLine(text: string): string {
   return `<p style="margin:0;font-size:14px;font-weight:600;color:#111827;">${escapeHtml(text)}</p>`;
 }
 
@@ -133,7 +135,7 @@ function namePills(players: SessionView["starters"]): string {
 }
 
 /** Links open a confirmation page rather than saving directly: mail scanners prefetch every link in a message. */
-function answerButtons(
+export function answerButtons(
   session: SessionView,
   role: "starter" | "ersatz" | "trainer",
   token: string,
@@ -158,9 +160,7 @@ export function renderReminder(input: ReminderEmailInput): { subject: string; ht
       ? needed
         ? `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – du wirst gebraucht!`
         : `Ersatz heute ${formatTimeRangeStart(session)} ${session.hallName} – hältst du dich bereit?`
-      : role === "trainer"
-        ? `Training heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`
-        : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
+      : `Heute ${formatTimeRangeStart(session)} ${session.hallName} – bist du dabei?`;
 
   const buttons = answerButtons(session, role, token, baseUrl);
   const roleLine =
@@ -168,9 +168,7 @@ export function renderReminder(input: ReminderEmailInput): { subject: string; ht
       ? needed
         ? `Du bist heute als Ersatz eingetragen – ${cancelledStarters(session)} abgesagt, du wirst gebraucht.`
         : `Du bist heute als Ersatz eingetragen.`
-      : role === "trainer"
-        ? `Du bist heute als Trainer eingeteilt.`
-        : null;
+      : null;
 
   const cardBody = roleLine ? strongLine(roleLine) : namePills(players);
 
@@ -220,22 +218,17 @@ function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; 
       ? standingBy
         ? `Ersatz heute ${start} ${session.hallName} – danke, dass du dich bereithältst`
         : `Heute ${start} ${session.hallName} – du springst ein, bis heute Abend!`
-      : role === "trainer"
-        ? `Training heute ${start} ${session.hallName} – bis heute Abend!`
-        : `Heute ${start} ${session.hallName} – bis heute Abend!`;
+      : `Heute ${start} ${session.hallName} – bis heute Abend!`;
   const roleLine =
     role === "ersatz"
       ? standingBy
         ? "Du hältst dich heute als Ersatz bereit. Sagt jemand ab, bekommst du sofort eine Mail."
         : `Du springst heute als Ersatz ein – ${cancelledStarters(session)} abgesagt.`
-      : role === "trainer"
-        ? "Du bist heute als Trainer eingeteilt."
-        : null;
-  // Who's on court tonight matters to anyone playing; the Ersatz on standby and the coach just get their role.
-  const cardBody =
-    standingBy || role === "trainer"
-      ? strongLine(roleLine!)
-      : (roleLine ? `<div style="margin-bottom:10px;">${strongLine(roleLine)}</div>` : "") + namePills(players);
+      : null;
+  // Who's on court tonight matters to anyone playing; the Ersatz on standby just gets their role.
+  const cardBody = standingBy
+    ? strongLine(roleLine!)
+    : (roleLine ? `<div style="margin-bottom:10px;">${strongLine(roleLine)}</div>` : "") + namePills(players);
   const cancel = {
     url: `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=nein`,
     label: standingBy ? "Kannst du doch nicht? Hier absagen" : "Doch nicht dabei? Hier absagen",
@@ -261,7 +254,7 @@ function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; 
     `${formatDate(session.startsAt)} · ${formatTimeRange(session.startsAt, session.endsAt)}`,
     `Halle: ${session.hallName} (${session.withCoach ? "mit Trainer" : "ohne Trainer"})`,
     roleLine ?? ``,
-    standingBy || role === "trainer" ? `` : `Mit dabei: ${players.map((a) => a.displayName).join(", ")}`,
+    standingBy ? `` : `Mit dabei: ${players.map((a) => a.displayName).join(", ")}`,
     session.address ? `Route: ${mapsUrl(session.address)}` : ``,
     ``,
     `${cancel.label}: ${cancel.url}`,
@@ -406,42 +399,35 @@ export function renderOpenSlot(input: OpenSlotEmailInput): { subject: string; ht
   return { subject, html, text };
 }
 
-function formatTimeRangeStart(session: SessionView): string {
+export function formatTimeRangeStart(session: SessionView): string {
   return formatTimeRange(session.startsAt, session.endsAt).split(" – ")[0];
 }
 
 export type SendResult = { to: string; id?: string; error?: string };
 
-export async function sendReminderBatch(
-  inputs: (ReminderEmailInput | OpenSlotEmailInput)[],
+/** A rendered email, ready to hand to the mail provider. */
+export type OutgoingEmail = { to: string; subject: string; html: string; text: string };
+
+export async function sendEmailBatch(
+  emails: OutgoingEmail[],
   opts: { from: string; replyTo?: string },
 ): Promise<SendResult[]> {
   const resend = getResend();
-  const messages = inputs.map((input) => {
-    const { subject, html, text } = "kind" in input ? renderOpenSlot(input) : renderReminder(input);
-    return {
-      from: opts.from,
-      to: input.to,
-      replyTo: opts.replyTo,
-      subject,
-      html,
-      text,
-    };
-  });
+  const messages = emails.map((email) => ({ from: opts.from, replyTo: opts.replyTo, ...email }));
 
   if (!resend) {
     console.warn(
       `⚠️  RESEND_API_KEY nicht gesetzt – E-Mails werden NICHT verschickt, nur geloggt (${messages.length} Empfänger).`,
     );
     for (const m of messages) console.log(`[DEV EMAIL] an ${m.to}: ${m.subject}`);
-    return messages.map((m) => ({ to: m.to as string }));
+    return messages.map((m) => ({ to: m.to }));
   }
 
   const { data, error } = await resend.batch.send(messages);
   if (error) {
-    return messages.map((m) => ({ to: m.to as string, error: error.message }));
+    return messages.map((m) => ({ to: m.to, error: error.message }));
   }
-  return (data?.data ?? []).map((d, i) => ({ to: messages[i].to as string, id: d.id }));
+  return (data?.data ?? []).map((d, i) => ({ to: messages[i].to, id: d.id }));
 }
 
 export type NoticeEmailInput = {

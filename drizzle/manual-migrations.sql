@@ -152,3 +152,10 @@ CREATE TABLE IF NOT EXISTS lineup_marks (
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT lineup_marks_match_player_unique UNIQUE (match_id, player_id)
 );
+
+-- 2026-10-06: second email per session and player (the coach's afternoon update). Additive column with a default;
+-- the unique key gains `kind`, so the existing 'morgen' rows stay unique.
+ALTER TABLE reminder_log ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'morgen';
+ALTER TABLE reminder_log DROP CONSTRAINT reminder_log_session_player_unique;
+ALTER TABLE reminder_log ADD CONSTRAINT reminder_log_session_player_kind_unique UNIQUE (session_id, player_id, kind);
+ALTER TABLE reminder_log ADD CONSTRAINT reminder_log_kind_check CHECK (kind in ('morgen', 'nachmittag'));

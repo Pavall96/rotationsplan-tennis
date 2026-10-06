@@ -1,7 +1,9 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, reminderLog } from "@/db/schema";
 import { getFullSchedule } from "@/lib/queries";
-import { sendReminderBatch, type OpenSlotEmailInput, type ReminderEmailInput } from "@/lib/email";
+import { renderOpenSlot, renderReminder, sendEmailBatch, type OutgoingEmail } from "@/lib/email";
+import { renderTrainerEmail } from "@/lib/trainer-email";
 import { openSlotRecipients } from "@/lib/einspringen";
 import { openSlots } from "@/lib/vacancy";
 import { formatDateForFile, playerLabel } from "@/lib/format";
@@ -30,7 +32,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
   const allPlayers = await db.select().from(players);
   const playerById = new Map(allPlayers.map((p) => [p.id, p]));
 
-  const existingLogs = await db.select().from(reminderLog);
+  const existingLogs = await db.select().from(reminderLog).where(eq(reminderLog.kind, "morgen"));
   const alreadySent = new Set(existingLogs.map((r) => `${r.sessionId}:${r.playerId}`));
 
   const from = process.env.MAIL_FROM;
@@ -42,15 +44,15 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
   let skippedNoEmail = 0;
   let skippedAlreadySent = 0;
   let skippedDeclined = 0;
-  const toSend: { input: ReminderEmailInput | OpenSlotEmailInput; sessionId: number; playerId: number }[] = [];
+  const toSend: { email: OutgoingEmail; sessionId: number; playerId: number }[] = [];
   const dryRunList: { to: string; subject: string }[] = [];
 
   // One email per session and player: reminders for everyone on the session, then — while a cancelled place is
-  // still free — a "Platz frei" email to every rotation player who is free tonight. reminder_log covers both.
+  // still free — a "Platz frei" email to every rotation player who is free tonight. reminder_log ('morgen') covers both.
   const queue = (
     session: (typeof todaysSessions)[number],
     playerId: number,
-    makeInput: (player: (typeof allPlayers)[number]) => ReminderEmailInput | OpenSlotEmailInput,
+    render: (player: (typeof allPlayers)[number] & { email: string }) => Omit<OutgoingEmail, "to">,
     label: string,
   ) => {
     const key = `${session.id}:${playerId}`;
@@ -59,21 +61,22 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
       return;
     }
     const player = playerById.get(playerId);
-    if (!player?.email) {
+    const email = player?.email;
+    if (!player || !email) {
       skippedNoEmail++;
       return;
     }
     if (opts.dryRun) {
-      dryRunList.push({ to: player.email, subject: `(${label}) ${session.hallName} ${today}` });
+      dryRunList.push({ to: email, subject: `(${label}) ${session.hallName} ${today}` });
     } else {
-      toSend.push({ input: makeInput(player), sessionId: session.id, playerId });
+      toSend.push({ email: { to: email, ...render({ ...player, email }) }, sessionId: session.id, playerId });
     }
   };
 
   const now = new Date();
   for (const session of todaysSessions) {
     // Only who hasn't answered yet is asked; who said yes gets tonight's details, who cancelled nothing.
-    // Jumping in already was the yes.
+    // Jumping in already was the yes. The coach gets their own email with how the group stands.
     const recipients = [
       ...session.starters.map((a) => ({ playerId: a.playerId, role: "starter" as const, rsvp: a.rsvpStatus })),
       ...session.einspringer.map((a) => ({ playerId: a.playerId, role: "starter" as const, rsvp: "ja" as const })),
@@ -88,15 +91,19 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
       queue(
         session,
         r.playerId,
-        (player) => ({
-          to: player.email!,
-          playerName: playerLabel(player),
-          role: r.role,
-          confirmed: r.rsvp === "ja",
-          session,
-          token: player.token,
-          baseUrl: opts.baseUrl,
-        }),
+        (player) => {
+          const input = {
+            to: player.email,
+            playerName: playerLabel(player),
+            confirmed: r.rsvp === "ja",
+            session,
+            token: player.token,
+            baseUrl: opts.baseUrl,
+          };
+          return r.role === "trainer"
+            ? renderTrainerEmail({ ...input, lauf: "morgen" })
+            : renderReminder({ ...input, role: r.role });
+        },
         r.rsvp === "ja" ? `${r.role}, zugesagt` : r.role,
       );
     }
@@ -106,14 +113,15 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
       queue(
         session,
         playerId,
-        (player) => ({
-          kind: "platz-frei",
-          to: player.email!,
-          playerName: playerLabel(player),
-          session,
-          token: player.token,
-          baseUrl: opts.baseUrl,
-        }),
+        (player) =>
+          renderOpenSlot({
+            kind: "platz-frei",
+            to: player.email,
+            playerName: playerLabel(player),
+            session,
+            token: player.token,
+            baseUrl: opts.baseUrl,
+          }),
         "platz-frei",
       );
     }
@@ -123,8 +131,8 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
     return { date: today, sessions: todaysSessions.length, wouldSend: dryRunList, skippedNoEmail, skippedAlreadySent, skippedDeclined };
   }
 
-  const results = await sendReminderBatch(
-    toSend.map((t) => t.input),
+  const results = await sendEmailBatch(
+    toSend.map((t) => t.email),
     { from: from!, replyTo },
   );
 
@@ -137,6 +145,7 @@ export async function runReminders(opts: { dryRun: boolean; baseUrl: string }): 
       .values({
         sessionId: toSend[i].sessionId,
         playerId: toSend[i].playerId,
+        kind: "morgen",
         providerMessageId: result?.id ?? null,
       })
       .onConflictDoNothing();
