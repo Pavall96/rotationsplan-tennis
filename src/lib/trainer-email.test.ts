@@ -76,6 +76,25 @@ test("an Ersatz filling a cancelled place counts as playing", () => {
   assert.doesNotMatch(text, /noch frei/);
 });
 
+test("the coach sees the LK of everyone who is or may be coming, not of who cancelled", () => {
+  const session = makeSession({
+    starters: [
+      { ...assignment(1, "ja"), lk: "24.1" },
+      { ...assignment(2, "offen"), lk: "25.0" },
+      { ...assignment(3, "nein"), lk: "24.4" },
+      { ...assignment(4, "nein"), lk: "13.0" },
+    ],
+    einspringer: [{ ...assignment(6, "ja", "einspringer"), lk: "20.1" }],
+    ersatz: { ...assignment(5, "ja", "ersatz"), lk: "20.6" },
+    trainer,
+  });
+  const { html, text } = render({ session });
+  assert.match(text, /Zugesagt: P1 \(LK 24,1\), P6 \(LK 20,1, springt ein\), P5 \(LK 20,6, Ersatz\)/);
+  assert.match(text, /Noch keine Antwort: P2 \(LK 25,0\)/);
+  assert.match(text, /Abgesagt: P3, P4/);
+  assert.match(html, /P1 \(LK 24,1\)/);
+});
+
 test("players who haven't answered are listed on their own line", () => {
   const { text } = render({ session: makeSession({ trainer }) });
   assert.match(text, /Noch hat niemand zugesagt/);

@@ -5,7 +5,7 @@ export function assignment(
   rsvpStatus: RsvpStatus = "offen",
   role: AssignmentRole = "starter",
 ): SessionAssignmentView {
-  return { playerId, displayName: `P${playerId}`, role, slot: null, rsvpStatus };
+  return { playerId, displayName: `P${playerId}`, lk: null, role, slot: null, rsvpStatus };
 }
 
 /** A Platz-1 session on 03.11.2026 with starters 1–4 and Ersatz 5, nobody has answered yet. */
