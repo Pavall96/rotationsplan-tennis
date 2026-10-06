@@ -7,10 +7,12 @@ import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, sessionAssignments, rsvps } from "@/db/schema";
 import { getBaseUrl } from "@/lib/base-url";
-import { getFullSchedule, getPlayerByToken } from "@/lib/queries";
+import { getFullSchedule, getPlayerByToken, type AssignmentRole } from "@/lib/queries";
 import { canJumpIn } from "@/lib/einspringen";
 import { claimSlot, leaveSlot, retractCancellation } from "@/lib/slots";
 import { notifyErsatz, notifyErsatzTakenOver } from "@/lib/ersatz-alert";
+import { notifySameDayCancellation } from "@/lib/cancellation-alert";
+import type { Cancellation } from "@/lib/same-day-cancellation";
 
 type Source = "web" | "email";
 
@@ -21,13 +23,18 @@ function revalidateSchedule() {
 
 async function alertErsatzAfterStarterAnswer(
   sessionId: number,
-  starterId: number,
   previous: "ja" | "nein" | null,
   status: "ja" | "nein",
 ) {
   const baseUrl = await getBaseUrl();
   // Sent after the response so a slow mail provider never delays saving the answer.
-  after(() => notifyErsatz({ sessionId, starterId, previous, status, baseUrl }));
+  after(() => notifyErsatz({ sessionId, previous, status, baseUrl }));
+}
+
+/** A cancellation on the day itself is emailed right away; the notifier decides whether it is one. */
+async function alertAfterCancellation(sessionId: number, cancelled: Cancellation) {
+  const baseUrl = await getBaseUrl();
+  after(() => notifySameDayCancellation({ ...cancelled, sessionId, baseUrl }));
 }
 
 async function saveRsvp(formData: FormData, source: Source) {
@@ -59,6 +66,9 @@ async function saveRsvp(formData: FormData, source: Source) {
     // Jumping in already was the "ja"; "nein" hands the place back to whoever comes next.
     if (status === "nein") await leaveSlot(sessionId, player.id);
     revalidateSchedule();
+    if (status === "nein") {
+      await alertAfterCancellation(sessionId, { playerId: player.id, role: "einspringer", previous: "ja" });
+    }
     return result;
   }
 
@@ -73,7 +83,7 @@ async function saveRsvp(formData: FormData, source: Source) {
     // Someone may have jumped in meanwhile — then the place is theirs and the cancellation stays.
     const retracted = await retractCancellation(sessionId, player.id, source);
     revalidateSchedule();
-    if (retracted) await alertErsatzAfterStarterAnswer(sessionId, player.id, previous, status);
+    if (retracted) await alertErsatzAfterStarterAnswer(sessionId, previous, status);
     return result;
   }
 
@@ -88,7 +98,10 @@ async function saveRsvp(formData: FormData, source: Source) {
   revalidateSchedule();
 
   if (assignment.role === "starter") {
-    await alertErsatzAfterStarterAnswer(sessionId, player.id, previous, status);
+    await alertErsatzAfterStarterAnswer(sessionId, previous, status);
+  }
+  if (status === "nein") {
+    await alertAfterCancellation(sessionId, { playerId: player.id, role: assignment.role as AssignmentRole, previous });
   }
 
   return result;
