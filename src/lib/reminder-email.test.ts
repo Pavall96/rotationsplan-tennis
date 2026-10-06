@@ -50,5 +50,14 @@ test("a confirmed Ersatz filling a cancelled place hears they play and with whom
   const { subject, text } = render({ role: "ersatz", session, confirmed: true, playerName: "P5", token: "tok5" });
   assert.match(subject, /du springst ein, bis heute Abend!$/);
   assert.match(text, /P1 hat abgesagt/);
-  assert.match(text, /Mit dabei: P1, P2, P3, P4, P5/);
+  assert.match(text, /Mit dabei: P2, P3, P4, P5/);
+});
+
+test("a starter who cancelled isn't listed as playing, in neither version of the email", () => {
+  const session = makeSession({ starters: [assignment(1), assignment(2, "nein"), assignment(3), assignment(4)] });
+  for (const confirmed of [false, true]) {
+    const { html, text } = render({ session, confirmed });
+    assert.match(text, /Mit dabei: P1, P3, P4/);
+    assert.doesNotMatch(html, />P2</);
+  }
 });

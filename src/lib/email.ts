@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
 import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded, lineup, openSlots } from "@/lib/vacancy";
+import { attending, cancelledStarters, ersatzNeeded, openSlots } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
 
@@ -147,7 +147,7 @@ export function renderReminder(input: ReminderEmailInput): { subject: string; ht
   if (input.confirmed) return renderConfirmedReminder(input);
   const { playerName, role, session, token, baseUrl } = input;
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
-  const players = lineup(session);
+  const players = attending(session);
   const others = players.map((a) => a.displayName).join(", ");
   const time = formatTimeRange(session.startsAt, session.endsAt);
   const date = formatDate(session.startsAt);
@@ -213,7 +213,7 @@ function renderConfirmedReminder(input: ReminderEmailInput): { subject: string; 
   const { playerName, role, session, token, baseUrl } = input;
   const start = formatTimeRangeStart(session);
   const standingBy = role === "ersatz" && !ersatzNeeded(session);
-  const players = lineup(session);
+  const players = attending(session);
 
   const subject =
     role === "ersatz"

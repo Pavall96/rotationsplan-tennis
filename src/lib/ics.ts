@@ -84,8 +84,8 @@ export function buildSingleIcsEvent(event: IcsEvent): string {
   return buildIcsCalendar([event], event.summary);
 }
 
-import type { SessionView } from "@/lib/queries";
-import { playingErsatz } from "@/lib/vacancy";
+import type { SessionAssignmentView, SessionView } from "@/lib/queries";
+import { attending, lineup, openSlots, playingErsatz } from "@/lib/vacancy";
 
 export function sessionToIcsEvent(
   session: SessionView,
@@ -95,12 +95,20 @@ export function sessionToIcsEvent(
   const ersatzPlays = playingErsatz(session);
   const withCoach = session.withCoach ? "mit Trainer" : "ohne Trainer";
   const summary = `Tennis · ${session.hallName} (${withCoach})`;
+  // Who cancelled must not read as "Mit dabei": the calendar entry is often all a player looks at before driving to the hall.
+  const names = (list: SessionAssignmentView[]) => list.map((a) => a.displayName).join(", ");
+  // The Ersatz on standby stays unnamed, as everywhere in the app; only their answer is shown.
+  const ersatzAnswer = { ja: "steht bereit", offen: "Antwort offen", nein: "abgesagt" } as const;
+  const cancelled = lineup(session).filter((a) => a.rsvpStatus === "nein");
+  const open = openSlots(session);
   const descriptionParts = [
-    `Mit dabei: ${[...session.starters, ...session.einspringer, ...(ersatzPlays ? [ersatzPlays] : [])]
-      .map((a) => a.displayName)
-      .join(", ")}`,
-    session.trainer ? `Trainer: ${session.trainer.displayName}` : null,
-    session.ersatz && !ersatzPlays ? `Ersatz: ${session.ersatz.displayName}` : null,
+    `Mit dabei: ${names(attending(session)) || "niemand"}`,
+    cancelled.length > 0 ? `Abgesagt: ${names(cancelled)}` : null,
+    session.trainer
+      ? `Trainer: ${session.trainer.displayName}${session.trainer.rsvpStatus === "nein" ? " (abgesagt)" : ""}`
+      : null,
+    session.ersatz && !ersatzPlays ? `Ersatz: ${ersatzAnswer[session.ersatz.rsvpStatus]}` : null,
+    open > 0 ? `Noch frei: ${open === 1 ? "1 Platz" : `${open} Plätze`}` : null,
     session.note ? `Hinweis: ${session.note}` : null,
     `Rückmeldung: ${baseUrl}/spieler/${player.token}`,
   ].filter((x): x is string => Boolean(x));
@@ -111,7 +119,7 @@ export function sessionToIcsEvent(
     ...(session.ersatz ? [session.ersatz] : []),
     ...(session.trainer ? [session.trainer] : []),
   ].find((a) => a.playerId === player.id);
-  const cancelled = mySelf?.rsvpStatus === "nein";
+  const iCancelled = mySelf?.rsvpStatus === "nein";
 
   return {
     uid: `session-${session.id}-player-${player.id}@rotationsplan-tennis`,
@@ -122,7 +130,7 @@ export function sessionToIcsEvent(
     start: session.startsAt,
     end: session.endsAt,
     sequence: 0,
-    status: cancelled ? "CANCELLED" : "CONFIRMED",
+    status: iCancelled ? "CANCELLED" : "CONFIRMED",
   };
 }
 

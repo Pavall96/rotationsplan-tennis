@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFullSchedule, getPlayerByToken, myRoleInSession } from "@/lib/queries";
 import { formatDate, formatTimeRange, playerLabel, rsvpLabels } from "@/lib/format";
-import { cancelledStarters, ersatzNeeded, lineup, openSlots, vacancyStatus } from "@/lib/vacancy";
+import { attending, cancelledStarters, ersatzNeeded, openSlots, vacancyStatus } from "@/lib/vacancy";
 import { canJumpIn } from "@/lib/einspringen";
 import { confirmRsvpFromEmail, jumpInFromEmail } from "@/app/spieler/[token]/actions";
 import { JumpInForm } from "@/components/JumpInForm";
@@ -181,10 +181,10 @@ export default async function AnswerPage({ params, searchParams }: PageProps<"/s
         ) : (
           <p className="mt-2 text-sm">
             Mit dabei:{" "}
-            {lineup(session)
+            {attending(session)
               .filter((a) => a.playerId !== player.id)
               .map((a) => a.displayName)
-              .join(", ")}
+              .join(", ") || "sonst niemand"}
           </p>
         )}
 

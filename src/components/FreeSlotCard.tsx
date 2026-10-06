@@ -1,15 +1,13 @@
 import type { SessionView } from "@/lib/queries";
 import { formatDate, formatTimeRange } from "@/lib/format";
-import { lineup, openSlots } from "@/lib/vacancy";
+import { attending, openSlots } from "@/lib/vacancy";
 import { jumpIn } from "@/app/spieler/[token]/actions";
 import { JumpInForm } from "@/components/JumpInForm";
 import { PinIcon } from "@/components/icons";
 
 export function FreeSlotCard({ token, session }: { token: string; session: SessionView }) {
   const open = openSlots(session);
-  const playing = lineup(session)
-    .filter((a) => a.rsvpStatus !== "nein")
-    .map((a) => a.displayName);
+  const playing = attending(session).map((a) => a.displayName);
   const isPlatz1 = session.courtSlug === "happy-match";
   const chipColorClasses = isPlatz1
     ? "text-[var(--color-platz1)] bg-[var(--color-platz1-bg)]"
