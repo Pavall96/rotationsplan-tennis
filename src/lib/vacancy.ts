@@ -85,6 +85,11 @@ export function lineup(session: SessionView): SessionAssignmentView[] {
   return [...session.starters, ...session.einspringer, ...(ersatz ? [ersatz] : [])];
 }
 
+/** Who is still expected on court: the lineup without anyone who cancelled. This is what "Mit dabei" lists. */
+export function attending(session: SessionView): SessionAssignmentView[] {
+  return lineup(session).filter((a) => a.rsvpStatus !== "nein");
+}
+
 /** "Anna hat" / "Anna und Ben haben" — the starters who cancelled, ready to be followed by "abgesagt". */
 export function cancelledStarters(session: SessionView): string {
   const names = session.starters.filter((a) => a.rsvpStatus === "nein").map((a) => a.displayName);

@@ -22,7 +22,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { LineupLine } from "@/components/LineupLine";
 import { FreeSlotCard } from "@/components/FreeSlotCard";
 import { jumpInOptions } from "@/lib/einspringen";
-import { lineup, openSlots } from "@/lib/vacancy";
+import { attending, openSlots } from "@/lib/vacancy";
 
 export const dynamic = "force-dynamic";
 
@@ -206,7 +206,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
                 (a) => a?.playerId === player.id,
               )!;
               const myStatus = myAssignment.rsvpStatus;
-              const others = lineup(s)
+              const others = attending(s)
                 .filter((a) => a.playerId !== player.id)
                 .map((a) => a.displayName);
               // A starter who cancelled can't take it back once someone else has their place.
@@ -262,7 +262,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
                     <>
                       {role === "einspringer" && <p className="mb-1 text-sm font-medium">Du bist eingesprungen.</p>}
                       <p className="text-sm">
-                        Mit dabei: {others.join(", ")}
+                        Mit dabei: {others.join(", ") || "sonst niemand"}
                         {s.trainer && ` · Trainer: ${s.trainer.displayName}`}
                       </p>
                     </>

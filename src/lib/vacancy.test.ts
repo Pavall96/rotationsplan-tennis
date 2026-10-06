@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded, playingErsatz, lineup } from "./vacancy";
+import { openSlots, vacancyStatus, ersatzNeeded, ersatzNoLongerNeeded, playingErsatz, lineup, attending } from "./vacancy";
 import { assignment, makeSession } from "./test-fixtures";
 
 const oneCancelled = [assignment(1, "nein"), assignment(2), assignment(3), assignment(4)];
@@ -109,4 +109,13 @@ test("lineup lists the Ersatz only once they really play", () => {
   );
   // Standing by while nobody cancelled.
   assert.deepEqual(ids(makeSession({ ersatz: ja })), [1, 2, 3, 4]);
+});
+
+test("attending leaves out whoever cancelled", () => {
+  const s = makeSession({
+    starters: twoCancelled,
+    ersatz: assignment(5, "ja", "ersatz"),
+    einspringer: [assignment(9, "ja", "einspringer")],
+  });
+  assert.deepEqual(attending(s).map((a) => a.playerId), [3, 4, 9, 5]);
 });
