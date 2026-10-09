@@ -12,6 +12,7 @@ export type RosterRow = {
   countsAsGerman: boolean;
   nationality: string | null;
   playerId: number;
+  wtbId: string | null;
   name: string;
   registered: boolean;
   playsMatches: boolean;
@@ -28,6 +29,7 @@ export async function getRoster(): Promise<RosterRow[]> {
       countsAsGerman: rosterEntries.countsAsGerman,
       nationality: rosterEntries.nationality,
       playerId: players.id,
+      wtbId: players.wtbId,
       displayName: players.displayName,
       nickname: players.nickname,
       email: players.email,
@@ -44,6 +46,7 @@ export async function getRoster(): Promise<RosterRow[]> {
     countsAsGerman: r.countsAsGerman,
     nationality: r.nationality,
     playerId: r.playerId,
+    wtbId: r.wtbId,
     name: playerLabel(r),
     registered: Boolean(r.email),
     playsMatches: r.playsMatches,

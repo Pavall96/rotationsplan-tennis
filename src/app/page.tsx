@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { getFullSchedule, getPlayerByToken } from "@/lib/queries";
+import { getTeams } from "@/lib/matches";
 import { jumpInOptions, type JumpInViewer } from "@/lib/einspringen";
 import { MY_TOKEN_KEY } from "@/lib/my-token";
 import { SessionCard } from "@/components/SessionCard";
@@ -22,6 +23,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   // Known device: let the player take a free place right on the card.
   const myToken = (await cookies()).get(MY_TOKEN_KEY)?.value;
   const me = myToken ? await getPlayerByToken(myToken) : null;
+  // Mannschaftsführer get a direct way into their area — only on a device that knows them.
+  const captainOf = me ? (await getTeams()).filter((t) => t.captainPlayerId === me.id) : [];
   const viewer: JumpInViewer | null = me
     ? { token: me.token, sessionIds: new Set(jumpInOptions(schedule, me.id, new Date()).map((s) => s.id)) }
     : null;
@@ -57,6 +60,21 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         Winterspiele der Mannschaften
         <ChevronRightIcon className="shrink-0 text-[var(--color-ink-faint)]" />
       </Link>
+
+      {me && captainOf.length > 0 && (
+        <Link
+          href={`/spieler/${me.token}/mannschaftsfuehrer`}
+          className="-mt-4 mb-6 flex items-center justify-between gap-2 rounded-[14px] bg-[var(--color-brand)] px-[14px] py-3 text-sm font-semibold text-white"
+        >
+          <span>
+            Mannschaftsführer-Bereich
+            <span className="block text-xs font-normal opacity-80">
+              {captainOf.map((t) => t.name).join(", ")} · aufstellen und verwalten
+            </span>
+          </span>
+          <ChevronRightIcon className="shrink-0" />
+        </Link>
+      )}
 
       {!showCalendar && nextSessions.length > 0 && (
         <section className="mb-6">
