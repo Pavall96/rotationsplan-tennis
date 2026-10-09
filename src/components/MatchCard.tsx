@@ -1,5 +1,6 @@
+import Link from "next/link";
 import type { MatchView, AgeClass } from "@/lib/matches";
-import { formatTime, formatDayShort, directionsUrl, appleDirectionsUrl } from "@/lib/format";
+import { formatDate, formatTime, formatDayShort, directionsUrl, appleDirectionsUrl } from "@/lib/format";
 import { PinIcon } from "@/components/icons";
 
 export function teamChipClasses(ageClass: AgeClass): string {
@@ -99,5 +100,29 @@ export function MatchCard({
       )}
       {children}
     </div>
+  );
+}
+
+/** One line in the home page's "Kommende Termine": a Punktspiel between the training sessions. */
+export function CompactMatchCard({ match, href }: { match: MatchView; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 transition-colors active:bg-[var(--color-tabs-bg)]"
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{formatDate(match.startsAt)}</p>
+        <p className="text-xs text-[var(--color-ink-muted)]">{formatTime(match.startsAt)} Uhr</p>
+        <p className="mt-0.5 truncate text-xs font-semibold">
+          Punktspiel {match.isHome ? "gegen" : "bei"} {match.opponent}
+        </p>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <TeamChip name={match.team.name} ageClass={match.team.ageClass} />
+        <span className="whitespace-nowrap text-xs text-[var(--color-ink-muted)]">
+          {match.isHome ? "Heimspiel" : "Auswärts"}
+        </span>
+      </div>
+    </Link>
   );
 }

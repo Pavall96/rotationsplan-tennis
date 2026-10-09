@@ -2,10 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { getFullSchedule, getPlayerByToken } from "@/lib/queries";
-import { getTeams } from "@/lib/matches";
+import { getAllMatches, getTeams } from "@/lib/matches";
+import { mergeAgenda } from "@/lib/agenda";
 import { jumpInOptions, type JumpInViewer } from "@/lib/einspringen";
 import { MY_TOKEN_KEY } from "@/lib/my-token";
 import { SessionCard } from "@/components/SessionCard";
+import { CompactMatchCard } from "@/components/MatchCard";
 import { formatDateForFile } from "@/lib/format";
 import { MyPageLink } from "@/components/MyPageLink";
 import { SeasonCalendar } from "@/components/SeasonCalendar";
@@ -18,7 +20,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   // "alle" was the old "Ganze Saison" tab; old links land on the calendar, which now covers the whole season.
   const showCalendar = ansicht === "kalender" || ansicht === "alle";
 
-  const schedule = await getFullSchedule();
+  const [schedule, allMatches] = await Promise.all([getFullSchedule(), getAllMatches()]);
 
   // Known device: let the player take a free place right on the card.
   const myToken = (await cookies()).get(MY_TOKEN_KEY)?.value;
@@ -37,6 +39,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   // The next session(s) already get their own hero section above — don't repeat them in the list below.
   const nextIds = new Set(nextSessions.map((s) => s.id));
   const restUpcoming = upcoming.filter((s) => !nextIds.has(s.id));
+  // Punktspiele sit between the training sessions; on a known device the card opens the personal match page.
+  const agenda = mergeAgenda(
+    restUpcoming,
+    allMatches.filter((m) => m.matchDate >= today),
+  );
+  const matchHref = (matchId: number) =>
+    me ? `/spieler/${me.token}/punktspiele#spiel-${matchId}` : `/punktspiele#spiel-${matchId}`;
 
 
   return (
@@ -121,10 +130,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         />
       ) : (
         <section className="space-y-3">
-          {restUpcoming.map((s) => (
-            <SessionCard key={s.id} session={s} variant="compact" />
-          ))}
-          {restUpcoming.length === 0 && (
+          {agenda.map((item) =>
+            item.kind === "session" ? (
+              <SessionCard key={`s${item.session.id}`} session={item.session} variant="compact" />
+            ) : (
+              <CompactMatchCard key={`m${item.match.id}`} match={item.match} href={matchHref(item.match.id)} />
+            ),
+          )}
+          {agenda.length === 0 && (
             <p className="text-sm text-[var(--color-ink-muted)]">Keine weiteren Termine in dieser Saison.</p>
           )}
         </section>
