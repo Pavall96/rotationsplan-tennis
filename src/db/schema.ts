@@ -170,6 +170,9 @@ export const matches = pgTable("matches", {
   lineupPublishedAt: timestamp("lineup_published_at", { withTimezone: true }),
   // Bumped by the WTB import whenever date, time or hall change — used as the calendar event's SEQUENCE.
   scheduleVersion: smallint("schedule_version").notNull().default(0),
+  // Spieltags-Mannschaftsführer: a lined-up player who stands in when the team's Mannschaftsführer doesn't play.
+  // Display and alerts only — lining up and publishing stay with teams.captainPlayerId.
+  matchCaptainPlayerId: integer("match_captain_player_id").references(() => players.id),
 });
 
 // Namentliche Mannschaftsmeldung: one ranked list per age class. Positions 1–4 are fixed to the first team.

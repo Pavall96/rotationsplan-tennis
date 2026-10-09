@@ -10,6 +10,7 @@ import { getLineups, lineupContext, type LineupRole } from "@/lib/lineups";
 import { getPlayerRoster, getRoster, rosterByPlayer } from "@/lib/roster";
 import { lineupCheck, isNonGerman, tooManyNonGermans } from "@/lib/eligibility";
 import { canMark, markStatement, unmarkStatement } from "@/lib/marks";
+import { getMatchCaptains } from "@/lib/match-captain";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
 import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
@@ -108,6 +109,12 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
     .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, playerId)))
     .returning();
 
+  // Out of the lineup means no longer Spieltags-Mannschaftsführer — the role falls back to the team's captain.
+  await getDb()
+    .update(matches)
+    .set({ matchCaptainPlayerId: null })
+    .where(and(eq(matches.id, matchId), eq(matches.matchCaptainPlayerId, playerId)));
+
   // Someone who was already told they play should hear that they don't anymore — unless they cancelled themselves.
   if (removed?.notifiedAt && removed.response !== "nein") {
     const baseUrl = await getBaseUrl();
@@ -167,6 +174,64 @@ export async function unmarkPlayer(formData: FormData): Promise<Result> {
 
   await unmarkStatement(matchId, playerId);
   refresh();
+}
+
+/**
+ * Sets the Spieltags-Mannschaftsführer (a lined-up player who stands in for the team's Mannschaftsführer), or clears
+ * it with an empty playerId. They only see more and hear about Absagen — lining up stays with the team's captain.
+ */
+export async function setMatchCaptain(formData: FormData): Promise<Result> {
+  const token = String(formData.get("token") ?? "");
+  const matchId = Number(formData.get("matchId"));
+  const raw = String(formData.get("playerId") ?? "");
+  const playerId = raw ? Number(raw) : null;
+
+  const ctx = await captainMatch(token, matchId);
+  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann das ändern." };
+  const { match } = ctx;
+
+  const db = getDb();
+  if (playerId === null) {
+    await db.update(matches).set({ matchCaptainPlayerId: null }).where(eq(matches.id, matchId));
+    refresh();
+    return;
+  }
+
+  const entry = ((await getLineups()).get(matchId) ?? []).find((e) => e.playerId === playerId);
+  if (!entry) return { error: "Nur wer für dieses Spiel aufgestellt ist, kann Mannschaftsführer am Spieltag sein." };
+  if (entry.response === "nein") return { error: `${entry.name} hat für dieses Spiel abgesagt.` };
+
+  // Only an actual change returns a row, so saving the same choice twice doesn't email twice.
+  const changed = await db
+    .update(matches)
+    .set({ matchCaptainPlayerId: playerId })
+    .where(and(eq(matches.id, matchId), sql`${matches.matchCaptainPlayerId} is distinct from ${playerId}`))
+    .returning({ id: matches.id });
+  refresh();
+
+  // Told right away only if they already know they play; otherwise the publish email says it.
+  if (changed.length > 0 && entry.published) {
+    const baseUrl = await getBaseUrl();
+    const from = process.env.MAIL_FROM;
+    after(async () => {
+      const [p] = await getDb().select().from(players).where(eq(players.id, playerId)).limit(1);
+      if (!p?.email || !from) return;
+      const result = await sendNotice(
+        {
+          to: p.email,
+          playerName: playerLabel(p),
+          subject: `Du bist Mannschaftsführer: ${match.team.name} am ${formatDayShort(match.startsAt)}`,
+          line: `Du bist am Spieltag Mannschaftsführer für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}. Die Meldeliste findest du in der App.`,
+          detail: describe(match),
+          cta: { url: `${baseUrl}/spieler/${p.token}/punktspiele/meldeliste/${match.id}`, label: "Meldeliste öffnen" },
+          token: p.token,
+          baseUrl,
+        },
+        { from, replyTo: process.env.REPLY_TO },
+      );
+      if (result.error) console.error(`Mannschaftsführer-Mail an ${p.email} fehlgeschlagen: ${result.error}`);
+    });
+  }
 }
 
 export type PublishPreview = {
@@ -230,6 +295,7 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   refresh();
   const baseUrl = await getBaseUrl();
   const stammNames = entries.filter((e) => e.role === "stamm").map((e) => e.name);
+  const matchCaptainId = (await getMatchCaptains()).get(matchId)?.playerId ?? null;
 
   after(async () => {
     const recipients = toNotify.length ? await db.select().from(players).where(inArray(players.id, toNotify)) : [];
@@ -243,9 +309,10 @@ export async function publishLineup(token: string, matchId: number, send: boolea
             playerName: playerLabel(p),
             subject: `Aufstellung ${match.team.name}: ${formatDayShort(match.startsAt)} ${match.isHome ? "gegen" : "bei"} ${match.opponent}`,
             line:
-              entry.role === "stamm"
+              (entry.role === "stamm"
                 ? `Du bist aufgestellt für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}.`
-                : `Du bist Ersatz für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} – bitte halt dir den Termin frei.`,
+                : `Du bist Ersatz für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} – bitte halt dir den Termin frei.`) +
+              (p.id === matchCaptainId ? " Du bist an dem Tag auch Mannschaftsführer – die Meldeliste findest du in der App." : ""),
             detail: `${describe(match)}${others.length ? ` · Mit: ${others.join(", ")}` : ""}`,
             cta: {
               url: `${baseUrl}/spieler/${p.token}/punktspiele#spiel-${match.id}`,

@@ -369,7 +369,13 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
 
   const db = getDb();
   const [row] = await db
-    .select({ role: lineups.role, response: lineups.response, captainId: teams.captainPlayerId, published: lineups.publishedAt })
+    .select({
+      role: lineups.role,
+      response: lineups.response,
+      captainId: teams.captainPlayerId,
+      matchCaptainId: matches.matchCaptainPlayerId,
+      published: lineups.publishedAt,
+    })
     .from(lineups)
     .innerJoin(matches, eq(lineups.matchId, matches.id))
     .innerJoin(teams, eq(matches.teamId, teams.id))
@@ -392,12 +398,28 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
   const name = playerLabel(player);
   const detail = matchLine(match);
 
-  if (alerts.captain && row.captainId && row.captainId !== player.id) {
+  if (alerts.captain) {
     const line = CAPTAIN_LINES[alerts.captain](name);
-    await notify([row.captainId], matchId, `${match.teamName} am ${formatDayShort(match.startsAt)}: ${line}`, () => line, detail, {
-      path: (p) => `/spieler/${p.token}/mannschaftsfuehrer/spiel/${matchId}`,
-      label: "Aufstellung öffnen",
-    });
+    const subject = `${match.teamName} am ${formatDayShort(match.startsAt)}: ${line}`;
+    if (row.captainId && row.captainId !== player.id) {
+      await notify([row.captainId], matchId, subject, () => line, detail, {
+        path: (p) => `/spieler/${p.token}/mannschaftsfuehrer/spiel/${matchId}`,
+        label: "Aufstellung öffnen",
+      });
+    }
+    // The Spieltags-Mannschaftsführer hears it too, but can't change the lineup — the link goes to the match card.
+    const dayCaptainId = row.matchCaptainId;
+    if (
+      dayCaptainId &&
+      dayCaptainId !== player.id &&
+      dayCaptainId !== row.captainId &&
+      lineupNow.some((e) => e.playerId === dayCaptainId && e.response !== "nein")
+    ) {
+      await notify([dayCaptainId], matchId, subject, () => line, detail, {
+        path: (p) => `/spieler/${p.token}/punktspiele#spiel-${matchId}`,
+        label: "Spiel ansehen",
+      });
+    }
   }
   if (alerts.askErsatz) {
     const ersatz = lineupNow.filter((e) => e.role === "ersatz" && e.response !== "nein").map((e) => e.playerId);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllMatches, getTeams, groupByDay } from "@/lib/matches";
 import { getRidesByMatch } from "@/lib/rides";
 import { getLineups } from "@/lib/lineups";
+import { getMatchCaptains } from "@/lib/match-captain";
 import { formatDateForFile, formatDayShort } from "@/lib/format";
 import { MatchCard, teamChipClasses } from "@/components/MatchCard";
 import { RideSection } from "@/components/RideSection";
@@ -20,14 +21,16 @@ export async function MatchList({
   teamSlug: string | undefined;
   viewer: { token: string; playerId: number } | null;
 }) {
-  const [allMatches, teamList, ridesByMatch, lineupsByMatch] = await Promise.all([
+  const [allMatches, teamList, ridesByMatch, lineupsByMatch, matchCaptains] = await Promise.all([
     getAllMatches(),
     getTeams(),
     getRidesByMatch(),
     getLineups({ publishedOnly: true }),
+    getMatchCaptains(),
   ]);
 
   const selected = teamList.find((t) => t.slug === teamSlug) ?? null;
+  const viewerIsCaptain = viewer ? teamList.some((t) => t.captainPlayerId === viewer.playerId) : false;
   const today = formatDateForFile(new Date());
   const days = groupByDay(allMatches.filter((m) => m.matchDate >= today));
 
@@ -80,7 +83,13 @@ export async function MatchList({
               <div className="space-y-3">
                 {shown.map((m) => (
                   <MatchCard key={m.id} match={m}>
-                    <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewer={viewer} />
+                    <LineupLine
+                      match={m}
+                      entries={lineupsByMatch.get(m.id) ?? []}
+                      viewer={viewer}
+                      matchCaptain={matchCaptains.get(m.id)}
+                      showMeldeliste={viewerIsCaptain}
+                    />
                     <RideSection
                       match={m}
                       data={ridesByMatch.get(m.id) ?? { rides: [], requests: [] }}

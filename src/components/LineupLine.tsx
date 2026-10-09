@@ -1,5 +1,7 @@
+import Link from "next/link";
 import type { MatchView } from "@/lib/matches";
 import type { LineupEntry } from "@/lib/lineups";
+import { activeMatchCaptain, type MatchCaptain } from "@/lib/match-captain";
 import { respondToLineup } from "@/app/spieler/[token]/punktspiele/actions";
 import { ActionForm } from "@/components/ActionForm";
 import { CheckIcon, XIcon } from "@/components/icons";
@@ -12,10 +14,16 @@ export function LineupLine({
   match,
   entries,
   viewer,
+  matchCaptain = null,
+  showMeldeliste = false,
 }: {
   match: MatchView;
   entries: LineupEntry[];
   viewer: { token: string; playerId: number } | null;
+  /** The Spieltags-Mannschaftsführer, if one is set; shown only while they're in the published lineup. */
+  matchCaptain?: MatchCaptain | null;
+  /** The viewer is a Mannschaftsführer and may open the Meldeliste for any match. */
+  showMeldeliste?: boolean;
 }) {
   if (!match.lineupPublishedAt) return null;
   if (!viewer) return <p className="mt-3 text-xs text-[var(--color-ink-muted)]">Aufstellung steht.</p>;
@@ -23,6 +31,8 @@ export function LineupLine({
   const stamm = entries.filter((e) => e.role === "stamm");
   const mine = entries.find((e) => e.playerId === viewer.playerId);
   const someoneMissing = stamm.some((e) => e.response === "nein");
+  const dayCaptain = activeMatchCaptain(matchCaptain, entries);
+  const iAmDayCaptain = dayCaptain?.playerId === viewer.playerId;
 
   let labels: { ja: string; nein: string } | null = null;
   if (mine?.role === "stamm") labels = { ja: "Ich bin dabei", nein: "Ich kann doch nicht" };
@@ -63,6 +73,19 @@ export function LineupLine({
           </span>
         ))}
       </p>
+      {dayCaptain && (
+        <p className="mt-1">
+          <span className="font-semibold">Mannschaftsführer am Spieltag:</span> {iAmDayCaptain ? "du" : dayCaptain.name}
+        </p>
+      )}
+      {(iAmDayCaptain || showMeldeliste) && (
+        <Link
+          href={`/spieler/${viewer.token}/punktspiele/meldeliste/${match.id}`}
+          className="mt-1 inline-block text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
+        >
+          Meldeliste ansehen ›
+        </Link>
+      )}
 
       {mine && labels && (
         <ActionForm

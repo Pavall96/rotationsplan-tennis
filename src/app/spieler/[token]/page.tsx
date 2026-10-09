@@ -18,6 +18,7 @@ import { getPlayerRoster } from "@/lib/roster";
 import { getAvailability, pollDaysForPlayer } from "@/lib/availability";
 import { AvailabilityPicker } from "@/components/AvailabilityPicker";
 import { getLineups } from "@/lib/lineups";
+import { getMatchCaptains } from "@/lib/match-captain";
 import { MatchCard } from "@/components/MatchCard";
 import { LineupLine } from "@/components/LineupLine";
 import { FreeSlotCard } from "@/components/FreeSlotCard";
@@ -33,13 +34,14 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
   const player = await getPlayerByToken(token);
   if (!player) notFound();
 
-  const [schedule, teamList, allMatches, roster, answers, lineupsByMatch] = await Promise.all([
+  const [schedule, teamList, allMatches, roster, answers, lineupsByMatch, matchCaptains] = await Promise.all([
     getFullSchedule(),
     getTeams(),
     getAllMatches(),
     getPlayerRoster(player.id),
     getAvailability(),
     getLineups({ publishedOnly: true }),
+    getMatchCaptains(),
   ]);
   const myMatches = allMatches.filter(
     (m) =>
@@ -140,7 +142,13 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
           <div className="space-y-3">
             {myMatches.map((m) => (
               <MatchCard key={m.id} match={m} showDate>
-                <LineupLine match={m} entries={lineupsByMatch.get(m.id) ?? []} viewer={{ token, playerId: player.id }} />
+                <LineupLine
+                  match={m}
+                  entries={lineupsByMatch.get(m.id) ?? []}
+                  viewer={{ token, playerId: player.id }}
+                  matchCaptain={matchCaptains.get(m.id)}
+                  showMeldeliste={captainOf.length > 0}
+                />
                 <Link
                   href={`/spieler/${token}/punktspiele#spiel-${m.id}`}
                   className="mt-3 flex items-center justify-between rounded-[12px] border border-[var(--color-border)] px-3 py-2 text-sm font-medium"

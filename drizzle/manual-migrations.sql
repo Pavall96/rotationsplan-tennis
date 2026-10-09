@@ -159,3 +159,6 @@ ALTER TABLE reminder_log ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'mo
 ALTER TABLE reminder_log DROP CONSTRAINT reminder_log_session_player_unique;
 ALTER TABLE reminder_log ADD CONSTRAINT reminder_log_session_player_kind_unique UNIQUE (session_id, player_id, kind);
 ALTER TABLE reminder_log ADD CONSTRAINT reminder_log_kind_check CHECK (kind in ('morgen', 'nachmittag'));
+
+-- 2026-10-09: Spieltags-Mannschaftsführer. Additive — one nullable column.
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_captain_player_id integer REFERENCES players(id);

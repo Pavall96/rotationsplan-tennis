@@ -5,11 +5,12 @@ import { getAllMatches, getTeams } from "@/lib/matches";
 import { getRoster, rosterByPlayer } from "@/lib/roster";
 import { getLineups, lineupContext, singlesOrder, type LineupEntry } from "@/lib/lineups";
 import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
-import { lineupCheck, isNonGerman, tooManyNonGermans, type LineupCheck } from "@/lib/eligibility";
+import { lineupCheck, isNonGerman, tooManyNonGermans, AGE_CLASS_LABEL, type LineupCheck } from "@/lib/eligibility";
 import { getMarks, sameDayClaims, appearances, canMark, type Claim, type Appearance } from "@/lib/marks";
+import { getMatchCaptains } from "@/lib/match-captain";
 import { coordinationText, sameDayText, whatsappUrl } from "@/lib/invite";
-import { formatDayShort, formatTime } from "@/lib/format";
-import { addToLineup, removeFromLineup, markPlayer, unmarkPlayer } from "./actions";
+import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
+import { addToLineup, removeFromLineup, markPlayer, unmarkPlayer, setMatchCaptain } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamChip } from "@/components/MatchCard";
@@ -70,13 +71,14 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const captain = await getPlayerByToken(token);
   if (!captain) notFound();
 
-  const [allMatches, teamList, roster, lineupsByMatch, answers, marksByMatch] = await Promise.all([
+  const [allMatches, teamList, roster, lineupsByMatch, answers, marksByMatch, matchCaptains] = await Promise.all([
     getAllMatches(),
     getTeams(),
     getRoster(),
     getLineups(),
     getAvailability(),
     getMarks(),
+    getMatchCaptains(),
   ]);
   const match = allMatches.find((m) => m.id === matchId);
   const team = teamList.find((t) => t.id === match?.team.id);
@@ -185,6 +187,17 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
     );
   }
 
+  // Spieltags-Mannschaftsführer: someone from the lineup who stands in when the captain doesn't play that day.
+  const matchCaptain = matchCaptains.get(matchId) ?? null;
+  if (matchCaptain && lineup.some((e) => e.playerId === matchCaptain.playerId && e.response === "nein")) {
+    warnings.unshift(
+      `${matchCaptain.name} ist Mannschaftsführer am Spieltag, hat aber abgesagt – bitte jemand anderen eintragen.`,
+    );
+  }
+  const matchCaptainOptions = [...stamm, ...ersatz].filter(
+    (e) => e.playerId !== captain.id && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
+  );
+
   const sameDay: SameDayMatch[] = allMatches
     .filter((m) => m.matchDate === match.matchDate && m.id !== match.id)
     .map((m) => {
@@ -224,6 +237,12 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         <p className="text-sm text-[var(--color-ink-muted)]">
           {day} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
+        <Link
+          href={`/spieler/${token}/punktspiele/meldeliste/${matchId}`}
+          className="mt-2 inline-block text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
+        >
+          Meldeliste {AGE_CLASS_LABEL[match.team.ageClass]} ansehen ›
+        </Link>
       </header>
 
       {sameDay.length > 0 && <SameDayBlock matches={sameDay} />}
@@ -253,6 +272,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               hidden={hidden}
               talkFor={(cl) => talkUrl(e.name, cl)}
               unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+              matchCaptain={e.playerId === matchCaptain?.playerId}
             />
           ))}
           {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
@@ -270,6 +290,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   talkFor={(cl) => talkUrl(e.name, cl)}
                   promote
                   unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                  matchCaptain={e.playerId === matchCaptain?.playerId}
                 />
               ))}
             </ul>
@@ -292,6 +313,33 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               ))}
             </ul>
           </>
+        )}
+
+        {lineup.length > 0 && (
+          <div className="mb-3 rounded-[10px] border border-[var(--color-border)] px-3 py-2.5">
+            <p className="text-xs font-semibold">Mannschaftsführer am Spieltag</p>
+            <p className="mb-2 text-[11px] text-[var(--color-ink-muted)]">
+              Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste und
+              bekommt die Absagen – aufstellen und veröffentlichen kannst weiterhin nur du.
+            </p>
+            <ActionForm action={setMatchCaptain} hidden={hidden} className="flex flex-wrap items-center gap-2">
+              <select
+                key={matchCaptain?.playerId ?? "self"}
+                name="playerId"
+                defaultValue={matchCaptain?.playerId ?? ""}
+                aria-label="Mannschaftsführer am Spieltag"
+                className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-2.5 py-2 text-base"
+              >
+                <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
+                {matchCaptainOptions.map((e) => (
+                  <option key={e.playerId} value={e.playerId}>
+                    {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
+                  </option>
+                ))}
+              </select>
+              <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>Speichern</SubmitButton>
+            </ActionForm>
+          </div>
         )}
 
         {warnings.map((w) => (
@@ -498,6 +546,7 @@ function LineupRow({
   talkFor,
   promote = false,
   unpublished = false,
+  matchCaptain = false,
 }: {
   label: string;
   entry: LineupEntry & { lists: string; problem: string | null; claims: Claim[] };
@@ -506,6 +555,8 @@ function LineupRow({
   promote?: boolean;
   /** Added or changed since the last publish — players don't see it yet. */
   unpublished?: boolean;
+  /** This player is the Spieltags-Mannschaftsführer. */
+  matchCaptain?: boolean;
 }) {
   const response = entry.response ? RESPONSE_LABEL[entry.response] : null;
   return (
@@ -519,6 +570,7 @@ function LineupRow({
         <span className="block truncate text-sm font-semibold">{entry.name}</span>
         <span className="text-[11px] text-[var(--color-ink-faint)]">
           {entry.lists}
+          {matchCaptain && <span className="font-semibold text-[var(--color-brand)]"> · MF am Spieltag</span>}
           {unpublished ? (
             <span className="font-semibold text-[var(--color-h30)]"> · noch nicht veröffentlicht</span>
           ) : response ? (
