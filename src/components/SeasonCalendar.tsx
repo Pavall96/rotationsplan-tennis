@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { SessionView } from "@/lib/queries";
+import type { MatchView } from "@/lib/matches";
 import { calendarHref, formatDateForFile } from "@/lib/format";
 import { SessionCard } from "@/components/SessionCard";
+import { CompactMatchCard } from "@/components/MatchCard";
 import { ArrowLeftIcon } from "@/components/icons";
 import { vacancyStatus } from "@/lib/vacancy";
 import type { JumpInViewer } from "@/lib/einspringen";
@@ -31,11 +33,17 @@ function monthGrid(month: string): (string | null)[] {
 
 export function SeasonCalendar({
   schedule,
+  matches,
+  matchHref,
   month: requestedMonth,
   day: requestedDay,
   viewer,
 }: {
   schedule: SessionView[];
+  /** Punktspiele: square dots in the grid, listed under the training cards of the selected day. */
+  matches: MatchView[];
+  /** Where a match card leads (the public or the personal Winterspiele page). */
+  matchHref: (matchId: number) => string;
   month?: string;
   day?: string;
   viewer?: JumpInViewer | null;
@@ -48,7 +56,12 @@ export function SeasonCalendar({
     if (!byDate.has(key)) byDate.set(key, []);
     byDate.get(key)!.push(s);
   }
-  const dates = [...byDate.keys()].sort();
+  const matchesByDate = new Map<string, MatchView[]>();
+  for (const m of matches) {
+    if (!matchesByDate.has(m.matchDate)) matchesByDate.set(m.matchDate, []);
+    matchesByDate.get(m.matchDate)!.push(m);
+  }
+  const dates = [...new Set([...byDate.keys(), ...matchesByDate.keys()])].sort();
   if (dates.length === 0) {
     return <p className="text-sm text-[var(--color-ink-muted)]">Noch keine Termine eingetragen.</p>;
   }
@@ -63,7 +76,7 @@ export function SeasonCalendar({
 
   const datesInMonth = dates.filter((d) => d.startsWith(month));
   const selectedDay =
-    requestedDay && requestedDay.startsWith(month) && byDate.has(requestedDay)
+    requestedDay && requestedDay.startsWith(month) && dates.includes(requestedDay)
       ? requestedDay
       : (datesInMonth.find((d) => d >= today) ?? datesInMonth[0]);
 
@@ -109,11 +122,12 @@ export function SeasonCalendar({
           {monthGrid(month).map((date, i) => {
             if (!date) return <span key={`pad-${i}`} />;
             const sessionsOnDay = byDate.get(date) ?? [];
+            const matchesOnDay = matchesByDate.get(date) ?? [];
             const dayNo = Number(date.slice(8));
             const isToday = date === today;
             const isPast = date < today;
 
-            if (sessionsOnDay.length === 0) {
+            if (sessionsOnDay.length === 0 && matchesOnDay.length === 0) {
               return (
                 <span
                   key={date}
@@ -158,17 +172,45 @@ export function SeasonCalendar({
                       }`}
                     />
                   ))}
+                  {matchesOnDay.map((m) => (
+                    <span
+                      key={`m${m.id}`}
+                      className={`h-1.5 w-1.5 rounded-[1px] ${
+                        isSelected
+                          ? "bg-[var(--background)]"
+                          : m.team.ageClass === "h30"
+                            ? "bg-[var(--color-h30)]"
+                            : "bg-[var(--color-herren)]"
+                      }`}
+                    />
+                  ))}
                 </span>
               </Link>
             );
           })}
         </div>
+
+        {matches.length > 0 && (
+          <p className="mt-3 flex items-center justify-center gap-4 text-[11px] text-[var(--color-ink-muted)]">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-ink-muted)]" />
+              Training
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-[1px] bg-[var(--color-ink-muted)]" />
+              Punktspiel
+            </span>
+          </p>
+        )}
       </div>
 
       {selectedDay && (
         <div className="mt-4 space-y-3">
-          {byDate.get(selectedDay)!.map((s) => (
+          {(byDate.get(selectedDay) ?? []).map((s) => (
             <SessionCard key={s.id} session={s} viewer={viewer} />
+          ))}
+          {(matchesByDate.get(selectedDay) ?? []).map((m) => (
+            <CompactMatchCard key={`m${m.id}`} match={m} href={matchHref(m.id)} />
           ))}
         </div>
       )}

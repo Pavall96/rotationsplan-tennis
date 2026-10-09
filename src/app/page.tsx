@@ -124,6 +124,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       {showCalendar ? (
         <SeasonCalendar
           schedule={schedule}
+          matches={allMatches}
+          matchHref={matchHref}
           month={typeof monat === "string" ? monat : undefined}
           day={typeof tag === "string" ? tag : undefined}
           viewer={viewer}
