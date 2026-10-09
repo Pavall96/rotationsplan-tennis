@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { officialName, MELDELISTE_SOURCE } from "./meldeliste";
+import { officialName, MELDELISTE_SOURCE, MELDELISTE_WTB_URL } from "./meldeliste";
 
 test("officialName: the WTB spelling by ID-Nummer", () => {
   assert.equal(officialName("18152806", "Seb"), "Hesse, Sebastian");
@@ -14,4 +14,9 @@ test("officialName: the app name when the list doesn't know the player", () => {
 
 test("the source names the Mannschaftsmeldung", () => {
   assert.match(MELDELISTE_SOURCE, /Namentliche Mannschaftsmeldung/);
+});
+
+test("each age class links to its own WTB document", () => {
+  assert.match(MELDELISTE_WTB_URL.herren, /^https:\/\/wtb\.liga\.nu\/.*contestType=104760$/);
+  assert.match(MELDELISTE_WTB_URL.h30, /^https:\/\/wtb\.liga\.nu\/.*contestType=104749$/);
 });

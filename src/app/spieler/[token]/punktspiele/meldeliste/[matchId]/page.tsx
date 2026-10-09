@@ -5,7 +5,7 @@ import { getAllMatches, getTeams } from "@/lib/matches";
 import { getRoster } from "@/lib/roster";
 import { getLineups } from "@/lib/lineups";
 import { getMatchCaptains } from "@/lib/match-captain";
-import { officialName, MELDELISTE_SOURCE } from "@/lib/meldeliste";
+import { officialName, MELDELISTE_SOURCE, MELDELISTE_WTB_URL } from "@/lib/meldeliste";
 import { AGE_CLASS_LABEL, FIXED_POSITIONS } from "@/lib/eligibility";
 import { formatDayShort, formatTime } from "@/lib/format";
 import { TeamChip } from "@/components/MatchCard";
@@ -111,6 +111,18 @@ export default async function MeldelistePage({
           sie in der Wintermeldung stehen.
         </p>
       )}
+
+      <p className="mt-4 text-xs text-[var(--color-ink-muted)]">
+        Maßgeblich ist die Meldung beim WTB:{" "}
+        <a
+          href={MELDELISTE_WTB_URL[match.team.ageClass]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-[var(--color-brand)] underline underline-offset-2"
+        >
+          Original öffnen (PDF) ›
+        </a>
+      </p>
     </main>
   );
 }
