@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import type { SessionView } from "@/lib/queries";
-import { formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
+import { formatTime, formatTimeRange, formatDate, mapsUrl, rsvpLabels } from "@/lib/format";
 import { attending, cancelledStarters, ersatzNeeded, openSlots } from "@/lib/vacancy";
 
 let resendInstance: Resend | null = null;
@@ -369,9 +369,15 @@ export type OpenSlotEmailInput = {
 export function renderOpenSlot(input: OpenSlotEmailInput): { subject: string; html: string; text: string } {
   const { playerName, session, token, baseUrl } = input;
   const open = openSlots(session);
-  const places = open === 1 ? "1 Platz frei" : `${open} Plätze frei`;
-  const subject = `Heute ${formatTimeRangeStart(session)} ${session.hallName}: ${places} – springst du ein?`;
-  const line = `${cancelledStarters(session)} abgesagt – heute Abend ist ${open === 1 ? "ein Platz" : `${open} Plätze`} frei. Wer zuerst zusagt, spielt.`;
+  const start = formatTime(session.startsAt);
+  const subject =
+    open === 1
+      ? `Platz frei heute ${start} Uhr in ${session.hallName} – kannst du einspringen?`
+      : `${open} Plätze frei heute ${start} Uhr in ${session.hallName} – kannst du einspringen?`;
+  const line =
+    open === 1
+      ? `Es gibt einen Platz frei in ${session.hallName}, um ${start} Uhr. Kannst du einspringen?`
+      : `Es gibt ${open} freie Plätze in ${session.hallName}, um ${start} Uhr. Kannst du einspringen?`;
   const yesUrl = `${baseUrl}/spieler/${token}/antwort?termin=${session.id}&antwort=ja`;
   const html = renderShell({
     preheader: line,
