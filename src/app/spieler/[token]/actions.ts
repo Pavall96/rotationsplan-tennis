@@ -11,12 +11,20 @@ import { getFullSchedule, getPlayerByToken } from "@/lib/queries";
 import { canJumpIn } from "@/lib/einspringen";
 import { claimSlot, leaveSlot, retractCancellation } from "@/lib/slots";
 import { notifyErsatz, notifyErsatzTakenOver } from "@/lib/ersatz-alert";
+import { notifySameDayCancellation } from "@/lib/cancellation-alert";
+import type { Cancellation } from "@/lib/same-day-cancellation";
 
 type Source = "web" | "email";
 
 function revalidateSchedule() {
   revalidatePath("/");
   revalidatePath("/spieler/[token]", "page");
+}
+
+/** A cancellation on the training day goes out right away as "Platz frei"; the notifier decides whether it counts. */
+async function alertOpenSlot(sessionId: number, cancelled: Cancellation) {
+  const baseUrl = await getBaseUrl();
+  after(() => notifySameDayCancellation({ ...cancelled, sessionId, baseUrl }));
 }
 
 async function alertErsatzAfterStarterAnswer(
@@ -59,6 +67,7 @@ async function saveRsvp(formData: FormData, source: Source) {
     // Jumping in already was the "ja"; "nein" hands the place back to whoever comes next.
     if (status === "nein") await leaveSlot(sessionId, player.id);
     revalidateSchedule();
+    if (status === "nein") await alertOpenSlot(sessionId, { playerId: player.id, role: "einspringer", previous: "ja" });
     return result;
   }
 
@@ -89,6 +98,9 @@ async function saveRsvp(formData: FormData, source: Source) {
 
   if (assignment.role === "starter") {
     await alertErsatzAfterStarterAnswer(sessionId, player.id, previous, status);
+  }
+  if (assignment.role === "starter" && status === "nein") {
+    await alertOpenSlot(sessionId, { playerId: player.id, role: "starter", previous });
   }
 
   return result;
