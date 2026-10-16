@@ -46,6 +46,7 @@ npm install
    npx vercel --prod
    ```
 7. **Links verteilen:** `/admin?key=<ADMIN_TOKEN>` zeigt alle persönlichen Links zum Kopieren.
+   Dort gibt es auch den Excel-Download aller Abstimmungen für die Winterspiele (`/api/admin/abstimmungen?key=<ADMIN_TOKEN>`).
 
 ## Winterspiele der Mannschaften
 
