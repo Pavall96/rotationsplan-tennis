@@ -164,6 +164,37 @@ export async function markPlayer(formData: FormData): Promise<Result> {
   refresh();
 }
 
+/** Marks a simulated lineup in one go. Players who can't be marked (anymore) are skipped and named. */
+export async function markProposal(
+  token: string,
+  matchId: number,
+  playerIds: number[],
+): Promise<{ marked: number; skipped: string[] } | { error: string }> {
+  const ctx = await captainMatch(token, matchId);
+  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann vormerken." };
+  const { match, all } = ctx;
+
+  const [lineupsByMatch, rows] = await Promise.all([
+    getLineups(),
+    playerIds.length ? getDb().select().from(players).where(inArray(players.id, playerIds)) : [],
+  ]);
+  const skipped: string[] = [];
+  let marked = 0;
+  for (const player of rows) {
+    if ((lineupsByMatch.get(matchId) ?? []).some((e) => e.playerId === player.id)) continue;
+    const roster = await getPlayerRoster(player.id);
+    const check = canMark(roster, match.team, lineupContext(player.id, player.playsMatches, match, all, lineupsByMatch));
+    if (!check.ok) {
+      skipped.push(`${playerLabel(player)}: ${check.reason}`);
+      continue;
+    }
+    await markStatement(matchId, player.id);
+    marked++;
+  }
+  refresh();
+  return { marked, skipped };
+}
+
 export async function unmarkPlayer(formData: FormData): Promise<Result> {
   const token = String(formData.get("token") ?? "");
   const matchId = Number(formData.get("matchId"));

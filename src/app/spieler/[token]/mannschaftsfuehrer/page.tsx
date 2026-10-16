@@ -12,6 +12,7 @@ import { getLineups, type LineupEntry } from "@/lib/lineups";
 import { getMarks, conflictTeams } from "@/lib/marks";
 import { AvailabilityOverview } from "@/components/AvailabilityOverview";
 import { AvailabilityReminder } from "@/components/AvailabilityReminder";
+import { LineupSimulator, type SimDay } from "@/components/LineupSimulator";
 import { AGE_CLASS_LABEL, FIXED_POSITIONS, canBeAsked } from "@/lib/eligibility";
 import { getBaseUrl } from "@/lib/base-url";
 import { formatDateForFile, formatDayShort, formatTime, playerLabel } from "@/lib/format";
@@ -21,6 +22,8 @@ import { TeamChip } from "@/components/MatchCard";
 import { ArrowLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
+// The lineup simulation (a server action on this page) waits for Claude, which can take a while.
+export const maxDuration = 120;
 
 export default async function CaptainPage({
   params,
@@ -68,6 +71,25 @@ export default async function CaptainPage({
     }
     return counts;
   };
+  // Who said kann/vielleicht for each upcoming day (and isn't lined up yet) — the captain can pin or exclude them.
+  const simDays: SimDay[] = days.map(({ date, matches: dayMatches }) => {
+    const linedUp = new Set(dayMatches.flatMap((m) => (lineupsByMatch.get(m.id) ?? []).map((e) => e.playerId)));
+    const seen = new Set<number>();
+    const dayPlayers: SimDay["players"] = [];
+    for (const r of active) {
+      const status = answers.get(availabilityKey(r.playerId, date));
+      if (seen.has(r.playerId) || linedUp.has(r.playerId) || (status !== "ja" && status !== "vielleicht")) continue;
+      if (!dayMatches.some((m) => canBeAsked(activeRosters.get(r.playerId) ?? {}, m.team))) continue;
+      seen.add(r.playerId);
+      dayPlayers.push({ playerId: r.playerId, name: r.name, status });
+    }
+    return {
+      date,
+      label: `${formatDayShort(date)} · ${dayMatches.map((m) => m.team.name).join(", ")}`,
+      matches: dayMatches.map((m) => ({ matchId: m.id, team: m.team.name, ageClass: m.team.ageClass, rank: m.team.rank })),
+      players: dayPlayers.sort((a, b) => a.name.localeCompare(b.name, "de")),
+    };
+  });
   const groupText =
     "Winterspiele 2026/27: Bitte tragt in der App ein, an welchen Spieltagen ihr könnt – " +
     `daraus stellen wir die Teams auf. Einfach hier öffnen: ${baseUrl}/punktspiele`;
@@ -176,6 +198,15 @@ export default async function CaptainPage({
           answers={answers}
           lineupHref={(m) => (myTeamIds.has(m.team.id) ? `/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}` : null)}
         />
+      </section>
+
+      <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+        <h2 className="mb-1 font-display font-bold">Aufstellung simulieren</h2>
+        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+          Claude schlägt für alle Teams eines Spieltags eine Aufstellung vor – aus den Zusagen, der Meldeliste und wer
+          bisher wie oft gespielt hat. Die Spielregeln prüft die App danach selbst. Bereits Aufgestellte bleiben drin.
+        </p>
+        <LineupSimulator token={token} days={simDays} />
       </section>
 
       <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">

@@ -68,6 +68,18 @@ npm run data:meldeliste
 Die Spielregeln (fest in der 1. Mannschaft, Festspielen, Nicht-Deutsche) stehen in `src/lib/eligibility.ts`, getestet
 mit `npm test`. Fahrgemeinschaften laufen über `/spieler/<token>/punktspiele`.
 
+### Aufstellung simulieren (Claude)
+
+Auf der Mannschaftsführer-Seite schlägt Claude für alle Teams eines Spieltags eine Aufstellung vor (Zusagen, Meldeliste,
+bisherige Einsätze). Pro Team wählt man den Schwerpunkt (Stark / Mitte / Rotation), Spieler lassen sich per Taste
+festlegen oder ausschließen, dazu Schalter für „Vielleicht“-Sager, Ersatz und „Festspielen vermeiden“. Spielregeln und
+diese Vorgaben prüft danach die App selbst (`src/lib/lineup-sim.ts`), der Aufruf steht in `src/lib/lineup-ai.ts`. Gespeichert wird nichts – der Mannschaftsführer
+kann den Vorschlag für sein Team vormerken. Braucht einen API-Key von console.anthropic.com:
+
+```bash
+npx vercel env add ANTHROPIC_API_KEY   # nie mit NEXT_PUBLIC_ – der Key darf nicht in den Browser
+```
+
 Die Tabellen dafür (`teams`, `venues`, `matches`, `roster_entries`, `rides`, …) stehen in `drizzle/manual-migrations.sql`. Mannschaftsführer erreichen
 über ihre persönliche Seite den Bereich `/spieler/<token>/mannschaftsfuehrer`, wo sie Spieler ohne Training anlegen können.
 
