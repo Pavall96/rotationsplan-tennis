@@ -10,7 +10,7 @@ import { getAllMatches, getTeams, type AgeClass } from "@/lib/matches";
 import { getRoster, rosterByPlayer, activeRows } from "@/lib/roster";
 import { getAvailability, openDaysByPlayer } from "@/lib/availability";
 import { getLineups } from "@/lib/lineups";
-import { buildSimulation, leftOut, type SimFocus } from "@/lib/lineup-sim";
+import { buildSimulation, leftOut, SIM_FOCI, type SimFocus, type SimOptions } from "@/lib/lineup-sim";
 import { proposeLineups, SimulationError } from "@/lib/lineup-ai";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
@@ -185,13 +185,22 @@ export type SimulationView =
     }
   | { ok: false; error: string };
 
-const FOCI: SimFocus[] = ["ausgewogen", "stark", "rotation"];
+export type SimulationRequest = {
+  date: string;
+  focus: Record<number, string>;
+  pinned: number[];
+  excluded: number[];
+  allowMaybe: boolean;
+  ersatz: boolean;
+  avoidFestspielen: boolean;
+  notes: string;
+};
 
 /**
  * Lets Claude propose the lineups of every team on one upcoming Spieltag. Nothing is saved — the Mannschaftsführer
  * decides what to mark or line up.
  */
-export async function simulateLineups(token: string, date: string, focus: string, notes: string): Promise<SimulationView> {
+export async function simulateLineups(token: string, req: SimulationRequest): Promise<SimulationView> {
   const [captain] = await getDb()
     .select({ id: players.id })
     .from(players)
@@ -199,8 +208,20 @@ export async function simulateLineups(token: string, date: string, focus: string
     .where(eq(players.token, token))
     .limit(1);
   if (!captain) return { ok: false, error: "Nur Mannschaftsführer können simulieren." };
-  if (!FOCI.includes(focus as SimFocus)) return { ok: false, error: "Unbekannter Schwerpunkt." };
-  const cleanNotes = notes.trim().slice(0, 500);
+
+  const ids = (v: unknown) => (Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : []);
+  const options: SimOptions = {
+    focus: Object.fromEntries(
+      Object.entries(req.focus ?? {}).filter(([, f]) => SIM_FOCI.includes(f as SimFocus)).map(([id, f]) => [Number(id), f as SimFocus]),
+    ),
+    pinned: ids(req.pinned),
+    excluded: ids(req.excluded),
+    allowMaybe: Boolean(req.allowMaybe),
+    ersatz: Boolean(req.ersatz),
+    avoidFestspielen: Boolean(req.avoidFestspielen),
+  };
+  const notes = String(req.notes ?? "").trim().slice(0, 500);
+  const date = String(req.date ?? "");
 
   const [allMatches, roster, answers, lineupsByMatch, teamList] = await Promise.all([
     getAllMatches(),
@@ -213,14 +234,22 @@ export async function simulateLineups(token: string, date: string, focus: string
     return { ok: false, error: "An dem Tag gibt es kein anstehendes Spiel." };
   }
 
-  const input = buildSimulation(date, allMatches, activeRows(roster), answers, lineupsByMatch);
+  const input = buildSimulation(date, allMatches, activeRows(roster), answers, lineupsByMatch, options);
+  // Pinned players who can't play anywhere that day are named instead of silently ignored.
+  const possible = new Set(input.matches.flatMap((m) => [...m.fixedStamm, ...m.candidates.map((c) => c.playerId)]));
+  const unpinnable = options.pinned.filter((id) => !possible.has(id));
+
   let result;
   try {
-    result = await proposeLineups(input, focus as SimFocus, cleanNotes);
+    result = await proposeLineups(input, notes);
   } catch (err) {
     if (err instanceof SimulationError) return { ok: false, error: err.message };
     console.error("Aufstellungs-Simulation fehlgeschlagen:", err);
     return { ok: false, error: "Die Simulation ist fehlgeschlagen – bitte später noch einmal versuchen." };
+  }
+  if (unpinnable.length > 0) {
+    const names = roster.filter((r) => unpinnable.includes(r.playerId)).map((r) => r.name);
+    result.day.warnings.unshift(`Festgelegt, kann aber an dem Tag für kein Team spielen: ${[...new Set(names)].join(", ")}.`);
   }
 
   const byId = new Map(input.players.map((p) => [p.playerId, p]));

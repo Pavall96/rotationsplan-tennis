@@ -12,6 +12,9 @@ export const FIXED_POSITIONS = 4;
 /** More than this many appearances in a higher team locks a player out of lower teams (§ 33a Ziff. 3). */
 export const MAX_HIGHER_TEAM_APPEARANCES = 2;
 
+/** The warning for the appearance that would lock a player out of the second team. */
+export const FESTSPIEL_WARNING = "3. Einsatz in der 1. Mannschaft – danach nicht mehr in der 2. spielberechtigt";
+
 export const AGE_CLASS_LABEL: Record<AgeClass, string> = { herren: "Herren", h30: "Herren 30" };
 
 export type Eligibility = { ok: true; warning?: string } | { ok: false; reason: string };
@@ -42,7 +45,7 @@ export function festspielWarning(roster: PlayerRoster, team: TeamRef, firstTeamA
   const entry = roster[team.ageClass];
   if (!entry || team.rank !== 1 || entry.position <= FIXED_POSITIONS) return null;
   if (firstTeamAppearances === MAX_HIGHER_TEAM_APPEARANCES) {
-    return "3. Einsatz in der 1. Mannschaft – danach nicht mehr in der 2. spielberechtigt";
+    return FESTSPIEL_WARNING;
   }
   return null;
 }
@@ -92,7 +95,7 @@ export function lineupCheck(roster: PlayerRoster, team: TeamRef, ctx: LineupCont
     }
     warnings.push("Nicht auf der Herren-Meldeliste – nur spielberechtigt, wenn er in der Wintermeldung steht");
     if (team.rank === 1 && ctx.firstTeamAppearances === MAX_HIGHER_TEAM_APPEARANCES) {
-      warnings.push("3. Einsatz in der 1. Mannschaft – danach nicht mehr in der 2. spielberechtigt");
+      warnings.push(FESTSPIEL_WARNING);
     }
     return { ok: true, warnings };
   }
