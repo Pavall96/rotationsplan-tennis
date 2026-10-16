@@ -51,8 +51,9 @@ export function mentionsName(text: string, names: string[]): string | null {
 }
 
 /**
- * The assessment text, or null if Claude named a player twice (do not try again for these facts).
- * Throws AssessmentError on API errors or a missing key.
+ * The assessment text, or null if retrying the same facts is pointless: Claude named a player twice, refused,
+ * was cut off, or sent no usable text (the reason is logged). Throws AssessmentError only for a missing key or
+ * API/network errors, which the next run may retry.
  */
 export async function writeAssessment(facts: ScoutingFacts, forbiddenNames: string[]): Promise<string | null> {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -66,6 +67,7 @@ export async function writeAssessment(facts: ScoutingFacts, forbiddenNames: stri
   for (let attempt = 1; attempt <= 2; attempt++) {
     const response = await ask(client, messages);
     const text = parse(response);
+    if (text === null) return null;
     if (mentionsName(text, forbiddenNames) === null) return text;
 
     // Append the whole answer (not just the text) and ask again without names.
@@ -79,7 +81,8 @@ async function ask(client: Anthropic, messages: Anthropic.Beta.BetaMessageParam[
   try {
     return await client.beta.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      // Thinking at effort "medium" counts against max_tokens, so leave room beyond the 2-3 sentences.
+      max_tokens: 4000,
       system: SYSTEM,
       messages,
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
@@ -98,16 +101,21 @@ async function ask(client: Anthropic, messages: Anthropic.Beta.BetaMessageParam[
   }
 }
 
-function parse(response: Anthropic.Beta.BetaMessage): string {
-  if (response.stop_reason === "refusal") throw new AssessmentError("Claude hat die Anfrage abgelehnt.");
-  if (response.stop_reason === "max_tokens") throw new AssessmentError("Claudes Antwort war zu lang und wurde abgeschnitten.");
+/** The text of the answer, or null (and a logged reason) if the answer is unusable. */
+function parse(response: Anthropic.Beta.BetaMessage): string | null {
+  const fail = (reason: string) => {
+    console.error(`Gegner-Einschätzung ohne Ergebnis: ${reason}`);
+    return null;
+  };
+  if (response.stop_reason === "refusal") return fail("Claude hat die Anfrage abgelehnt.");
+  if (response.stop_reason === "max_tokens") return fail("Claudes Antwort wurde abgeschnitten.");
   const block = response.content.find((b) => b.type === "text");
-  if (!block || block.type !== "text") throw new AssessmentError("Claude hat keine Einschätzung geliefert.");
+  if (!block || block.type !== "text") return fail("Claude hat keinen Text geliefert.");
   try {
     const text = (JSON.parse(block.text) as { text?: unknown }).text;
     if (typeof text === "string" && text.trim()) return text.trim();
   } catch {
     // fall through
   }
-  throw new AssessmentError("Claudes Antwort war keine gültige Einschätzung.");
+  return fail("Claudes Antwort war kein gültiger Text.");
 }
