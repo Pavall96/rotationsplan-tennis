@@ -7,7 +7,7 @@ const LABEL = "mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--
 
 function lkLabel(lk: number | null): string {
   if (lk === null) return "LK –";
-  return `LK ${lk.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+  return `LK ${lk}`;
 }
 
 /** Opponent overview for a team's next match: league table, likely lineup and the written assessment. */
@@ -18,7 +18,7 @@ export function OpponentSection({ view, ageClass }: { view: OpponentView; ageCla
     <div className="mb-3 space-y-3">
       <div className={BOX}>
         <p className={LABEL}>Tabelle</p>
-        <table className="w-full table-fixed border-collapse text-xs">
+        <table aria-label="Tabelle" className="w-full table-fixed border-collapse text-xs">
           <tbody>
             {view.standings.map((row) => {
               const tone =
@@ -44,7 +44,7 @@ export function OpponentSection({ view, ageClass }: { view: OpponentView; ageCla
         <ul className="space-y-0.5 text-xs leading-relaxed">
           {view.players.map((p) => (
             <li key={p.position} className="flex gap-1.5">
-              <span className="w-3 shrink-0 text-[var(--color-ink-faint)]">{p.position}</span>
+              <span className="w-4 shrink-0 text-[var(--color-ink-faint)]">{p.position}</span>
               <span className="min-w-0">
                 {p.name} ({lkLabel(p.lk)})
                 {view.hasPlayed && (
