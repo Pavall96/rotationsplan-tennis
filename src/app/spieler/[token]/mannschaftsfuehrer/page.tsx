@@ -12,6 +12,7 @@ import { getLineups, type LineupEntry } from "@/lib/lineups";
 import { getMarks, conflictTeams } from "@/lib/marks";
 import { AvailabilityOverview } from "@/components/AvailabilityOverview";
 import { AvailabilityReminder } from "@/components/AvailabilityReminder";
+import { LineupSimulator } from "@/components/LineupSimulator";
 import { AGE_CLASS_LABEL, FIXED_POSITIONS, canBeAsked } from "@/lib/eligibility";
 import { getBaseUrl } from "@/lib/base-url";
 import { formatDateForFile, formatDayShort, formatTime, playerLabel } from "@/lib/format";
@@ -21,6 +22,8 @@ import { TeamChip } from "@/components/MatchCard";
 import { ArrowLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
+// The lineup simulation (a server action on this page) waits for Claude, which can take a while.
+export const maxDuration = 120;
 
 export default async function CaptainPage({
   params,
@@ -175,6 +178,21 @@ export default async function CaptainPage({
           rosters={activeRosters}
           answers={answers}
           lineupHref={(m) => (myTeamIds.has(m.team.id) ? `/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}` : null)}
+        />
+      </section>
+
+      <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+        <h2 className="mb-1 font-display font-bold">Aufstellung simulieren</h2>
+        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+          Claude schlägt für alle Teams eines Spieltags eine Aufstellung vor – aus den Zusagen, der Meldeliste und wer
+          bisher wie oft gespielt hat. Die Spielregeln prüft die App danach selbst. Bereits Aufgestellte bleiben drin.
+        </p>
+        <LineupSimulator
+          token={token}
+          days={days.map((d) => ({
+            date: d.date,
+            label: `${formatDayShort(d.date)} · ${d.matches.map((m) => m.team.name).join(", ")}`,
+          }))}
         />
       </section>
 

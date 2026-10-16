@@ -6,12 +6,15 @@ import { after } from "next/server";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, teams } from "@/db/schema";
-import { getAllMatches } from "@/lib/matches";
+import { getAllMatches, getTeams, type AgeClass } from "@/lib/matches";
 import { getRoster, rosterByPlayer, activeRows } from "@/lib/roster";
 import { getAvailability, openDaysByPlayer } from "@/lib/availability";
+import { getLineups } from "@/lib/lineups";
+import { buildSimulation, leftOut, type SimFocus } from "@/lib/lineup-sim";
+import { proposeLineups, SimulationError } from "@/lib/lineup-ai";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
-import { formatDayShort, playerLabel } from "@/lib/format";
+import { formatDateForFile, formatDayShort, playerLabel } from "@/lib/format";
 
 export type AddPlayerResult =
   | { status: "ok"; displayName: string }
@@ -153,4 +156,106 @@ export async function setPlaysMatches(formData: FormData): Promise<{ error?: str
   await getDb().update(players).set({ playsMatches }).where(eq(players.id, playerId));
   revalidatePath("/spieler/[token]/mannschaftsfuehrer", "page");
   revalidatePath("/spieler/[token]", "page");
+}
+
+export type SimPlayerView = { playerId: number; name: string; lists: string; note: string | null };
+
+export type SimTeamView = {
+  matchId: number;
+  team: string;
+  ageClass: AgeClass;
+  heading: string;
+  /** The viewer's own team — they can mark the proposal there. */
+  own: boolean;
+  playersNeeded: number;
+  stamm: (SimPlayerView & { fixed: boolean })[];
+  ersatz: (SimPlayerView & { fixed: boolean })[];
+  begruendung: string;
+};
+
+export type SimulationView =
+  | {
+      ok: true;
+      teams: SimTeamView[];
+      leftOut: SimPlayerView[];
+      hinweise: string;
+      errors: string[];
+      warnings: string[];
+      costCents: number;
+    }
+  | { ok: false; error: string };
+
+const FOCI: SimFocus[] = ["ausgewogen", "stark", "rotation"];
+
+/**
+ * Lets Claude propose the lineups of every team on one upcoming Spieltag. Nothing is saved — the Mannschaftsführer
+ * decides what to mark or line up.
+ */
+export async function simulateLineups(token: string, date: string, focus: string, notes: string): Promise<SimulationView> {
+  const [captain] = await getDb()
+    .select({ id: players.id })
+    .from(players)
+    .innerJoin(teams, eq(teams.captainPlayerId, players.id))
+    .where(eq(players.token, token))
+    .limit(1);
+  if (!captain) return { ok: false, error: "Nur Mannschaftsführer können simulieren." };
+  if (!FOCI.includes(focus as SimFocus)) return { ok: false, error: "Unbekannter Schwerpunkt." };
+  const cleanNotes = notes.trim().slice(0, 500);
+
+  const [allMatches, roster, answers, lineupsByMatch, teamList] = await Promise.all([
+    getAllMatches(),
+    getRoster(),
+    getAvailability(),
+    getLineups(),
+    getTeams(),
+  ]);
+  if (date < formatDateForFile(new Date()) || !allMatches.some((m) => m.matchDate === date)) {
+    return { ok: false, error: "An dem Tag gibt es kein anstehendes Spiel." };
+  }
+
+  const input = buildSimulation(date, allMatches, activeRows(roster), answers, lineupsByMatch);
+  let result;
+  try {
+    result = await proposeLineups(input, focus as SimFocus, cleanNotes);
+  } catch (err) {
+    if (err instanceof SimulationError) return { ok: false, error: err.message };
+    console.error("Aufstellungs-Simulation fehlgeschlagen:", err);
+    return { ok: false, error: "Die Simulation ist fehlgeschlagen – bitte später noch einmal versuchen." };
+  }
+
+  const byId = new Map(input.players.map((p) => [p.playerId, p]));
+  const view = (id: number): SimPlayerView => {
+    const p = byId.get(id);
+    const note = p
+      ? [p.status === "vielleicht" ? "vielleicht" : null, `${p.einsaetzeBisher} Einsätze bei ${p.zusagenBisher} Zusagen`]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+    return { playerId: id, name: p?.name ?? `Spieler ${id}`, lists: p?.lists ?? "", note };
+  };
+  const myTeams = new Set(teamList.filter((t) => t.captainPlayerId === captain.id).map((t) => t.id));
+
+  return {
+    ok: true,
+    teams: result.day.teams.map((t) => {
+      const m = allMatches.find((x) => x.id === t.matchId)!;
+      const sim = input.matches.find((x) => x.matchId === t.matchId)!;
+      return {
+        matchId: t.matchId,
+        team: m.team.name,
+        ageClass: m.team.ageClass,
+        heading: `${sim.time} ${m.isHome ? "vs" : "@"} ${m.opponent}`,
+        own: myTeams.has(m.team.id),
+        playersNeeded: m.playersNeeded,
+        stamm: t.stamm.map((id) => ({ ...view(id), fixed: sim.fixedStamm.includes(id) })),
+        ersatz: t.ersatz.map((id) => ({ ...view(id), fixed: sim.fixedErsatz.includes(id) })),
+        begruendung: t.begruendung,
+      };
+    }),
+    leftOut: leftOut(input, result.day).map((p) => view(p.playerId)),
+    hinweise: result.hinweise,
+    errors: result.day.errors,
+    warnings: result.day.warnings,
+    costCents: Math.max(1, Math.round(result.costUsd * 100)),
+  };
 }
