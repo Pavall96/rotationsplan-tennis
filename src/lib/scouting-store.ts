@@ -173,40 +173,49 @@ export async function refreshMatchPreview(matchId: number): Promise<void> {
   }
 }
 
-/** Display data per match id; a match without snapshot or with an unknown opponent is missing from the map. */
+/**
+ * Display data per match id; a match without snapshot or with an unknown opponent is missing from the map.
+ * Never throws: if the tables are missing (migration not run yet) or the database hiccups, the page gets an
+ * empty map and renders without the opponent part.
+ */
 export async function getOpponentViews(matchIds: number[]): Promise<Map<number, OpponentView>> {
   const views = new Map<number, OpponentView>();
   if (matchIds.length === 0) return views;
 
-  const db = getDb();
-  const wanted = new Set(matchIds);
-  const [allMatches, teamRows, snapshots, previews, our] = await Promise.all([
-    getAllMatches(),
-    db.select({ id: teams.id, wtbTeamId: teams.wtbTeamId }).from(teams),
-    db.select().from(wtbGroupSnapshots),
-    db.select().from(matchPreviews).where(inArray(matchPreviews.matchId, matchIds)),
-    loadOurSide(),
-  ]);
-  const wtbTeamIds = new Map(teamRows.map((t) => [t.id, t.wtbTeamId]));
-  const snapshotByTeam = new Map(snapshots.map((s) => [s.teamId, s]));
-  const previewByMatch = new Map(previews.map((p) => [p.matchId, p]));
+  try {
+    const db = getDb();
+    const wanted = new Set(matchIds);
+    const [allMatches, teamRows, snapshots, previews, our] = await Promise.all([
+      getAllMatches(),
+      db.select({ id: teams.id, wtbTeamId: teams.wtbTeamId }).from(teams),
+      db.select().from(wtbGroupSnapshots),
+      db.select().from(matchPreviews).where(inArray(matchPreviews.matchId, matchIds)),
+      loadOurSide(),
+    ]);
+    const wtbTeamIds = new Map(teamRows.map((t) => [t.id, t.wtbTeamId]));
+    const snapshotByTeam = new Map(snapshots.map((s) => [s.teamId, s]));
+    const previewByMatch = new Map(previews.map((p) => [p.matchId, p]));
 
-  for (const match of allMatches) {
-    if (!wanted.has(match.id)) continue;
-    const snapshot = snapshotByTeam.get(match.team.id);
-    const wtbTeamId = wtbTeamIds.get(match.team.id);
-    if (!snapshot || !wtbTeamId) continue;
-    try {
-      const facts = buildFacts({ match, snapshot, wtbTeamId, ourPublishedLks: lksFor(match, our) });
-      if (!facts) continue;
-      const preview = previewByMatch.get(match.id);
-      // An assessment written for other facts would be wrong now; show none until it is refreshed.
-      const assessment = preview && preview.inputHash === factsHash(facts) ? preview.text : null;
-      const view = opponentView(snapshot, match, wtbTeamId, assessment);
-      if (view) views.set(match.id, view);
-    } catch (err) {
-      console.error(`Gegner-Übersicht für Spiel ${match.id} übersprungen:`, err);
+    for (const match of allMatches) {
+      if (!wanted.has(match.id)) continue;
+      const snapshot = snapshotByTeam.get(match.team.id);
+      const wtbTeamId = wtbTeamIds.get(match.team.id);
+      if (!snapshot || !wtbTeamId) continue;
+      try {
+        const facts = buildFacts({ match, snapshot, wtbTeamId, ourPublishedLks: lksFor(match, our) });
+        if (!facts) continue;
+        const preview = previewByMatch.get(match.id);
+        // An assessment written for other facts would be wrong now; show none until it is refreshed.
+        const assessment = preview && preview.inputHash === factsHash(facts) ? preview.text : null;
+        const view = opponentView(snapshot, match, wtbTeamId, assessment);
+        if (view) views.set(match.id, view);
+      } catch (err) {
+        console.error(`Gegner-Übersicht für Spiel ${match.id} übersprungen:`, err);
+      }
     }
+  } catch (err) {
+    console.error("Gegner-Übersicht konnte nicht geladen werden:", err);
+    return new Map();
   }
   return views;
 }
