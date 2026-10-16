@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/gegner",
-      "schedule": "30 4 * * *"
+      "schedule": "30 4 * * 1"
     }
   ]
 }

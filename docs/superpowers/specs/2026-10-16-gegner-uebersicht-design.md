@@ -93,7 +93,7 @@ Die Mannschaftsseite jedes Teams beim WTB (`…/mannschaft/v/<Verein>/m/<Team>.h
 
 Das reicht für alles oben. Die Spielberichte (PDF, `MeetingReportFOP`) werden **nicht** gelesen.
 
-**Ablauf:** ein neuer täglicher Vercel-Cron (neben `erinnerungen` und `trainer-stand`, geschützt mit `CRON_SECRET`):
+**Ablauf:** ein neuer Vercel-Cron, montags 04:30 UTC (Ergebnisse ändern sich nur nach dem Spieltag; Pablo, 16.10.2026) (neben `erinnerungen` und `trainer-stand`, geschützt mit `CRON_SECRET`):
 1. pro eigener Mannschaft Gruppenseite und alle Mannschaftsseiten der Gruppe holen (zusammen etwa 25 Seiten am Tag);
 2. Tabelle und Spielerlisten speichern (neue Tabellen; Schema entscheidet der Builder);
 3. für das nächste Spiel jeder Mannschaft die Fakten berechnen. Nur wenn sie sich seit dem letzten Mal geändert
