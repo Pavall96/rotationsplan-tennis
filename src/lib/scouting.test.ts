@@ -8,6 +8,7 @@ import {
   likelyLineup,
   nextMatchIds,
   opponentView,
+  ourPublishedLks,
   ourStanding,
   shortName,
   surnames,
@@ -176,4 +177,30 @@ test("opponentView lists only players with matches once the season started", () 
 
 test("opponentView is null when a standing is missing", () => {
   assert.equal(opponentView(snapshot([]), match(1, "2026-11-14", 1, "TC Anderswo 1"), "111", null), null);
+});
+
+test("ourPublishedLks: null while the lineup is not published", () => {
+  const m = match(1, "2026-11-01", 1);
+  assert.equal(ourPublishedLks(m, [{ playerId: 1, role: "stamm", response: null }], []), null);
+});
+
+test("ourPublishedLks: only Stamm without a cancellation, in Meldeliste order, LK floored, unknown last", () => {
+  const m = { ...match(1, "2026-11-01", 1), lineupPublishedAt: new Date() };
+  const entries = [
+    { playerId: 3, role: "stamm" as const, response: "ja" as const },
+    { playerId: 9, role: "stamm" as const, response: null }, // not on the Meldeliste
+    { playerId: 1, role: "stamm" as const, response: null },
+    { playerId: 2, role: "stamm" as const, response: "nein" as const },
+    { playerId: 4, role: "ersatz" as const, response: "ja" as const },
+    { playerId: 5, role: "stamm" as const, response: "ja" as const }, // no LK
+  ];
+  const roster = [
+    { ageClass: "herren" as const, playerId: 1, position: 1, lk: "11.8" },
+    { ageClass: "herren" as const, playerId: 2, position: 2, lk: "12.0" },
+    { ageClass: "herren" as const, playerId: 3, position: 3, lk: "14.0" },
+    { ageClass: "herren" as const, playerId: 4, position: 4, lk: "15.0" },
+    { ageClass: "herren" as const, playerId: 5, position: 5, lk: null },
+    { ageClass: "h30" as const, playerId: 9, position: 1, lk: "10.0" }, // other age class doesn't count
+  ];
+  assert.deepEqual(ourPublishedLks(m, entries, roster), [11, 14, null, null]);
 });

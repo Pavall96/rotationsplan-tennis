@@ -2,6 +2,8 @@
 // display data. No database access here; the snapshot is fetched and cached elsewhere.
 import { createHash } from "node:crypto";
 import type { MatchView } from "./matches";
+import type { LineupEntry } from "./lineups";
+import type { RosterRow } from "./roster";
 import type { StandingRow, WtbPlayer } from "./wtb";
 
 export type Verdict = "vorne" | "offen" | "hinten";
@@ -115,6 +117,28 @@ export function nextMatchIds(all: MatchView[], today: string): Set<number> {
     }
   }
   return new Set([...best.values()].map((m) => m.id));
+}
+
+/**
+ * Floored LKs of our published Stamm players (not cancelled) in Meldeliste order of the match's age class,
+ * players missing from that list last. null = lineup not published yet.
+ */
+export function ourPublishedLks(
+  match: Pick<MatchView, "lineupPublishedAt"> & { team: Pick<MatchView["team"], "ageClass"> },
+  entries: Pick<LineupEntry, "playerId" | "role" | "response">[],
+  roster: Pick<RosterRow, "ageClass" | "playerId" | "position" | "lk">[],
+): (number | null)[] | null {
+  if (!match.lineupPublishedAt) return null;
+  const rows = new Map(roster.filter((r) => r.ageClass === match.team.ageClass).map((r) => [r.playerId, r]));
+  return entries
+    .filter((e) => e.role === "stamm" && e.response !== "nein")
+    .map((e) => rows.get(e.playerId))
+    .sort((a, b) => (a?.position ?? 9999) - (b?.position ?? 9999))
+    .map((r) => {
+      if (!r || r.lk === null) return null;
+      const lk = Math.floor(Number(r.lk));
+      return Number.isNaN(lk) ? null : lk;
+    });
 }
 
 function summary(s: StandingRow) {

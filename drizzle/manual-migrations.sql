@@ -162,3 +162,19 @@ ALTER TABLE reminder_log ADD CONSTRAINT reminder_log_kind_check CHECK (kind in (
 
 -- 2026-10-09: Spieltags-Mannschaftsführer. Additive — one nullable column.
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_captain_player_id integer REFERENCES players(id);
+
+-- 2026-10-16: Gegner-Übersicht. Additive — two new tables only.
+CREATE TABLE IF NOT EXISTS wtb_group_snapshots (
+  team_id integer PRIMARY KEY REFERENCES teams(id),
+  group_url text NOT NULL,
+  standings jsonb NOT NULL,
+  team_players jsonb NOT NULL,
+  fetched_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS match_previews (
+  match_id integer PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,
+  input_hash text NOT NULL,
+  text text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
