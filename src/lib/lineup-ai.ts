@@ -4,10 +4,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { checkProposal, type CheckedDay, type Proposal, type SimInput } from "@/lib/lineup-sim";
 
-const MODEL = "claude-opus-5-5";
-// Claude Opus 5.5 list prices in USD per million tokens — only for the "ca. x Cent" hint on the page.
-const PRICE_INPUT = 4;
-const PRICE_OUTPUT = 20;
+const MODEL = "claude-sonnet-5-5";
+// Claude Sonnet 5.5 list prices in USD per million tokens — only for the "ca. x Cent" hint on the page.
+const PRICE_INPUT = 2;
+const PRICE_OUTPUT = 10;
 
 const SYSTEM = `Du hilfst den Mannschaftsführern eines Tennisvereins, die Aufstellungen für einen Spieltag der Winterrunde zu planen.
 
@@ -102,7 +102,8 @@ async function ask(client: Anthropic, messages: Anthropic.Beta.BetaMessageParam[
       max_tokens: 16000,
       system: SYSTEM,
       messages,
-      output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
+      // "high" is Sonnet 5.5's default — the rules leave little room, so it should think it through.
+      output_config: { effort: "high", format: { type: "json_schema", schema: SCHEMA } },
       // If a safety filter declines (unlikely for tennis), Anthropic retries on its recommended fallback model.
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
