@@ -3,10 +3,13 @@ import { getAllMatches, getTeams, groupByDay } from "@/lib/matches";
 import { getRidesByMatch } from "@/lib/rides";
 import { getLineups } from "@/lib/lineups";
 import { getMatchCaptains } from "@/lib/match-captain";
+import { nextMatchIds, type OpponentView } from "@/lib/scouting";
+import { getOpponentViews } from "@/lib/scouting-store";
 import { formatDateForFile, formatDayShort } from "@/lib/format";
 import { MatchCard, teamChipClasses } from "@/components/MatchCard";
 import { RideSection } from "@/components/RideSection";
 import { LineupLine } from "@/components/LineupLine";
+import { OpponentSection } from "@/components/OpponentSection";
 
 /**
  * Upcoming team matches grouped by day, filterable by team. With a viewer (the personal page) each card gets the
@@ -33,6 +36,10 @@ export async function MatchList({
   const viewerIsCaptain = viewer ? teamList.some((t) => t.captainPlayerId === viewer.playerId) : false;
   const today = formatDateForFile(new Date());
   const days = groupByDay(allMatches.filter((m) => m.matchDate >= today));
+  // Opponent overview only behind a personal link, and only for each team's next match.
+  const opponentViews: Map<number, OpponentView> = viewer
+    ? await getOpponentViews([...nextMatchIds(allMatches, today)])
+    : new Map();
 
   return (
     <>
@@ -82,7 +89,15 @@ export async function MatchList({
               </h2>
               <div className="space-y-3">
                 {shown.map((m) => (
-                  <MatchCard key={m.id} match={m}>
+                  <MatchCard
+                    key={m.id}
+                    match={m}
+                    opponent={
+                      opponentViews.has(m.id) ? (
+                        <OpponentSection view={opponentViews.get(m.id)!} ageClass={m.team.ageClass} />
+                      ) : undefined
+                    }
+                  >
                     <LineupLine
                       match={m}
                       entries={lineupsByMatch.get(m.id) ?? []}
