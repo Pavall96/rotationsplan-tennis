@@ -32,6 +32,15 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
       <TestReminderButton adminKey={String(key)} />
 
+      <p className="mb-6">
+        <a
+          href={`/api/admin/abstimmungen?key=${encodeURIComponent(String(key))}`}
+          className="inline-block rounded-full bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Abstimmungen Winterspiele als Excel herunterladen
+        </a>
+      </p>
+
       <div className="overflow-hidden rounded-2xl border border-[var(--color-border)]">
         <table className="w-full border-collapse text-sm">
           <thead>
