@@ -160,8 +160,10 @@ export async function refreshAllScouting(opts: { dryRun: boolean }): Promise<Ref
 /** After a lineup publish: our side changed, so redo the assessment from the stored snapshot (no WTB calls). */
 export async function refreshMatchPreview(matchId: number): Promise<void> {
   try {
-    const match = (await getAllMatches()).find((m) => m.id === matchId);
-    if (!match) return;
+    const all = await getAllMatches();
+    const match = all.find((m) => m.id === matchId);
+    // Only a team's next match gets an assessment; a publish for a later match must not trigger a Claude call.
+    if (!match || !nextMatchIds(all, formatDateForFile(new Date())).has(matchId)) return;
     const [[team], [row]] = await Promise.all([
       getDb().select({ wtbTeamId: teams.wtbTeamId }).from(teams).where(eq(teams.id, match.team.id)),
       getDb().select().from(wtbGroupSnapshots).where(eq(wtbGroupSnapshots.teamId, match.team.id)),
