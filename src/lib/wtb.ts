@@ -95,6 +95,87 @@ export function parseHallAddress(html: string): { address: string; fallback: boo
   return other ? { address: other, fallback: true } : null;
 }
 
+export type StandingRow = {
+  rank: number;
+  team: string;
+  teamUrl: string; // absolute
+  meetings: number;
+  points: string; // "a:b" as shown by the WTB
+  matches: string; // "a:b" as shown by the WTB
+};
+
+export type WinLoss = { won: number; lost: number };
+
+export type WtbPlayer = { rank: number; lk: number | null; name: string; singles: WinLoss; doubles: WinLoss };
+
+/** Absolute URL of the group (league table) page linked from a team page, or null. */
+export function parseGroupUrl(teamHtml: string): string | null {
+  const m = teamHtml.match(/href="([^"]*\/gruppe\/g\/[^"]*)"/);
+  return m ? new URL(decodeEntities(m[1]), WTB_BASE_URL).toString() : null;
+}
+
+/** Cell content by its `data-label` attribute (used on the group table). */
+function labelledCell(rowHtml: string, label: string): string | null {
+  const m = rowHtml.match(new RegExp(`<td[^>]*data-label="${label}"[^>]*>([\\s\\S]*?)</td>`));
+  return m ? m[1] : null;
+}
+
+/** Rows of the standings table under the "Tabelle" heading of a group page; [] if the table is missing. */
+export function parseStandings(groupHtml: string): StandingRow[] {
+  const headingMatch = groupHtml.match(/<h2[^>]*>\s*Tabelle\s*<\/h2>/);
+  if (!headingMatch || headingMatch.index === undefined) return [];
+  const tbody = groupHtml.slice(headingMatch.index).match(/<tbody>([\s\S]*?)<\/tbody>/);
+  if (!tbody) return [];
+
+  const rows: StandingRow[] = [];
+  for (const [, row] of tbody[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
+    const rank = parseInt(textOf(labelledCell(row, "Rang") ?? ""), 10);
+    const teamCell = cell(row, "team");
+    const href = teamCell?.match(/href="([^"]+)"/);
+    if (!Number.isFinite(rank) || !teamCell || !href) continue;
+    rows.push({
+      rank,
+      team: textOf(teamCell),
+      teamUrl: new URL(decodeEntities(href[1]), WTB_BASE_URL).toString(),
+      meetings: parseInt(textOf(labelledCell(row, "Begegnungen") ?? ""), 10) || 0,
+      points: textOf(labelledCell(row, "Punkte") ?? ""),
+      matches: textOf(labelledCell(row, "Matches") ?? ""),
+    });
+  }
+  return rows;
+}
+
+/** "2:1" -> { won: 2, lost: 1 }; anything unreadable counts as 0:0. */
+function parseWinLoss(text: string): WinLoss {
+  const m = text.match(/(\d+)\s*:\s*(\d+)/);
+  return m ? { won: Number(m[1]), lost: Number(m[2]) } : { won: 0, lost: 0 };
+}
+
+/** Players of a team page ("Spieler" table) in page order; [] if the table is missing. */
+export function parseTeamPlayers(teamHtml: string): WtbPlayer[] {
+  const headingIdx = teamHtml.indexOf("<h3>Spieler");
+  if (headingIdx < 0) return [];
+  const tbody = teamHtml.slice(headingIdx).match(/<tbody>([\s\S]*?)<\/tbody>/);
+  if (!tbody) return [];
+
+  const players: WtbPlayer[] = [];
+  for (const [, row] of tbody[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
+    // Columns: Rang, LK, Name, Nation, Einzel, Doppel, Gesamt
+    const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => textOf(m[1]));
+    const rank = parseInt(cells[0] ?? "", 10);
+    if (!Number.isFinite(rank) || !cells[2]) continue;
+    const lk = (cells[1] ?? "").match(/LK\s*(\d+)/);
+    players.push({
+      rank,
+      lk: lk ? Number(lk[1]) : null,
+      name: cells[2],
+      singles: parseWinLoss(cells[4] ?? ""),
+      doubles: parseWinLoss(cells[5] ?? ""),
+    });
+  }
+  return players;
+}
+
 export async function fetchWtb(url: string): Promise<string> {
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Rotationsplan TC Sonnenbrunnen)" } });
   if (!res.ok) throw new Error(`WTB antwortet mit ${res.status} für ${url}`);

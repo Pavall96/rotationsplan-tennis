@@ -46,3 +46,6 @@ next-env.d.ts
 
 # original logo source (committed copies live at public/logo.png and src/app/icon.png)
 /TCS-Logo-neu-blue-bg-white.png
+
+# subagent-driven-development working files
+.superpowers/
