@@ -14,6 +14,7 @@ import {
   nextMatchIds,
   opponentView,
   ourPublishedLks,
+  snapshotProblem,
   surnames,
   type GroupSnapshot,
   type OpponentView,
@@ -32,7 +33,7 @@ export type RefreshResult = {
   assessment?: "neu" | "unverändert" | "ohne Text" | "fehlgeschlagen";
 };
 
-type PreviewOutcome = Pick<RefreshResult, "opponentNotFound" | "assessment">;
+type PreviewOutcome = Pick<RefreshResult, "opponentNotFound" | "assessment" | "error">;
 
 /** Lineups (published only) and Meldelisten, loaded once and shared by all matches of a run. */
 type OurSide = { lineups: Map<number, LineupEntry[]>; roster: RosterRow[] };
@@ -56,7 +57,7 @@ function lksFor(match: MatchView, our: OurSide) {
   return ourPublishedLks(match, our.lineups.get(match.id) ?? [], our.roster);
 }
 
-/** Fetches the team's group (table + every team's player list) from the WTB. Throws on any failure. */
+/** Fetches the team's group (table + every team's player list) from the WTB. Throws on any failure, also if the pages look empty or changed. */
 async function fetchSnapshot(wtbTeamId: string): Promise<GroupSnapshot> {
   const groupUrl = parseGroupUrl(await fetchWtb(teamUrl(wtbTeamId)));
   if (!groupUrl) throw new Error("Kein Gruppen-Link");
@@ -67,7 +68,11 @@ async function fetchSnapshot(wtbTeamId: string): Promise<GroupSnapshot> {
     await sleep(PAUSE_BETWEEN_PAGES_MS);
     teamPlayers[row.teamUrl] = parseTeamPlayers(await fetchWtb(row.teamUrl));
   }
-  return { groupUrl, standings, teamPlayers, fetchedAt: new Date() };
+  const snapshot: GroupSnapshot = { groupUrl, standings, teamPlayers, fetchedAt: new Date() };
+  // An empty or broken page must not replace good data (and must not cost a Claude call on junk facts).
+  const problem = snapshotProblem(snapshot, wtbTeamId);
+  if (problem) throw new Error(problem);
+  return snapshot;
 }
 
 /**
@@ -98,7 +103,7 @@ async function updatePreview(
   } catch (err) {
     // Nothing stored: the next run asks again.
     if (!(err instanceof AssessmentError)) console.error("Gegner-Einschätzung unerwartet fehlgeschlagen:", err);
-    return { assessment: "fehlgeschlagen" };
+    return { assessment: "fehlgeschlagen", error: errorMessage(err) };
   }
 
   // text === null: Claude had nothing usable for these facts, so store that to not ask again.

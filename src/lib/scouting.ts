@@ -141,6 +141,20 @@ export function ourPublishedLks(
     });
 }
 
+/**
+ * Why a freshly fetched snapshot must not replace the stored one (WTB maintenance page, changed markup), or null
+ * if it is usable. An opponent with no players is fine (not entered yet); our own team and the table must be there.
+ */
+export function snapshotProblem(snapshot: GroupSnapshot, wtbTeamId: string): string | null {
+  if (snapshot.standings.length === 0) return "WTB-Seite ohne Tabelle – hat sich die Seite geändert?";
+  const us = ourStanding(snapshot.standings, wtbTeamId);
+  if (!us) return "Eigene Mannschaft fehlt in der WTB-Tabelle – hat sich die Seite geändert?";
+  if ((snapshot.teamPlayers[us.teamUrl] ?? []).length === 0) {
+    return "Keine Spieler der eigenen Mannschaft auf der WTB-Seite – hat sich die Seite geändert?";
+  }
+  return null;
+}
+
 function summary(s: StandingRow) {
   return { rank: s.rank, points: s.points, matches: s.matches, meetings: s.meetings };
 }
@@ -161,7 +175,8 @@ export function buildFacts(input: {
   const ourLks: (number | null)[] =
     ourPublishedLks ?? likelyLineup(snapshot.teamPlayers[us.teamUrl] ?? [], match.playersNeeded).map((l) => l.player.lk);
 
-  const count = Math.max(theirs.length, ourLks.length);
+  // A longer published lineup (more Stamm than slots) must not add positions beyond the match.
+  const count = Math.min(Math.max(theirs.length, ourLks.length), Math.max(match.playersNeeded, 0));
   const positions: PositionFact[] = [];
   for (let i = 0; i < count; i++) {
     const their = theirs[i]?.player;

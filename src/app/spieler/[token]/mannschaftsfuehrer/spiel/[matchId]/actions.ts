@@ -110,6 +110,9 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
     .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, playerId)))
     .returning();
 
+  // Our side of the opponent overview changed (no-op if the match is not the team's next one or not published).
+  after(() => refreshMatchPreview(matchId));
+
   // Out of the lineup means no longer Spieltags-Mannschaftsführer — the role falls back to the team's captain.
   await getDb()
     .update(matches)

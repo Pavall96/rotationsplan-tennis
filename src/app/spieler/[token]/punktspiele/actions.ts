@@ -11,6 +11,7 @@ import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
 import { DEFAULT_MEETING_POINT } from "@/lib/rides";
 import { canBeAsked, type PlayerRoster } from "@/lib/eligibility";
 import type { AgeClass } from "@/lib/matches";
+import { refreshMatchPreview } from "@/lib/scouting-store";
 import { getLineups, responseAlerts, type LineupResponse, type LineupRole } from "@/lib/lineups";
 
 export type RideActionResult = { error?: string } | void;
@@ -392,6 +393,9 @@ export async function respondToLineup(formData: FormData): Promise<RideActionRes
     )
     .returning({ id: lineups.id });
   if (changed.length === 0) return;
+  // A cancelled Stamm player drops out of the published lineup the opponent overview compares against (and a
+  // reversal brings them back); redo the assessment. Guarded for the next match, never throws.
+  if (row.role === "stamm") after(() => refreshMatchPreview(matchId));
 
   const lineupNow = (await getLineups({ publishedOnly: true })).get(matchId) ?? [];
   const alerts = responseAlerts(row.role as LineupRole, row.response as LineupResponse | null, response, lineupNow);

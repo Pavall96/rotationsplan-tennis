@@ -108,16 +108,32 @@ export type WinLoss = { won: number; lost: number };
 
 export type WtbPlayer = { rank: number; lk: number | null; name: string; singles: WinLoss; doubles: WinLoss };
 
+/** Resolves a (possibly relative) href against the WTB; null for another host or an unparsable value. Never throws. */
+function wtbUrl(href: string): string | null {
+  try {
+    const url = new URL(href, WTB_BASE_URL);
+    return url.origin === new URL(WTB_BASE_URL).origin ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Absolute URL of the group (league table) page linked from a team page, or null. */
 export function parseGroupUrl(teamHtml: string): string | null {
   const m = teamHtml.match(/href="([^"]*\/gruppe\/g\/[^"]*)"/);
-  return m ? new URL(decodeEntities(m[1]), WTB_BASE_URL).toString() : null;
+  return m ? wtbUrl(decodeEntities(m[1])) : null;
 }
 
 /** Cell content by its `data-label` attribute (used on the group table). */
 function labelledCell(rowHtml: string, label: string): string | null {
   const m = rowHtml.match(new RegExp(`<td[^>]*data-label="${label}"[^>]*>([\\s\\S]*?)</td>`));
   return m ? m[1] : null;
+}
+
+/** "a:b" from a table cell; anything else (these values go into the Claude prompt) becomes "0:0". */
+function score(cellHtml: string | null): string {
+  const m = textOf(cellHtml ?? "").match(/^(\d+)\s*:\s*(\d+)$/);
+  return m ? `${m[1]}:${m[2]}` : "0:0";
 }
 
 /** Rows of the standings table under the "Tabelle" heading of a group page; [] if the table is missing. */
@@ -133,13 +149,15 @@ export function parseStandings(groupHtml: string): StandingRow[] {
     const teamCell = cell(row, "team");
     const href = teamCell?.match(/href="([^"]+)"/);
     if (!Number.isFinite(rank) || !teamCell || !href) continue;
+    const teamUrl = wtbUrl(decodeEntities(href[1]));
+    if (!teamUrl) continue;
     rows.push({
       rank,
       team: textOf(teamCell),
-      teamUrl: new URL(decodeEntities(href[1]), WTB_BASE_URL).toString(),
+      teamUrl,
       meetings: parseInt(textOf(labelledCell(row, "Begegnungen") ?? ""), 10) || 0,
-      points: textOf(labelledCell(row, "Punkte") ?? ""),
-      matches: textOf(labelledCell(row, "Matches") ?? ""),
+      points: score(labelledCell(row, "Punkte")),
+      matches: score(labelledCell(row, "Matches")),
     });
   }
   return rows;
@@ -177,7 +195,10 @@ export function parseTeamPlayers(teamHtml: string): WtbPlayer[] {
 }
 
 export async function fetchWtb(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Rotationsplan TC Sonnenbrunnen)" } });
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (Rotationsplan TC Sonnenbrunnen)" },
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!res.ok) throw new Error(`WTB antwortet mit ${res.status} für ${url}`);
   return res.text();
 }

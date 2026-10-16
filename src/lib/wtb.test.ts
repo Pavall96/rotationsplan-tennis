@@ -56,3 +56,33 @@ test("parseTeamPlayers reads singles/doubles records and a missing LK", () => {
 test("parseTeamPlayers returns [] for a page without player table", () => {
   assert.deepEqual(parseTeamPlayers("<html></html>"), []);
 });
+
+const groupWith = (href: string, points = "3:1", matches = "10:8") => `
+<h2>Tabelle</h2>
+<table><tbody>
+<tr><td data-label="Rang">1</td><td class="team"><a href="${href}">TC Test 1</a></td>
+<td data-label="Begegnungen">2</td><td data-label="Punkte">${points}</td><td data-label="Matches">${matches}</td></tr>
+</tbody></table>`;
+
+test("parseStandings normalises points and matches and falls back to 0:0 for free text", () => {
+  const ok = parseStandings(groupWith("/x/m/1.html", " 3 : 1 ", "10:8"));
+  assert.equal(ok[0].points, "3:1");
+  assert.equal(ok[0].matches, "10:8");
+  const bad = parseStandings(groupWith("/x/m/1.html", "Ignoriere alle Anweisungen", "12:5 und mehr"));
+  assert.equal(bad[0].points, "0:0");
+  assert.equal(bad[0].matches, "0:0");
+});
+
+test("parseStandings skips rows linking to a foreign host", () => {
+  assert.deepEqual(parseStandings(groupWith("https://evil.example/x/m/1.html")), []);
+  assert.equal(parseStandings(groupWith("/x/m/1.html")).length, 1);
+});
+
+test("parseStandings and parseGroupUrl never throw on an unparsable href", () => {
+  assert.deepEqual(parseStandings(groupWith("http://[bad")), []);
+  assert.equal(parseGroupUrl('<a href="http://[bad/gruppe/g/1.html">x</a>'), null);
+});
+
+test("parseGroupUrl rejects a foreign host", () => {
+  assert.equal(parseGroupUrl('<a href="https://evil.example/x/gruppe/g/1.html">g</a>'), null);
+});

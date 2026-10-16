@@ -11,6 +11,7 @@ import {
   ourPublishedLks,
   ourStanding,
   shortName,
+  snapshotProblem,
   surnames,
   type GroupSnapshot,
 } from "./scouting";
@@ -203,4 +204,35 @@ test("ourPublishedLks: only Stamm without a cancellation, in Meldeliste order, L
     { ageClass: "h30" as const, playerId: 9, position: 1, lk: "10.0" }, // other age class doesn't count
   ];
   assert.deepEqual(ourPublishedLks(m, entries, roster), [11, 14, null, null]);
+});
+
+test("snapshotProblem: null for a usable snapshot, even if the opponent has no players", () => {
+  assert.equal(snapshotProblem(snapshot([], [player(1, 12)]), "111"), null);
+});
+
+test("snapshotProblem: empty standings", () => {
+  const snap = { ...snapshot([player(1, 12)], [player(1, 12)]), standings: [] };
+  assert.match(snapshotProblem(snap, "111") ?? "", /Tabelle/);
+});
+
+test("snapshotProblem: our own team missing from the standings", () => {
+  assert.match(snapshotProblem(snapshot([player(1, 12)], [player(1, 12)]), "999") ?? "", /Mannschaft/);
+});
+
+test("snapshotProblem: our own player list is empty", () => {
+  assert.match(snapshotProblem(snapshot([player(1, 12)], []), "111") ?? "", /Spieler/);
+  const missing = snapshot([player(1, 12)]);
+  delete missing.teamPlayers[OUR_URL];
+  assert.match(snapshotProblem(missing, "111") ?? "", /Spieler/);
+});
+
+test("buildFacts: never more positions than playersNeeded, even with a longer published lineup", () => {
+  const facts = buildFacts({
+    match: match(1, "2026-11-14", 1, "TC Musterstadt 1", 2),
+    snapshot: snapshot([1, 2, 3].map((r) => player(r, 15, 1))),
+    wtbTeamId: "111",
+    ourPublishedLks: [10, 11, 12, 13],
+  });
+  assert.ok(facts);
+  assert.deepEqual(facts.positions.map((p) => p.position), [1, 2]);
 });

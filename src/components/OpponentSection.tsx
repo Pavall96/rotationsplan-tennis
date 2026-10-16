@@ -10,9 +10,16 @@ function lkLabel(lk: number | null): string {
   return `LK ${lk}`;
 }
 
+/** Matches in a "won:lost" record. */
+function doublesPlayed(record: string): number {
+  return record.split(":").reduce((sum, n) => sum + (Number(n) || 0), 0);
+}
+
 /** Opponent overview for a team's next match: league table, likely lineup and the written assessment. */
 export function OpponentSection({ view, ageClass }: { view: OpponentView; ageClass: AgeClass }) {
   const ourColor = ageClass === "h30" ? "text-[var(--color-h30)]" : "text-[var(--color-herren)]";
+  // In dark mode brand and Herren blue are close; the age-class tint tells our row apart from the opponent's.
+  const ourTint = ageClass === "h30" ? "bg-[var(--color-h30-bg)]" : "bg-[var(--color-herren-bg)]";
 
   return (
     <div className="mb-3 space-y-3">
@@ -21,17 +28,19 @@ export function OpponentSection({ view, ageClass }: { view: OpponentView; ageCla
         <table aria-label="Tabelle" className="w-full table-fixed border-collapse text-xs">
           <tbody>
             {view.standings.map((row) => {
+              const isOurs = row.teamUrl === view.ourTeamUrl;
               const tone =
                 row.teamUrl === view.opponentTeamUrl
                   ? "font-bold text-[var(--color-brand)]"
-                  : row.teamUrl === view.ourTeamUrl
+                  : isOurs
                     ? `font-bold ${ourColor}`
                     : "";
+              const tint = isOurs ? ourTint : "";
               return (
                 <tr key={row.teamUrl} className={`border-b border-[var(--color-border)] last:border-b-0 ${tone}`}>
-                  <td className="w-6 py-1 pr-1">{row.rank}</td>
-                  <td className="truncate py-1 pr-2">{row.team}</td>
-                  <td className="w-12 whitespace-nowrap py-1 text-right">{row.points}</td>
+                  <td className={`w-6 rounded-l-md py-1 pl-1 pr-1 ${tint}`}>{row.rank}</td>
+                  <td className={`truncate py-1 pr-2 ${tint}`}>{row.team}</td>
+                  <td className={`w-12 whitespace-nowrap rounded-r-md py-1 pr-1 text-right ${tint}`}>{row.points}</td>
                 </tr>
               );
             })}
@@ -50,7 +59,7 @@ export function OpponentSection({ view, ageClass }: { view: OpponentView; ageCla
                 {view.hasPlayed && (
                   <span className="text-[var(--color-ink-muted)]">
                     {" "}
-                    · {p.appearances}× · Einzel {p.singles}
+                    · {p.appearances + doublesPlayed(p.doubles)}× · Einzel {p.singles} · Doppel {p.doubles}
                   </span>
                 )}
               </span>
