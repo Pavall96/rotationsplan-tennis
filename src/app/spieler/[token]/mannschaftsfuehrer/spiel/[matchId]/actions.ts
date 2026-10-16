@@ -14,6 +14,7 @@ import { getMatchCaptains } from "@/lib/match-captain";
 import { getBaseUrl } from "@/lib/base-url";
 import { sendNotice } from "@/lib/email";
 import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
+import { refreshMatchPreview } from "@/lib/scouting-store";
 
 type Result = { error?: string } | void;
 
@@ -108,6 +109,9 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
     .delete(lineups)
     .where(and(eq(lineups.matchId, matchId), eq(lineups.playerId, playerId)))
     .returning();
+
+  // Our side of the opponent overview changed (no-op if the match is not the team's next one or not published).
+  after(() => refreshMatchPreview(matchId));
 
   // Out of the lineup means no longer Spieltags-Mannschaftsführer — the role falls back to the team's captain.
   await getDb()
@@ -308,6 +312,8 @@ export async function publishLineup(token: string, matchId: number, send: boolea
 
   const db = getDb();
   await db.update(matches).set({ lineupPublishedAt: new Date() }).where(and(eq(matches.id, matchId), isNull(matches.lineupPublishedAt)));
+  // The published lineup changes our side of the opponent overview; redo its assessment, email or not.
+  after(() => refreshMatchPreview(matchId));
   // Claim the unpublished entries in one conditional update: of two simultaneous publishes, only one gets each
   // player back — and only those get an email.
   const claimed = await db

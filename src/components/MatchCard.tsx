@@ -33,11 +33,14 @@ export function HomeAwayBadge({ isHome }: { isHome: boolean }) {
 export function MatchCard({
   match,
   showDate = false,
+  opponent,
   children,
 }: {
   match: MatchView;
   /** For lists that aren't grouped under day headers. */
   showDate?: boolean;
+  /** Opponent overview, shown above the venue block. */
+  opponent?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const { venue } = match;
@@ -67,6 +70,8 @@ export function MatchCard({
           ausfüllen.
         </p>
       )}
+
+      {opponent}
 
       {venue && (
         <div className="rounded-[14px] bg-[var(--color-tabs-bg)] px-3 py-2.5">

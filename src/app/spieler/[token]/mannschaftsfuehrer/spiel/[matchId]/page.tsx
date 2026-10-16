@@ -19,6 +19,8 @@ import { SameDayBlock, type SameDayMatch } from "@/components/SameDayBlock";
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
+// Publishing the lineup (a server action on this page) redoes the opponent assessment in after(), which waits for Claude.
+export const maxDuration = 300;
 
 type Candidate = {
   playerId: number;

@@ -9,10 +9,12 @@ import {
   time,
   smallint,
   integer,
+  jsonb,
   unique,
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { StandingRow, WtbPlayer } from "../lib/wtb";
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
@@ -173,6 +175,27 @@ export const matches = pgTable("matches", {
   // Spieltags-Mannschaftsführer: a lined-up player who stands in when the team's Mannschaftsführer doesn't play.
   // Display and alerts only — lining up and publishing stay with teams.captainPlayerId.
   matchCaptainPlayerId: integer("match_captain_player_id").references(() => players.id),
+});
+
+// Daily WTB snapshot per own team: the group table and every team's player list (keyed by team URL).
+export const wtbGroupSnapshots = pgTable("wtb_group_snapshots", {
+  teamId: integer("team_id")
+    .primaryKey()
+    .references(() => teams.id),
+  groupUrl: text("group_url").notNull(),
+  standings: jsonb("standings").$type<StandingRow[]>().notNull(),
+  teamPlayers: jsonb("team_players").$type<Record<string, WtbPlayer[]>>().notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Claude's Einschätzung for a match, valid only while input_hash equals the hash of the current facts.
+export const matchPreviews = pgTable("match_previews", {
+  matchId: integer("match_id")
+    .primaryKey()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  inputHash: text("input_hash").notNull(),
+  text: text("text"), // null: Claude named a player twice — don't ask again for these facts
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Namentliche Mannschaftsmeldung: one ranked list per age class. Positions 1–4 are fixed to the first team.
