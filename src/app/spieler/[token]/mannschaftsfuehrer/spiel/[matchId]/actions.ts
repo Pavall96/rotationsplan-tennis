@@ -6,7 +6,7 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { lineups, matches, players, teams } from "@/db/schema";
 import { getAllMatches, type MatchView } from "@/lib/matches";
-import { getLineups, lineupContext, type LineupRole } from "@/lib/lineups";
+import { getLineups, lineupContext, plays, type LineupRole } from "@/lib/lineups";
 import { getPlayerRoster, getRoster, rosterByPlayer } from "@/lib/roster";
 import { lineupCheck, isNonGerman, tooManyNonGermans } from "@/lib/eligibility";
 import { canMark, markStatement, unmarkStatement } from "@/lib/marks";
@@ -50,7 +50,7 @@ export async function addToLineup(formData: FormData): Promise<Result> {
   const matchId = Number(formData.get("matchId"));
   const playerId = Number(formData.get("playerId"));
   const role = String(formData.get("role")) as LineupRole;
-  if (role !== "stamm" && role !== "ersatz") return { error: "Ungültige Rolle." };
+  if (role !== "stamm" && role !== "doppel" && role !== "ersatz") return { error: "Ungültige Rolle." };
 
   const ctx = await captainMatch(token, matchId);
   if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann aufstellen." };
@@ -65,17 +65,17 @@ export async function addToLineup(formData: FormData): Promise<Result> {
   if (!check.ok) return { error: `${playerLabel(player)}: ${check.reason}` };
 
   const current = lineupsByMatch.get(matchId) ?? [];
-  const otherStamm = current.filter((e) => e.role === "stamm" && e.playerId !== playerId);
-  const stamm = otherStamm.length;
-  if (role === "stamm" && isNonGerman(roster)) {
-    // WSPO § 33a Ziff. 1: at most one non-German per match.
+  const stamm = current.filter((e) => e.role === "stamm" && e.playerId !== playerId).length;
+  if (plays(role) && isNonGerman(roster)) {
+    // WSPO § 33a Ziff. 1: at most one non-German per match — singles and doubles alike.
     const rosters = rosterByPlayer(await getRoster());
-    if (otherStamm.some((e) => isNonGerman(rosters.get(e.playerId) ?? {}))) {
+    const otherPlayers = current.filter((e) => plays(e.role) && e.playerId !== playerId);
+    if (otherPlayers.some((e) => isNonGerman(rosters.get(e.playerId) ?? {}))) {
       return { error: `${playerLabel(player)}: Es steht schon ein Nicht-Deutscher auf – höchstens einer pro Spiel.` };
     }
   }
   if (role === "stamm" && stamm >= match.playersNeeded) {
-    return { error: `Es stehen schon ${match.playersNeeded} Spieler auf – erst jemanden entfernen oder als Ersatz eintragen.` };
+    return { error: `Es stehen schon ${match.playersNeeded} Spieler auf – erst jemanden entfernen, oder nur fürs Doppel bzw. als Ersatz eintragen.` };
   }
 
   // A role change (e.g. Ersatz moves up) means the player must be told again on the next publish.
@@ -294,7 +294,8 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   if (starters.length > match.playersNeeded) {
     return { error: `${starters.length} Stammspieler aufgestellt – höchstens ${match.playersNeeded}.` };
   }
-  if (tooManyNonGermans(starters.map((e) => ({ countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}) })))) {
+  const playing = entries.filter((e) => plays(e.role) && e.response !== "nein");
+  if (tooManyNonGermans(playing.map((e) => ({ countsAsGerman: !isNonGerman(rosters.get(e.playerId) ?? {}) })))) {
     return { error: "Mehr als ein Nicht-Deutscher aufgestellt – so darf die Aufstellung nicht raus." };
   }
   const pending = entries.filter((e) => !e.published);
@@ -331,14 +332,14 @@ export async function publishLineup(token: string, matchId: number, send: boolea
   }
   refresh();
   const baseUrl = await getBaseUrl();
-  const stammNames = entries.filter((e) => e.role === "stamm").map((e) => e.name);
+  const playingNames = entries.filter((e) => plays(e.role)).map((e) => e.name);
   const matchCaptainId = (await getMatchCaptains()).get(matchId)?.playerId ?? null;
 
   after(async () => {
     const recipients = toNotify.length ? await db.select().from(players).where(inArray(players.id, toNotify)) : [];
     for (const p of recipients) {
       const entry = entries.find((e) => e.playerId === p.id)!;
-      const others = stammNames.filter((n) => n !== entry.name);
+      const others = playingNames.filter((n) => n !== entry.name);
       try {
         const result = await sendNotice(
           {
@@ -348,7 +349,9 @@ export async function publishLineup(token: string, matchId: number, send: boolea
             line:
               (entry.role === "stamm"
                 ? `Du bist aufgestellt für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}.`
-                : `Du bist Ersatz für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} – bitte halt dir den Termin frei.`) +
+                : entry.role === "doppel"
+                  ? `Du bist für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} fürs Doppel aufgestellt (kein Einzel).`
+                  : `Du bist Ersatz für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent} – bitte halt dir den Termin frei.`) +
               (p.id === matchCaptainId ? " Du bist an dem Tag auch Mannschaftsführer – die Meldeliste findest du in der App." : ""),
             detail: `${describe(match)}${others.length ? ` · Mit: ${others.join(", ")}` : ""}`,
             cta: {

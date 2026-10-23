@@ -83,6 +83,7 @@ export async function runMatchReminders(opts: { dryRun: boolean; baseUrl: string
   for (const { match, entry, lineup } of withEmail) {
     const p = byId.get(entry.playerId)!;
     const stamm = lineup.filter((e) => e.role === "stamm" && e.response !== "nein");
+    const doppel = lineup.filter((e) => e.role === "doppel" && e.response !== "nein");
     const missing = lineup.some((e) => e.role === "stamm" && e.response === "nein");
     const venue = match.venue ? `${match.venue.name}${match.venue.address ? `, ${match.venue.address}` : ""}` : "";
     const result = await sendNotice(
@@ -91,10 +92,15 @@ export async function runMatchReminders(opts: { dryRun: boolean; baseUrl: string
         playerName: playerLabel(p),
         subject: subjectFor(match),
         line:
-          entry.role === "stamm"
-            ? `Heute spielst du für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}.${match.isHome ? HOME_DUTIES : ""} ${carpoolLine(p.id, ridesByMatch.get(match.id))}`
+          entry.role === "stamm" || entry.role === "doppel"
+            ? `Heute spielst du für ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}${entry.role === "doppel" ? " – im Doppel, kein Einzel" : ""}.${match.isHome ? HOME_DUTIES : ""} ${carpoolLine(p.id, ridesByMatch.get(match.id))}`
             : `Heute ist Punktspiel – du bist Ersatz${missing ? " und wirst gebraucht" : ""}. ${carpoolLine(p.id, ridesByMatch.get(match.id))}`,
-        detail: [`${formatTime(match.startsAt)} Uhr`, venue, `Aufstellung: ${stamm.map((e) => e.name).join(", ")}`]
+        detail: [
+          `${formatTime(match.startsAt)} Uhr`,
+          venue,
+          `Aufstellung: ${stamm.map((e) => e.name).join(", ")}`,
+          doppel.length ? `Nur Doppel: ${doppel.map((e) => e.name).join(", ")}` : "",
+        ]
           .filter(Boolean)
           .join(" · "),
         cta: { url: `${opts.baseUrl}/spieler/${p.token}/punktspiele#spiel-${match.id}`, label: "Route & Fahrgemeinschaft" },

@@ -6,7 +6,7 @@ import { getDb } from "@/db";
 import { lineupMarks, players } from "@/db/schema";
 import { playerLabel } from "@/lib/format";
 import type { MatchView, TeamView } from "@/lib/matches";
-import type { LineupEntry } from "@/lib/lineups";
+import { plays as playsIn, type LineupEntry } from "@/lib/lineups";
 import { lineupCheck, type LineupCheck, type LineupContext, type PlayerRoster, type TeamRef } from "@/lib/eligibility";
 
 export type Mark = { playerId: number; name: string; playsMatches: boolean };
@@ -70,7 +70,7 @@ export function sameDayClaims(
 
 export type Appearance = { teamName: string; count: number };
 
-/** Stammplätze over the whole season per team, played or planned; Ersatz and Absagen don't count. Herren first. */
+/** Einsätze (singles or doubles) over the whole season per team, played or planned; Ersatz and Absagen don't count. Herren first. */
 export function appearances(
   playerId: number,
   allMatches: MatchView[],
@@ -79,7 +79,7 @@ export function appearances(
   const byTeam = new Map<number, { team: MatchView["team"]; count: number }>();
   for (const m of allMatches) {
     const plays = (lineupsByMatch.get(m.id) ?? []).some(
-      (e) => e.playerId === playerId && e.role === "stamm" && e.response !== "nein",
+      (e) => e.playerId === playerId && playsIn(e.role) && e.response !== "nein",
     );
     if (!plays) continue;
     const current = byTeam.get(m.team.id) ?? { team: m.team, count: 0 };

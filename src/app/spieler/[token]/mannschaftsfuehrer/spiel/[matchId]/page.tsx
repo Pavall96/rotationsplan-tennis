@@ -143,8 +143,9 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
     };
   };
   const stamm = singlesOrder(lineup.filter((e) => e.role === "stamm").map(withMeta));
+  const doppel = singlesOrder(lineup.filter((e) => e.role === "doppel").map(withMeta));
   const ersatz = singlesOrder(lineup.filter((e) => e.role === "ersatz").map(withMeta));
-  const nonGermanStarter = stamm.find((e) => !e.countsAsGerman && e.response !== "nein");
+  const nonGermanStarter = [...stamm, ...doppel].find((e) => !e.countsAsGerman && e.response !== "nein");
   const markedRows: MarkedRow[] = singlesOrder(
     marksHere.map((m) => ({
       playerId: m.playerId,
@@ -173,8 +174,8 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const blocked = candidates.filter((c) => !c.check.ok && c.check.reason !== "Spielt diese Saison nicht");
 
   const warnings: string[] = [];
-  if (tooManyNonGermans(stamm)) warnings.push("Mehr als ein Nicht-Deutscher aufgestellt (WSPO § 33a Ziff. 1).");
-  for (const e of [...stamm, ...ersatz]) {
+  if (tooManyNonGermans([...stamm, ...doppel])) warnings.push("Mehr als ein Nicht-Deutscher aufgestellt (WSPO § 33a Ziff. 1).");
+  for (const e of [...stamm, ...doppel, ...ersatz]) {
     if (e.problem) warnings.push(`${e.name} ist nicht mehr spielberechtigt: ${e.problem}.`);
   }
   if (stamm.some((e) => e.position === null)) {
@@ -196,7 +197,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       `${matchCaptain.name} ist Mannschaftsführer am Spieltag, hat aber abgesagt – bitte jemand anderen eintragen.`,
     );
   }
-  const matchCaptainOptions = [...stamm, ...ersatz].filter(
+  const matchCaptainOptions = [...stamm, ...doppel, ...ersatz].filter(
     (e) => e.playerId !== captain.id && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
   );
 
@@ -209,6 +210,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
       return {
         match: m,
         stamm: entries.filter((e) => e.role === "stamm").map((e) => ({ name: e.name, declined: e.response === "nein" })),
+        doppel: entries.filter((e) => e.role === "doppel").map((e) => e.name),
         ersatz: entries.filter((e) => e.role === "ersatz").map((e) => e.name),
         marked: (marksByMatch.get(m.id) ?? []).filter((x) => x.playsMatches).map((x) => x.name),
         captainName: other?.captainName ?? null,
@@ -279,6 +281,27 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
           ))}
           {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
         </ol>
+        {doppel.length > 0 && (
+          <>
+            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
+              Nur Doppel <span className="font-normal">– kein Einzel, kommen für die Doppel dazu</span>
+            </p>
+            <ul className="mb-3 space-y-1.5">
+              {doppel.map((e) => (
+                <LineupRow
+                  key={e.playerId}
+                  label="D"
+                  entry={e}
+                  hidden={hidden}
+                  talkFor={(cl) => talkUrl(e.name, cl)}
+                  promote="Ins Einzel"
+                  unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                  matchCaptain={e.playerId === matchCaptain?.playerId}
+                />
+              ))}
+            </ul>
+          </>
+        )}
         {ersatz.length > 0 && (
           <>
             <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
@@ -290,7 +313,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                   entry={e}
                   hidden={hidden}
                   talkFor={(cl) => talkUrl(e.name, cl)}
-                  promote
+                  promote="Aufstellen"
                   unpublished={Boolean(match.lineupPublishedAt) && !e.published}
                   matchCaptain={e.playerId === matchCaptain?.playerId}
                 />
@@ -335,7 +358,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                 <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
                 {matchCaptainOptions.map((e) => (
                   <option key={e.playerId} value={e.playerId}>
-                    {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
+                    {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : e.role === "doppel" ? " (nur Doppel)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
                   </option>
                 ))}
               </select>
@@ -399,6 +422,11 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                         <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "stamm" }}>
                           <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>
                             Aufstellen
+                          </SubmitButton>
+                        </ActionForm>
+                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "doppel" }}>
+                          <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
+                            Nur Doppel
                           </SubmitButton>
                         </ActionForm>
                         <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "ersatz" }}>
@@ -546,7 +574,7 @@ function LineupRow({
   entry,
   hidden,
   talkFor,
-  promote = false,
+  promote,
   unpublished = false,
   matchCaptain = false,
 }: {
@@ -554,7 +582,8 @@ function LineupRow({
   entry: LineupEntry & { lists: string; problem: string | null; claims: Claim[] };
   hidden: { token: string; matchId: number };
   talkFor: (claim: Claim) => string | null;
-  promote?: boolean;
+  /** Label of the button that moves this player into the singles; none for Stammspieler. */
+  promote?: string;
   /** Added or changed since the last publish — players don't see it yet. */
   unpublished?: boolean;
   /** This player is the Spieltags-Mannschaftsführer. */
@@ -590,7 +619,7 @@ function LineupRow({
       {promote && (
         <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: entry.playerId, role: "stamm" }}>
           <SubmitButton className="text-[11px] font-semibold text-[var(--color-brand)] underline underline-offset-2">
-            Aufstellen
+            {promote}
           </SubmitButton>
         </ActionForm>
       )}

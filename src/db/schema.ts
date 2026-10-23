@@ -321,7 +321,7 @@ export const lineups = pgTable(
   },
   (table) => [
     unique("lineups_match_player_unique").on(table.matchId, table.playerId),
-    check("lineups_role_check", sql`${table.role} in ('stamm', 'ersatz')`),
+    check("lineups_role_check", sql`${table.role} in ('stamm', 'doppel', 'ersatz')`),
     check("lineups_response_check", sql`${table.response} in ('ja', 'nein')`),
   ],
 );

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getFullSchedule, getPlayerByToken, sessionsForPlayer, myRoleInSession } from "@/lib/queries";
 import { buildIcsCalendar, sessionToIcsEvent, matchToIcsEvent } from "@/lib/ics";
 import { getAllMatches } from "@/lib/matches";
-import { getLineups } from "@/lib/lineups";
+import { getLineups, plays } from "@/lib/lineups";
 import { playingErsatz } from "@/lib/vacancy";
 import { getBaseUrl } from "@/lib/base-url";
 
@@ -24,12 +24,12 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ics/
   });
   const baseUrl = await getBaseUrl();
 
-  // Punktspiele once the lineup is published, for Stammspieler (the Ersatz isn't a commitment, same as training).
+  // Punktspiele once the lineup is published, for everyone who plays (the Ersatz isn't a commitment, same as training).
   const [allMatches, lineupsByMatch] = await Promise.all([getAllMatches(), getLineups({ publishedOnly: true })]);
   const myMatches = allMatches.filter(
     (m) =>
       m.lineupPublishedAt &&
-      (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === player.id && e.role === "stamm"),
+      (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === player.id && plays(e.role)),
   );
 
   const events = [
