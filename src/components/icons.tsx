@@ -214,3 +214,53 @@ export function MailIcon(props: IconProps) {
     </svg>
   );
 }
+
+const navIcon = {
+  width: 20,
+  height: 20,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+} as const;
+
+export function BallIcon(props: IconProps) {
+  return (
+    <svg {...navIcon} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M5.6 5.6c3.3 3.3 3.3 9.5 0 12.8M18.4 5.6c-3.3 3.3-3.3 9.5 0 12.8" />
+    </svg>
+  );
+}
+
+export function UsersIcon(props: IconProps) {
+  return (
+    <svg {...navIcon} {...props}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
+      <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.4c1.8.8 3 2.8 3 5.6" />
+    </svg>
+  );
+}
+
+export function SparklesIcon(props: IconProps) {
+  return (
+    <svg {...navIcon} {...props}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+    </svg>
+  );
+}
+
+export function ListIcon(props: IconProps) {
+  return (
+    <svg {...navIcon} {...props}>
+      <path d="M10 6h10M10 12h10M10 18h10" />
+      <path d="M4 5h1v3M4 8h2M4 11.5c0-.8 1.8-.8 1.8 0 0 .9-1.8 1.6-1.8 2.5h2" />
+      <path d="M4 17h2l-1 1.2c.9 0 1.2.5 1.2 1s-.5 1-1.2 1H4" />
+    </svg>
+  );
+}

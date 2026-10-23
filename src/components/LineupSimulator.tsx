@@ -28,8 +28,17 @@ const FOCI = [
 type Choice = "pin" | "out";
 
 /** Claude proposes the lineups of a whole Spieltag; the captain can mark their own team's part of it. */
-export function LineupSimulator({ token, days }: { token: string; days: SimDay[] }) {
-  const [date, setDate] = useState(days[0]?.date ?? "");
+export function LineupSimulator({
+  token,
+  days,
+  initialDate,
+}: {
+  token: string;
+  days: SimDay[];
+  /** Preselected Spieltag, e.g. when coming from a match page. */
+  initialDate?: string;
+}) {
+  const [date, setDate] = useState(days.find((d) => d.date === initialDate)?.date ?? days[0]?.date ?? "");
   const [focus, setFocus] = useState<Record<number, string>>({});
   const [choices, setChoices] = useState<Record<number, Choice>>({});
   const [allowMaybe, setAllowMaybe] = useState(true);
@@ -73,115 +82,124 @@ export function LineupSimulator({ token, days }: { token: string; days: SimDay[]
       }
     });
 
+  // Wide screens: settings on the left, Claude's proposal on the right.
   return (
-    <div className="space-y-4">
-      <label className="block text-xs font-semibold">
-        Spieltag
-        <select
-          value={date}
-          onChange={(e) => {
-            setDate(e.target.value);
-            setChoices({});
-            setResult(null);
-          }}
-          className="mt-1 block w-full rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2 text-sm font-normal"
-        >
-          {days.map((d) => (
-            <option key={d.date} value={d.date}>
-              {d.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div>
-        <p className="mb-1.5 text-xs font-semibold">Worauf kommt es an?</p>
-        <div className="space-y-2">
-          {day.matches.map((m) => (
-            <div key={m.matchId} className="flex items-center gap-2">
-              <TeamChip name={m.team} ageClass={m.ageClass} />
-              <Segmented
-                options={FOCI}
-                value={focus[m.matchId] ?? "ausgewogen"}
-                onChange={(v) => setFocus((f) => ({ ...f, [m.matchId]: v }))}
-              />
-            </div>
-          ))}
-        </div>
-        <p className="mt-1.5 text-[11px] text-[var(--color-ink-faint)]">
-          Stark: die Besten spielen. Mitte: gut besetzt, aber wer wenig gespielt hat, kommt dran. Rotation:
-          Einsätze möglichst gleich verteilen.
-        </p>
-      </div>
-
-      <details className="rounded-[12px] border border-[var(--color-border)] px-3 py-2">
-        <summary className="cursor-pointer text-xs font-semibold">
-          Spieler festlegen oder ausschließen
-          <span className="font-normal text-[var(--color-ink-muted)]">
-            {" "}
-            · {picked("pin").length} fest · {picked("out").length} nicht
-          </span>
-        </summary>
-        {day.players.length === 0 ? (
-          <p className="mt-2 text-xs text-[var(--color-ink-muted)]">Noch keine Zusagen für diesen Tag.</p>
-        ) : (
-          <ul className="mt-2 space-y-1.5">
-            {day.players.map((p) => (
-              <li key={p.playerId} className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0 truncate">
-                  {p.name}
-                  {p.status === "vielleicht" && (
-                    <span className="text-[11px] text-[var(--color-vielleicht)]"> vllt.</span>
-                  )}
-                </span>
-                <span className="flex shrink-0 gap-1">
-                  <ChoiceButton active={choices[p.playerId] === "pin"} onClick={() => toggle(p.playerId, "pin")} tone="ja">
-                    📌 Muss
-                  </ChoiceButton>
-                  <ChoiceButton active={choices[p.playerId] === "out"} onClick={() => toggle(p.playerId, "out")} tone="nein">
-                    ✖ Nicht
-                  </ChoiceButton>
-                </span>
-              </li>
+    <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+      <div className="space-y-4">
+        <label className="block text-xs font-semibold">
+          Spieltag
+          <select
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setChoices({});
+              setResult(null);
+            }}
+            className="mt-1 block w-full rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2 text-sm font-normal"
+          >
+            {days.map((d) => (
+              <option key={d.date} value={d.date}>
+                {d.label}
+              </option>
             ))}
-          </ul>
-        )}
-      </details>
+          </select>
+        </label>
 
-      <div className="space-y-1 text-sm">
-        <Toggle checked={allowMaybe} onChange={setAllowMaybe} label="„Vielleicht“-Sager mit einplanen" />
-        <Toggle checked={ersatz} onChange={setErsatz} label="Ersatz einplanen" />
-        <Toggle
-          checked={avoidFestspielen}
-          onChange={setAvoidFestspielen}
-          label="Festspielen vermeiden"
-          hint="niemand spielt sich in der 1. fest, solange ein anderer frei ist"
-        />
+        <div>
+          <p className="mb-1.5 text-xs font-semibold">Worauf kommt es an?</p>
+          <div className="space-y-2">
+            {day.matches.map((m) => (
+              <div key={m.matchId} className="flex items-center gap-2">
+                <TeamChip name={m.team} ageClass={m.ageClass} />
+                <Segmented
+                  options={FOCI}
+                  value={focus[m.matchId] ?? "ausgewogen"}
+                  onChange={(v) => setFocus((f) => ({ ...f, [m.matchId]: v }))}
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-[var(--color-ink-faint)]">
+            Stark: die Besten spielen. Mitte: gut besetzt, aber wer wenig gespielt hat, kommt dran. Rotation:
+            Einsätze möglichst gleich verteilen.
+          </p>
+        </div>
+
+        <details className="rounded-[12px] border border-[var(--color-border)] px-3 py-2">
+          <summary className="cursor-pointer text-xs font-semibold">
+            Spieler festlegen oder ausschließen
+            <span className="font-normal text-[var(--color-ink-muted)]">
+              {" "}
+              · {picked("pin").length} fest · {picked("out").length} nicht
+            </span>
+          </summary>
+          {day.players.length === 0 ? (
+            <p className="mt-2 text-xs text-[var(--color-ink-muted)]">Noch keine Zusagen für diesen Tag.</p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {day.players.map((p) => (
+                <li key={p.playerId} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate">
+                    {p.name}
+                    {p.status === "vielleicht" && (
+                      <span className="text-[11px] text-[var(--color-vielleicht)]"> vllt.</span>
+                    )}
+                  </span>
+                  <span className="flex shrink-0 gap-1">
+                    <ChoiceButton active={choices[p.playerId] === "pin"} onClick={() => toggle(p.playerId, "pin")} tone="ja">
+                      📌 Muss
+                    </ChoiceButton>
+                    <ChoiceButton active={choices[p.playerId] === "out"} onClick={() => toggle(p.playerId, "out")} tone="nein">
+                      ✖ Nicht
+                    </ChoiceButton>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
+
+        <div className="space-y-1 text-sm">
+          <Toggle checked={allowMaybe} onChange={setAllowMaybe} label="„Vielleicht“-Sager mit einplanen" />
+          <Toggle checked={ersatz} onChange={setErsatz} label="Ersatz einplanen" />
+          <Toggle
+            checked={avoidFestspielen}
+            onChange={setAvoidFestspielen}
+            label="Festspielen vermeiden"
+            hint="niemand spielt sich in der 1. fest, solange ein anderer frei ist"
+          />
+        </div>
+
+        <label className="block text-xs font-semibold">
+          Sonst noch was? (optional)
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={500}
+            rows={2}
+            placeholder="z. B. „Tom und Ben wollen zusammen Doppel spielen“"
+            className="mt-1 block w-full rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2 text-sm font-normal"
+          />
+        </label>
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={run}
+          className="rounded-full bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {pending ? "Claude überlegt … (bis zu einer Minute)" : "Aufstellung simulieren"}
+        </button>
       </div>
-
-      <label className="block text-xs font-semibold">
-        Sonst noch was? (optional)
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={500}
-          rows={2}
-          placeholder="z. B. „Tom und Ben wollen zusammen Doppel spielen“"
-          className="mt-1 block w-full rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-3 py-2 text-sm font-normal"
-        />
-      </label>
-
-      <button
-        type="button"
-        disabled={pending}
-        onClick={run}
-        className="rounded-full bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-      >
-        {pending ? "Claude überlegt … (bis zu einer Minute)" : "Aufstellung simulieren"}
-      </button>
-
-      {result && !result.ok && <p className="text-sm text-[var(--color-nein)]">{result.error}</p>}
-      {result?.ok && <SimulationResult token={token} result={result} />}
+      <div className="mt-4 lg:mt-0">
+        {result && !result.ok && <p className="text-sm text-[var(--color-nein)]">{result.error}</p>}
+        {result?.ok && <SimulationResult token={token} result={result} />}
+        {!result && (
+          <p className="hidden rounded-[14px] border border-dashed border-[var(--color-border-strong)] p-4 text-sm text-[var(--color-ink-muted)] lg:block">
+            {pending ? "Claude überlegt …" : "Hier erscheint der Vorschlag."}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

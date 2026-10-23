@@ -16,7 +16,8 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { TeamChip } from "@/components/MatchCard";
 import { PublishLineupButton } from "@/components/PublishLineupButton";
 import { SameDayBlock, type SameDayMatch } from "@/components/SameDayBlock";
-import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
+import { AlertIcon, ArrowLeftIcon, SparklesIcon } from "@/components/icons";
+import { CaptainShell } from "@/components/CaptainShell";
 
 export const dynamic = "force-dynamic";
 // Publishing the lineup (a server action on this page) redoes the opponent assessment in after(), which waits for Claude.
@@ -224,7 +225,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const hidden = { token, matchId };
 
   return (
-    <main className="max-w-md mx-auto w-full px-4 py-6 flex-1">
+    <CaptainShell token={token} active="spiele">
       <Link
         href={`/spieler/${token}/mannschaftsfuehrer`}
         className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]"
@@ -241,238 +242,263 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         <p className="text-sm text-[var(--color-ink-muted)]">
           {day} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
-        <Link
-          href={`/spieler/${token}/punktspiele/meldeliste/${matchId}`}
-          className="mt-2 inline-block text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
-        >
-          Meldeliste {AGE_CLASS_LABEL[match.team.ageClass]} ansehen ›
-        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href={`/spieler/${token}/punktspiele/meldeliste/${matchId}`}
+            className="text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
+          >
+            Meldeliste {AGE_CLASS_LABEL[match.team.ageClass]} ansehen ›
+          </Link>
+          <Link
+            href={`/spieler/${token}/mannschaftsfuehrer?tab=simulation&tag=${match.matchDate}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--color-brand)]"
+          >
+            <SparklesIcon className="h-3.5 w-3.5" />
+            Spieltag simulieren ›
+          </Link>
+        </div>
       </header>
 
-      {sameDay.length > 0 && <SameDayBlock matches={sameDay} />}
+      {/* Wide screens: the lineup stays in view on the left while picking players on the right. */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+          {sameDay.length > 0 && (
+            <div className="lg:hidden">
+              <SameDayBlock matches={sameDay} />
+            </div>
+          )}
 
-      <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-display font-bold">Aufstellung</h2>
-          <span
-            className={`text-xs font-semibold ${
-              stamm.length - declined.length === match.playersNeeded ? "text-[var(--color-ja)]" : "text-[var(--color-nein)]"
-            }`}
-          >
-            {stamm.length - declined.length} von {match.playersNeeded}
-          </span>
+          <section className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="font-display font-bold">Aufstellung</h2>
+              <span
+                className={`text-xs font-semibold ${
+                  stamm.length - declined.length === match.playersNeeded ? "text-[var(--color-ja)]" : "text-[var(--color-nein)]"
+                }`}
+              >
+                {stamm.length - declined.length} von {match.playersNeeded}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+              Sortiert nach Meldeliste – in dieser Reihenfolge werden die Einzel gespielt.
+              {match.lineupPublishedAt ? " Veröffentlicht, die Spieler sehen sie auf ihrer Seite." : " Noch nicht veröffentlicht."}
+            </p>
+
+            <ol className="mb-3 space-y-1.5">
+              {stamm.map((e, i) => (
+                <LineupRow
+                  key={e.playerId}
+                  label={`${i + 1}`}
+                  entry={e}
+                  hidden={hidden}
+                  talkFor={(cl) => talkUrl(e.name, cl)}
+                  unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                  matchCaptain={e.playerId === matchCaptain?.playerId}
+                />
+              ))}
+              {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
+            </ol>
+            {doppel.length > 0 && (
+              <>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
+                  Nur Doppel <span className="font-normal">– kein Einzel, kommen für die Doppel dazu</span>
+                </p>
+                <ul className="mb-3 space-y-1.5">
+                  {doppel.map((e) => (
+                    <LineupRow
+                      key={e.playerId}
+                      label="D"
+                      entry={e}
+                      hidden={hidden}
+                      talkFor={(cl) => talkUrl(e.name, cl)}
+                      promote="Ins Einzel"
+                      unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                      matchCaptain={e.playerId === matchCaptain?.playerId}
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
+            {ersatz.length > 0 && (
+              <>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
+                <ul className="mb-3 space-y-1.5">
+                  {ersatz.map((e) => (
+                    <LineupRow
+                      key={e.playerId}
+                      label="E"
+                      entry={e}
+                      hidden={hidden}
+                      talkFor={(cl) => talkUrl(e.name, cl)}
+                      promote="Aufstellen"
+                      unpublished={Boolean(match.lineupPublishedAt) && !e.published}
+                      matchCaptain={e.playerId === matchCaptain?.playerId}
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
+            {markedRows.length > 0 && (
+              <>
+                <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
+                  Vorgemerkt <span className="font-normal">– nur für Mannschaftsführer sichtbar</span>
+                </p>
+                <ul className="mb-3 space-y-1.5">
+                  {markedRows.map((r) => (
+                    <MarkRow
+                      key={r.playerId}
+                      row={r}
+                      hidden={hidden}
+                      talk={r.linedUpElsewhere ? talkUrl(r.name, r.linedUpElsewhere) : null}
+                      talkFor={(cl) => talkUrl(r.name, cl)}
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {lineup.length > 0 && (
+              <div className="mb-3 rounded-[10px] border border-[var(--color-border)] px-3 py-2.5">
+                <p className="text-xs font-semibold">Mannschaftsführer am Spieltag</p>
+                <p className="mb-2 text-[11px] text-[var(--color-ink-muted)]">
+                  Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste und
+                  bekommt die Absagen – aufstellen und veröffentlichen kannst weiterhin nur du.
+                </p>
+                <ActionForm action={setMatchCaptain} hidden={hidden} className="flex flex-wrap items-center gap-2">
+                  <select
+                    key={matchCaptain?.playerId ?? "self"}
+                    name="playerId"
+                    defaultValue={matchCaptain?.playerId ?? ""}
+                    aria-label="Mannschaftsführer am Spieltag"
+                    className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-2.5 py-2 text-base"
+                  >
+                    <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
+                    {matchCaptainOptions.map((e) => (
+                      <option key={e.playerId} value={e.playerId}>
+                        {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : e.role === "doppel" ? " (nur Doppel)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
+                      </option>
+                    ))}
+                  </select>
+                  <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>Speichern</SubmitButton>
+                </ActionForm>
+              </div>
+            )}
+
+            {warnings.map((w) => (
+              <p key={w} className="mb-2 flex gap-1.5 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs text-[var(--color-nein)]">
+                <AlertIcon className="mt-0.5 h-3 w-3 shrink-0" />
+                {w}
+              </p>
+            ))}
+
+            {lineup.length > 0 && (
+              <PublishLineupButton token={token} matchId={matchId} published={Boolean(match.lineupPublishedAt)} />
+            )}
+          </section>
         </div>
-        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          Sortiert nach Meldeliste – in dieser Reihenfolge werden die Einzel gespielt.
-          {match.lineupPublishedAt ? " Veröffentlicht, die Spieler sehen sie auf ihrer Seite." : " Noch nicht veröffentlicht."}
-        </p>
 
-        <ol className="mb-3 space-y-1.5">
-          {stamm.map((e, i) => (
-            <LineupRow
-              key={e.playerId}
-              label={`${i + 1}`}
-              entry={e}
-              hidden={hidden}
-              talkFor={(cl) => talkUrl(e.name, cl)}
-              unpublished={Boolean(match.lineupPublishedAt) && !e.published}
-              matchCaptain={e.playerId === matchCaptain?.playerId}
-            />
-          ))}
-          {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
-        </ol>
-        {doppel.length > 0 && (
-          <>
-            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
-              Nur Doppel <span className="font-normal">– kein Einzel, kommen für die Doppel dazu</span>
+        <div>
+          {sameDay.length > 0 && (
+            <div className="hidden lg:block">
+              <SameDayBlock matches={sameDay} />
+            </div>
+          )}
+          <section className="mb-6">
+            <h2 className="mb-1 font-display font-bold">Spielberechtigt</h2>
+            <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+              Nach Antwort für den {day} gruppiert, innerhalb nach Meldeliste. „Vormerken“ heißt: hätte ich gern – es
+              sperrt niemanden und die Spieler sehen es nicht.
             </p>
-            <ul className="mb-3 space-y-1.5">
-              {doppel.map((e) => (
-                <LineupRow
-                  key={e.playerId}
-                  label="D"
-                  entry={e}
-                  hidden={hidden}
-                  talkFor={(cl) => talkUrl(e.name, cl)}
-                  promote="Ins Einzel"
-                  unpublished={Boolean(match.lineupPublishedAt) && !e.published}
-                  matchCaptain={e.playerId === matchCaptain?.playerId}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-        {ersatz.length > 0 && (
-          <>
-            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
-            <ul className="mb-3 space-y-1.5">
-              {ersatz.map((e) => (
-                <LineupRow
-                  key={e.playerId}
-                  label="E"
-                  entry={e}
-                  hidden={hidden}
-                  talkFor={(cl) => talkUrl(e.name, cl)}
-                  promote="Aufstellen"
-                  unpublished={Boolean(match.lineupPublishedAt) && !e.published}
-                  matchCaptain={e.playerId === matchCaptain?.playerId}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-        {markedRows.length > 0 && (
-          <>
-            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">
-              Vorgemerkt <span className="font-normal">– nur für Mannschaftsführer sichtbar</span>
-            </p>
-            <ul className="mb-3 space-y-1.5">
-              {markedRows.map((r) => (
-                <MarkRow
-                  key={r.playerId}
-                  row={r}
-                  hidden={hidden}
-                  talk={r.linedUpElsewhere ? talkUrl(r.name, r.linedUpElsewhere) : null}
-                  talkFor={(cl) => talkUrl(r.name, cl)}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-
-        {lineup.length > 0 && (
-          <div className="mb-3 rounded-[10px] border border-[var(--color-border)] px-3 py-2.5">
-            <p className="text-xs font-semibold">Mannschaftsführer am Spieltag</p>
-            <p className="mb-2 text-[11px] text-[var(--color-ink-muted)]">
-              Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste und
-              bekommt die Absagen – aufstellen und veröffentlichen kannst weiterhin nur du.
-            </p>
-            <ActionForm action={setMatchCaptain} hidden={hidden} className="flex flex-wrap items-center gap-2">
-              <select
-                key={matchCaptain?.playerId ?? "self"}
-                name="playerId"
-                defaultValue={matchCaptain?.playerId ?? ""}
-                aria-label="Mannschaftsführer am Spieltag"
-                className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-2.5 py-2 text-base"
-              >
-                <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
-                {matchCaptainOptions.map((e) => (
-                  <option key={e.playerId} value={e.playerId}>
-                    {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : e.role === "doppel" ? " (nur Doppel)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
-                  </option>
-                ))}
-              </select>
-              <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>Speichern</SubmitButton>
-            </ActionForm>
-          </div>
-        )}
-
-        {warnings.map((w) => (
-          <p key={w} className="mb-2 flex gap-1.5 rounded-lg bg-[var(--color-nein-bg)] px-2.5 py-2 text-xs text-[var(--color-nein)]">
-            <AlertIcon className="mt-0.5 h-3 w-3 shrink-0" />
-            {w}
-          </p>
-        ))}
-
-        {lineup.length > 0 && (
-          <PublishLineupButton token={token} matchId={matchId} published={Boolean(match.lineupPublishedAt)} />
-        )}
-      </section>
-
-      <section className="mb-6">
-        <h2 className="mb-1 font-display font-bold">Spielberechtigt</h2>
-        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          Nach Antwort für den {day} gruppiert, innerhalb nach Meldeliste. „Vormerken“ heißt: hätte ich gern – es
-          sperrt niemanden und die Spieler sehen es nicht.
-        </p>
-        <div className="space-y-4">
-          {GROUPS.map((g) => {
-            const list = eligible.filter((c) => c.status === g.key);
-            if (list.length === 0) return null;
-            return (
-              <details
-                key={g.key}
-                open={g.key === "ja" || g.key === "vielleicht" || undefined}
-                className="rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2.5"
-              >
-                <summary className={`cursor-pointer list-none text-sm font-semibold ${g.color}`}>
-                  {g.label} ({list.length})
-                </summary>
-                <ul className="mt-2 divide-y divide-[var(--color-border)]">
-                  {list.map((c) => (
-                    <li key={c.playerId} className="py-2">
-                      <span className="block truncate text-sm">{c.name}</span>
-                      <span className="text-[11px] text-[var(--color-ink-faint)]">{c.lists}</span>
-                      <AppearanceLine appearances={c.appearances} />
-                      {c.claims.map((cl) => (
-                        <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+            <div className="space-y-4">
+              {GROUPS.map((g) => {
+                const list = eligible.filter((c) => c.status === g.key);
+                if (list.length === 0) return null;
+                return (
+                  <details
+                    key={g.key}
+                    open={g.key === "ja" || g.key === "vielleicht" || undefined}
+                    className="rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2.5"
+                  >
+                    <summary className={`cursor-pointer list-none text-sm font-semibold ${g.color}`}>
+                      {g.label} ({list.length})
+                    </summary>
+                    <ul className="mt-2 divide-y divide-[var(--color-border)]">
+                      {list.map((c) => (
+                        <li key={c.playerId} className="py-2">
+                          <span className="block truncate text-sm">{c.name}</span>
+                          <span className="text-[11px] text-[var(--color-ink-faint)]">{c.lists}</span>
+                          <AppearanceLine appearances={c.appearances} />
+                          {c.claims.map((cl) => (
+                            <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+                          ))}
+                          {nonGermanStarter && !c.countsAsGerman && (
+                            <p className="mt-1 text-[11px] text-[var(--color-h30)]">
+                              Nur als Ersatz – {nonGermanStarter.name} ist schon als Nicht-Deutscher aufgestellt
+                            </p>
+                          )}
+                          {c.check.ok &&
+                            c.check.warnings.map((w) => (
+                              <p key={w} className="mt-1 text-[11px] text-[var(--color-h30)]">
+                                {w}
+                              </p>
+                            ))}
+                          <span className="mt-1.5 flex flex-wrap gap-1.5">
+                            <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "stamm" }}>
+                              <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>
+                                Aufstellen
+                              </SubmitButton>
+                            </ActionForm>
+                            <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "doppel" }}>
+                              <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
+                                Nur Doppel
+                              </SubmitButton>
+                            </ActionForm>
+                            <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "ersatz" }}>
+                              <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
+                                Ersatz
+                              </SubmitButton>
+                            </ActionForm>
+                            <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }}>
+                              <SubmitButton className={markButton}>Vormerken</SubmitButton>
+                            </ActionForm>
+                          </span>
+                        </li>
                       ))}
-                      {nonGermanStarter && !c.countsAsGerman && (
-                        <p className="mt-1 text-[11px] text-[var(--color-h30)]">
-                          Nur als Ersatz – {nonGermanStarter.name} ist schon als Nicht-Deutscher aufgestellt
-                        </p>
+                    </ul>
+                  </details>
+                );
+              })}
+            </div>
+
+            {blocked.length > 0 && (
+              <details className="mt-4 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2.5">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--color-ink-muted)]">
+                  Nicht spielberechtigt ({blocked.length})
+                </summary>
+                <ul className="mt-2 space-y-2">
+                  {blocked.map((c) => (
+                    <li key={c.playerId} className="text-sm">
+                      {c.name}
+                      <span className="block text-[11px] text-[var(--color-ink-faint)]">{!c.check.ok && c.check.reason}</span>
+                      {c.markable && (
+                        <>
+                          {c.claims.map((cl) => (
+                            <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
+                          ))}
+                          <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }} className="mt-1 inline-block">
+                            <SubmitButton className={markButton}>Vormerken</SubmitButton>
+                          </ActionForm>
+                        </>
                       )}
-                      {c.check.ok &&
-                        c.check.warnings.map((w) => (
-                          <p key={w} className="mt-1 text-[11px] text-[var(--color-h30)]">
-                            {w}
-                          </p>
-                        ))}
-                      <span className="mt-1.5 flex flex-wrap gap-1.5">
-                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "stamm" }}>
-                          <SubmitButton className={`${smallButton} bg-[var(--color-brand)] text-white`}>
-                            Aufstellen
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "doppel" }}>
-                          <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
-                            Nur Doppel
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm action={addToLineup} hidden={{ ...hidden, playerId: c.playerId, role: "ersatz" }}>
-                          <SubmitButton className={`${smallButton} border border-[var(--color-border-strong)]`}>
-                            Ersatz
-                          </SubmitButton>
-                        </ActionForm>
-                        <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }}>
-                          <SubmitButton className={markButton}>Vormerken</SubmitButton>
-                        </ActionForm>
-                      </span>
                     </li>
                   ))}
                 </ul>
               </details>
-            );
-          })}
+            )}
+          </section>
         </div>
-
-        {blocked.length > 0 && (
-          <details className="mt-4 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2.5">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--color-ink-muted)]">
-              Nicht spielberechtigt ({blocked.length})
-            </summary>
-            <ul className="mt-2 space-y-2">
-              {blocked.map((c) => (
-                <li key={c.playerId} className="text-sm">
-                  {c.name}
-                  <span className="block text-[11px] text-[var(--color-ink-faint)]">{!c.check.ok && c.check.reason}</span>
-                  {c.markable && (
-                    <>
-                      {c.claims.map((cl) => (
-                        <ClaimNote key={cl.match.id} claim={cl} url={talkUrl(c.name, cl)} />
-                      ))}
-                      <ActionForm action={markPlayer} hidden={{ ...hidden, playerId: c.playerId }} className="mt-1 inline-block">
-                        <SubmitButton className={markButton}>Vormerken</SubmitButton>
-                      </ActionForm>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-      </section>
-    </main>
+      </div>
+    </CaptainShell>
   );
 }
 
