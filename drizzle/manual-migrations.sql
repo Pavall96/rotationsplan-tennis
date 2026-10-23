@@ -178,3 +178,7 @@ CREATE TABLE IF NOT EXISTS match_previews (
   text text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- 2026-10-23: lineup role 'doppel' (comes along for the doubles only). Widens the check in one statement.
+ALTER TABLE lineups DROP CONSTRAINT lineups_role_check,
+  ADD CONSTRAINT lineups_role_check CHECK (role in ('stamm', 'doppel', 'ersatz'));

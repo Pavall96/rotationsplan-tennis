@@ -39,6 +39,7 @@ export default async function MeldelistePage({
   const entries = ((await getLineups({ publishedOnly: !ownTeam })).get(matchId) ?? []).filter((e) => e.response !== "nein");
   const list = roster.filter((r) => r.ageClass === match.team.ageClass);
   const stammIds = new Set(entries.filter((e) => e.role === "stamm").map((e) => e.playerId));
+  const doppelIds = new Set(entries.filter((e) => e.role === "doppel").map((e) => e.playerId));
   const ersatzIds = new Set(entries.filter((e) => e.role === "ersatz").map((e) => e.playerId));
   // Singles are played in Meldeliste order (§ 33b Ziff. 1): number the starters as the list runs.
   const singles = new Map<number, number>();
@@ -74,6 +75,7 @@ export default async function MeldelistePage({
       <ol className="divide-y divide-[var(--color-border)] rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 text-sm">
         {list.map((r) => {
           const single = singles.get(r.playerId);
+          const doppel = doppelIds.has(r.playerId);
           const ersatz = ersatzIds.has(r.playerId);
           return (
             <li key={r.playerId} className="flex items-center gap-2 py-2">
@@ -81,7 +83,7 @@ export default async function MeldelistePage({
                 {r.position}
               </span>
               <span className="min-w-0 flex-1">
-                <span className={`block truncate ${single || ersatz ? "font-semibold" : ""}`}>
+                <span className={`block truncate ${single || doppel || ersatz ? "font-semibold" : ""}`}>
                   {officialName(r.wtbId, r.name)}
                   {r.nationality ? ` (${r.nationality})` : ""}
                 </span>
@@ -94,6 +96,10 @@ export default async function MeldelistePage({
               {single ? (
                 <span className="shrink-0 rounded-full bg-[var(--color-ja-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-ja)]">
                   Einzel {single}
+                </span>
+              ) : doppel ? (
+                <span className="shrink-0 rounded-full bg-[var(--color-ja-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-ja)]">
+                  Nur Doppel
                 </span>
               ) : ersatz ? (
                 <span className="shrink-0 rounded-full bg-[var(--color-vielleicht-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-vielleicht)]">

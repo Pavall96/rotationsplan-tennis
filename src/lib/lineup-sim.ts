@@ -4,7 +4,7 @@
 import type { MatchView } from "@/lib/matches";
 import type { RosterRow } from "@/lib/roster";
 import { rosterByPlayer } from "@/lib/roster";
-import { lineupContext, type LineupEntry } from "@/lib/lineups";
+import { lineupContext, plays as playsIn, type LineupEntry } from "@/lib/lineups";
 import { availabilityKey, type AvailabilityStatus } from "@/lib/availability";
 import { FESTSPIEL_WARNING, isNonGerman, lineupCheck, tooManyNonGermans } from "@/lib/eligibility";
 import { formatTime } from "@/lib/format";
@@ -146,7 +146,7 @@ export function buildSimulation(
     const perTeam: Record<string, number> = {};
     for (const m of earlier) {
       const plays = (lineupsByMatch.get(m.id) ?? []).some(
-        (e) => e.playerId === playerId && e.role === "stamm" && e.response !== "nein",
+        (e) => e.playerId === playerId && playsIn(e.role) && e.response !== "nein",
       );
       if (plays) perTeam[m.team.name] = (perTeam[m.team.name] ?? 0) + 1;
     }

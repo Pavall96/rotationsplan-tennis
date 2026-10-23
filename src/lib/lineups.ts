@@ -5,7 +5,13 @@ import { playerLabel } from "@/lib/format";
 import type { AgeClass, MatchView } from "@/lib/matches";
 import type { LineupContext } from "@/lib/eligibility";
 
-export type LineupRole = "stamm" | "ersatz";
+/** `doppel`: comes along for the doubles only — not in the singles (WSPO allows doubles players who played no single). */
+export type LineupRole = "stamm" | "doppel" | "ersatz";
+
+/** Everyone who actually plays — singles or doubles — as opposed to the Ersatz on standby. */
+export function plays(role: LineupRole): boolean {
+  return role === "stamm" || role === "doppel";
+}
 
 export type LineupEntry = {
   playerId: number;
@@ -71,9 +77,9 @@ export function lineupContext(
 ): LineupContext {
   const inLineup = (m: MatchView) => (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId);
 
-  // A Stammspieler who cancelled didn't play, so that match doesn't count toward Festspielen.
+  // A doubles appearance counts as an Einsatz too. A player who cancelled didn't play, so that match doesn't count.
   const playedFor = (m: MatchView) =>
-    (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId && e.role === "stamm" && e.response !== "nein");
+    (lineupsByMatch.get(m.id) ?? []).some((e) => e.playerId === playerId && plays(e.role) && e.response !== "nein");
   const firstTeamAppearances = allMatches.filter(
     (m) =>
       m.team.ageClass === match.team.ageClass &&
@@ -119,6 +125,11 @@ export function responseAlerts(
 
   if (role === "stamm") {
     if (next === "nein") return { captain: "absage", askErsatz: true };
+    return previous === "nein" ? { captain: "doch-dabei", askErsatz: false } : none;
+  }
+  // A doubles-only player is missed less: the singles players can make up the doubles, so the Ersatz isn't asked.
+  if (role === "doppel") {
+    if (next === "nein") return { captain: "absage", askErsatz: false };
     return previous === "nein" ? { captain: "doch-dabei", askErsatz: false } : none;
   }
   if (!stammMissing) return none;

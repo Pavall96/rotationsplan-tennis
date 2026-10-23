@@ -148,12 +148,14 @@ export function matchToIcsEvent(
 ): IcsEvent {
   const me = lineup.find((e) => e.playerId === player.id);
   const stamm = lineup.filter((e) => e.role === "stamm" && e.response !== "nein").map((e) => e.name);
+  const doppel = lineup.filter((e) => e.role === "doppel" && e.response !== "nein").map((e) => e.name);
   const venue = match.venue;
   return {
     uid: `match-${match.id}-player-${player.id}@rotationsplan-tennis`,
     summary: `Punktspiel ${match.team.name} ${match.isHome ? "gegen" : "bei"} ${match.opponent}`,
     description: [
       `Aufstellung: ${stamm.join(", ")}`,
+      ...(doppel.length ? [`Nur Doppel: ${doppel.join(", ")}`] : []),
       `Route, Zu-/Absage und Fahrgemeinschaft: ${baseUrl}/spieler/${player.token}/punktspiele#spiel-${match.id}`,
     ].join("\n"),
     location: venue ? (venue.address ? `${venue.name}, ${venue.address}` : venue.name) : "",

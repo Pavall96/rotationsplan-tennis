@@ -6,6 +6,8 @@ export type SameDayMatch = {
   match: MatchView;
   /** Stamm entries; `declined` ones said "nein" and don't count as lined up. */
   stamm: { name: string; declined: boolean }[];
+  /** Lined up for the doubles only. */
+  doppel: string[];
   ersatz: string[];
   marked: string[];
   captainName: string | null;
@@ -38,6 +40,11 @@ export function SameDayBlock({ matches }: { matches: SameDayMatch[] }) {
               </span>{" "}
               {s.stamm.length ? s.stamm.map((e) => (e.declined ? `${e.name} (abgesagt)` : e.name)).join(", ") : "noch niemand"}
             </p>
+            {s.doppel.length > 0 && (
+              <p>
+                <span className="font-semibold">Nur Doppel:</span> {s.doppel.join(", ")}
+              </p>
+            )}
             {s.ersatz.length > 0 && (
               <p>
                 <span className="font-semibold">Ersatz:</span> {s.ersatz.join(", ")}

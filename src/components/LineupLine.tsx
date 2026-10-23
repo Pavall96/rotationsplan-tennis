@@ -29,13 +29,14 @@ export function LineupLine({
   if (!viewer) return <p className="mt-3 text-xs text-[var(--color-ink-muted)]">Aufstellung steht.</p>;
 
   const stamm = entries.filter((e) => e.role === "stamm");
+  const doppel = entries.filter((e) => e.role === "doppel");
   const mine = entries.find((e) => e.playerId === viewer.playerId);
   const someoneMissing = stamm.some((e) => e.response === "nein");
   const dayCaptain = activeMatchCaptain(matchCaptain, entries);
   const iAmDayCaptain = dayCaptain?.playerId === viewer.playerId;
 
   let labels: { ja: string; nein: string } | null = null;
-  if (mine?.role === "stamm") labels = { ja: "Ich bin dabei", nein: "Ich kann doch nicht" };
+  if (mine?.role === "stamm" || mine?.role === "doppel") labels = { ja: "Ich bin dabei", nein: "Ich kann doch nicht" };
   if (mine?.role === "ersatz") {
     labels = someoneMissing
       ? { ja: "Ich springe ein", nein: "Ich kann nicht" }
@@ -49,7 +50,7 @@ export function LineupLine({
           className={`mb-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
             mine.response === "nein"
               ? "bg-[var(--color-nein-bg)] text-[var(--color-nein)]"
-              : mine.role === "stamm"
+              : mine.role === "stamm" || mine.role === "doppel"
                 ? "bg-[var(--color-ja-bg)] text-[var(--color-ja)]"
                 : "bg-[var(--color-vielleicht-bg)] text-[var(--color-vielleicht)]"
           }`}
@@ -58,7 +59,9 @@ export function LineupLine({
             ? "Du hast abgesagt – der Mannschaftsführer weiß Bescheid"
             : mine.role === "stamm"
               ? "Du spielst"
-              : someoneMissing
+              : mine.role === "doppel"
+                ? "Du spielst Doppel – kein Einzel"
+                : someoneMissing
                 ? "Du bist Ersatz – es fehlt jemand!"
                 : "Du bist Ersatz – halt dir den Termin frei"}
         </p>
@@ -73,6 +76,18 @@ export function LineupLine({
           </span>
         ))}
       </p>
+      {doppel.length > 0 && (
+        <p className="mt-1">
+          <span className="font-semibold">Nur Doppel:</span>{" "}
+          {doppel.map((e, i) => (
+            <span key={e.playerId}>
+              {i > 0 && ", "}
+              <span className={e.response === "nein" ? "text-[var(--color-nein)] line-through" : ""}>{e.name}</span>
+              {e.response === "ja" && <CheckIcon className="ml-0.5 inline h-3 w-3 text-[var(--color-ja)]" />}
+            </span>
+          ))}
+        </p>
+      )}
       {dayCaptain && (
         <p className="mt-1">
           <span className="font-semibold">Mannschaftsführer am Spieltag:</span> {iAmDayCaptain ? "du" : dayCaptain.name}

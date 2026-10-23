@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { responseAlerts, type LineupEntry } from "./lineups";
 
-const entry = (playerId: number, role: "stamm" | "ersatz", response: "ja" | "nein" | null): LineupEntry => ({
+const entry = (playerId: number, role: "stamm" | "doppel" | "ersatz", response: "ja" | "nein" | null): LineupEntry => ({
   playerId,
   name: `P${playerId}`,
   role,
@@ -37,6 +37,16 @@ test("the Ersatz only matters to the captain once someone is missing", () => {
   assert.equal(responseAlerts("ersatz", null, "nein", missing).captain, "ersatz-kann-nicht");
 });
 
+test("a doubles-only player's Absage tells the captain but doesn't ask the Ersatz", () => {
+  const after = [entry(1, "stamm", "ja"), entry(3, "doppel", "nein"), entry(5, "ersatz", null)];
+  assert.deepEqual(responseAlerts("doppel", null, "nein", after), { captain: "absage", askErsatz: false });
+  assert.deepEqual(responseAlerts("doppel", "nein", "ja", [entry(3, "doppel", "ja")]), {
+    captain: "doch-dabei",
+    askErsatz: false,
+  });
+  assert.deepEqual(responseAlerts("doppel", null, "ja", [entry(3, "doppel", "ja")]), { captain: null, askErsatz: false });
+});
+
 test("lineupContext: Festspiel count and same-day check", async () => {
   const { lineupContext } = await import("./lineups");
   const match = (id: number, date: string, ageClass: "herren" | "h30", rank: number) =>
@@ -68,4 +78,29 @@ test("lineupContext: Festspiel count and same-day check", async () => {
   const ctx = lineupContext(7, true, h30Second, all, lineups);
   assert.equal(ctx.firstTeamAppearances, 1);
   assert.equal(ctx.sameDayTeam, "herren 1");
+});
+
+test("lineupContext: a doubles-only appearance counts toward Festspielen", async () => {
+  const { lineupContext } = await import("./lineups");
+  const match = (id: number, date: string, rank: number) =>
+    ({
+      id,
+      matchDate: date,
+      startsAt: new Date(`${date}T18:00:00+01:00`),
+      isHome: true,
+      opponent: "X",
+      playersNeeded: 4,
+      lineupPublishedAt: null,
+      scheduleVersion: 0,
+      team: { id: rank, slug: "", name: `herren ${rank}`, ageClass: "herren", rank },
+      venue: null,
+    }) as const;
+  const first1 = match(1, "2026-11-14", 1);
+  const first2 = match(2, "2026-12-05", 1);
+  const second = match(3, "2027-01-16", 2);
+  const lineups = new Map<number, LineupEntry[]>([
+    [1, [entry(7, "doppel", "ja")]],
+    [2, [entry(7, "doppel", "nein")]], // cancelled: didn't play
+  ]);
+  assert.equal(lineupContext(7, true, second, [first1, first2, second], lineups).firstTeamAppearances, 1);
 });

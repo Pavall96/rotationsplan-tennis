@@ -152,6 +152,7 @@ export default async function CaptainPage({
           <div className="border-t border-[var(--color-border)]">
             {otherMatches.map((m) => {
               const stamm = (lineupsByMatch.get(m.id) ?? []).filter((e) => e.role === "stamm");
+              const doppel = (lineupsByMatch.get(m.id) ?? []).filter((e) => e.role === "doppel");
               return (
                 <div key={m.id} className="border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0">
                   <span className="flex items-center justify-between gap-2">
@@ -173,6 +174,7 @@ export default async function CaptainPage({
                   {stamm.length > 0 && (
                     <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-muted)]">
                       {stamm.map((e) => e.name).join(", ")}
+                      {doppel.length > 0 && ` · Doppel: ${doppel.map((e) => e.name).join(", ")}`}
                     </span>
                   )}
                 </div>
@@ -312,6 +314,8 @@ function OwnMatchCard({
 }) {
   const stamm = entries.filter((e) => e.role === "stamm");
   const declined = stamm.filter((e) => e.response === "nein").length;
+  const doppel = entries.filter((e) => e.role === "doppel");
+  const doppelDeclined = doppel.filter((e) => e.response === "nein").length;
   const published = Boolean(match.lineupPublishedAt);
   const unpublishedChanges = published && entries.some((e) => !e.published);
   const full = stamm.length - declined >= match.playersNeeded;
@@ -320,10 +324,17 @@ function OwnMatchCard({
     ? { text: stamm.length ? "Noch nicht veröffentlicht" : "Noch niemand aufgestellt", color: "text-[var(--color-ink-muted)]" }
     : declined > 0
       ? { text: `${declined} ${declined === 1 ? "Absage" : "Absagen"} – Ersatz nötig`, color: "text-[var(--color-nein)]" }
-      : unpublishedChanges
-        ? { text: "Änderungen noch nicht veröffentlicht", color: "text-[var(--color-h30)]" }
-        : { text: "Veröffentlicht", color: "text-[var(--color-ja)]" };
-  const action = !stamm.length ? "Aufstellen" : published && !declined && !unpublishedChanges ? "Ansehen" : "Weiter";
+      : doppelDeclined > 0
+        ? { text: `${doppelDeclined} ${doppelDeclined === 1 ? "Absage" : "Absagen"} im Doppel`, color: "text-[var(--color-h30)]" }
+        : unpublishedChanges
+          ? { text: "Änderungen noch nicht veröffentlicht", color: "text-[var(--color-h30)]" }
+          : { text: "Veröffentlicht", color: "text-[var(--color-ja)]" };
+  const action =
+    !stamm.length && !doppel.length
+      ? "Aufstellen"
+      : published && !declined && !doppelDeclined && !unpublishedChanges
+        ? "Ansehen"
+        : "Weiter";
 
   return (
     <Link
@@ -350,6 +361,11 @@ function OwnMatchCard({
       )}
       {stamm.length > 0 && (
         <span className="mt-1.5 block truncate text-xs">{stamm.map((e) => e.name).join(", ")}</span>
+      )}
+      {doppel.length > 0 && (
+        <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-muted)]">
+          Nur Doppel: {doppel.map((e) => e.name).join(", ")}
+        </span>
       )}
       <span className="mt-3 flex items-center justify-between gap-2">
         <span className="min-w-0">
