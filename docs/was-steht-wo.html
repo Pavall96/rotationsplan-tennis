@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Was steht wo – Rotationsplan TC Sonnenbrunnen</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  :root { --brand: #11324E; --brand-bg: #E7ECF1; --ink: #15201C; --muted: #4B5952; --faint: #8B9890; --border: #E6E6DD; --bg: #F6F6F1; --ja: #1F8B4C; --h30: #A5560F; }
+  html, body { margin: 0; }
+  body { width: 210mm; height: 297mm; padding: 11mm 12mm 9mm; font-family: "Work Sans", sans-serif; font-size: 8.4pt; line-height: 1.32; color: var(--ink); background: #fff; display: flex; flex-direction: column; }
+  h1, h2, h3 { font-family: "Space Grotesk", sans-serif; margin: 0; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 2px solid var(--brand); padding-bottom: 3mm; margin-bottom: 4mm; }
+  header h1 { font-size: 20pt; color: var(--brand); line-height: 1; }
+  header p { margin: 1.5mm 0 0; color: var(--muted); font-size: 9pt; }
+  header .meta { text-align: right; font-size: 8pt; color: var(--muted); }
+  header .meta b { color: var(--brand); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .card { border: 1px solid var(--border); border-radius: 3mm; padding: 3mm 3.5mm; background: #fff; }
+  .card h2 { font-size: 10.5pt; color: var(--brand); margin-bottom: 1.5mm; display: flex; align-items: center; gap: 2mm; }
+  .card h2 .where { margin-left: auto; font-family: "Work Sans", sans-serif; font-size: 7.4pt; font-weight: 500; color: var(--faint); }
+  .num { display: inline-flex; width: 4.6mm; height: 4.6mm; border-radius: 50%; background: var(--brand); color: #fff; font-size: 7.5pt; align-items: center; justify-content: center; font-family: "Space Grotesk"; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  li { padding: 0.5mm 0 0.5mm 3.2mm; position: relative; }
+  li::before { content: ""; position: absolute; left: 0; top: 2.1mm; width: 1.2mm; height: 1.2mm; border-radius: 50%; background: var(--faint); }
+  li b { font-weight: 600; }
+  .mf { background: var(--bg); border: 1px solid var(--border); border-radius: 3mm; padding: 3mm 3.5mm; margin: 3.5mm 0; }
+  .mf > h2 { font-size: 12pt; color: var(--brand); margin-bottom: 1mm; }
+  .mf > p { margin: 0 0 3mm; color: var(--muted); }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; }
+  .tab { background: #fff; border: 1px solid var(--border); border-radius: 2.5mm; padding: 2.5mm 3mm; }
+  .tab h3 { font-size: 9.5pt; display: flex; align-items: center; gap: 1.6mm; margin-bottom: 1mm; }
+  .tab h3 svg { width: 4.4mm; height: 4.4mm; color: var(--brand); }
+  .tab li { font-size: 8pt; }
+  .devices { display: grid; grid-template-columns: 34mm 1fr; gap: 4mm; align-items: center; margin-top: 3mm; }
+  .phone { width: 22mm; height: 32mm; border: 1.6px solid var(--ink); border-radius: 4mm; position: relative; overflow: hidden; background: #fff; }
+  .phone .line { height: 1.3mm; margin: 1.8mm 2mm 0; border-radius: 1mm; background: var(--border); }
+  .phone .bar { position: absolute; left: 0; right: 0; bottom: 0; border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 1.4mm 0 1.8mm; background: #fff; }
+  .phone .bar span, .laptop .side span { width: 3.2mm; height: 3.2mm; border-radius: 1mm; background: var(--border); }
+  .phone .bar span.on, .laptop .side span.on { background: var(--brand); }
+  .devtext b { color: var(--brand); }
+  .laptop { width: 50mm; height: 26mm; border: 1.6px solid var(--ink); border-radius: 2mm; display: grid; grid-template-columns: 11mm 1fr 1fr; gap: 1.5mm; padding: 2mm; background: #fff; }
+  .laptop .side { display: flex; flex-direction: column; gap: 1.6mm; border-right: 1px solid var(--border); padding-right: 1.5mm; }
+  .laptop .side span { width: 100%; height: 2.4mm; }
+  .laptop .col { border: 1px solid var(--border); border-radius: 1.2mm; }
+  .devrow { display: flex; gap: 6mm; align-items: center; }
+  .flows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm; }
+  .flow { border-left: 2px solid var(--brand); padding: 0.5mm 0 0.5mm 2.5mm; }
+  .flow h3 { font-size: 9pt; margin-bottom: 0.6mm; }
+  .flow p { margin: 0; font-size: 8pt; color: var(--muted); }
+  .arrow { color: var(--brand); font-weight: 600; }
+  .pill { display: inline-block; padding: 0 1.6mm; border-radius: 3mm; background: var(--brand-bg); color: var(--brand); font-weight: 600; font-size: 7.6pt; white-space: nowrap; }
+  .pill.o { background: #fff; border: 1px solid #D8D8CE; color: var(--ink); }
+  .pill.d { background: #fff; border: 1px dashed #D8D8CE; color: var(--muted); }
+  footer { margin-top: auto; padding-top: 2.5mm; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 7.4pt; color: var(--faint); }
+  .sec-title { font-family: "Space Grotesk"; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 2mm; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Was steht wo?</h1>
+    <p>Rotationsplan TC Sonnenbrunnen · Wintertraining und Winterspiele 2026/27</p>
+  </div>
+  <div class="meta"><b>rotationsplan-tennis.vercel.app</b><br>Für Mannschaftsführer · Stand Oktober 2026</div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2><span class="num">1</span> Startseite <span class="where">ohne Login</span></h2>
+    <ul>
+      <li><b>Nächster Termin</b> und alle kommenden Trainings und Punktspiele</li>
+      <li>Umschalter <b>Liste / Kalender</b> für die ganze Saison</li>
+      <li><b>Winterspiele der Mannschaften</b> – alle Spiele mit Ort und Route</li>
+      <li>Ganz oben: <b>Zu meinen Terminen</b> bzw. „Noch keinen persönlichen Link?“</li>
+      <li>Für Mannschaftsführer: dunkle Taste <b>Mannschaftsführer-Bereich</b></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2><span class="num">2</span> Meine Seite <span class="where">persönlicher Link</span></h2>
+    <ul>
+      <li><b>Deine Punktspiele</b>: Aufstellung sehen, zu- oder absagen, Fahrgemeinschaft</li>
+      <li><b>Wann kannst du spielen?</b> – Verfügbarkeit für die Spieltage eintragen</li>
+      <li><b>Training</b>: nächste Termine, zu- oder absagen, <b>Freie Plätze</b> zum Einspringen</li>
+      <li><b>Kalender abonnieren</b> – Training und eigene Spiele aufs Handy</li>
+      <li>Taste oben: <b>Mannschaftsführer-Bereich</b> und <b>Winterspiele</b></li>
+    </ul>
+  </div>
+</div>
+
+<section class="mf">
+  <h2><span class="num">3</span>&nbsp; Mannschaftsführer-Bereich – vier Tabs</h2>
+  <p>Am Handy ist die Leiste <b>unten</b>, am Computer <b>links</b>. Jeder Tab zeigt nur seinen Teil – kein langes Scrollen mehr.</p>
+  <div class="tabs">
+    <div class="tab">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.3 3.3 3.3 9.5 0 12.8M18.4 5.6c-3.3 3.3-3.3 9.5 0 12.8"/></svg>Spiele</h3>
+      <ul>
+        <li>Deine Spiele mit Stand: „2 von 4 aufgestellt“, Absagen, veröffentlicht</li>
+        <li>Spiel antippen → <b>Aufstellung</b></li>
+        <li>Andere Teams zum Mitlesen</li>
+      </ul>
+    </div>
+    <div class="tab">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.4c1.8.8 3 2.8 3 5.6"/></svg>Wer kann?</h3>
+      <ul>
+        <li>Antworten pro Spieltag: können, vielleicht, nicht, offen</li>
+        <li>Antippen für Namen</li>
+        <li><b>WhatsApp-Erinnerung</b> an die Gruppe</li>
+      </ul>
+    </div>
+    <div class="tab">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Simulation</h3>
+      <ul>
+        <li>Claude schlägt die Teams eines Spieltags vor</li>
+        <li>Stark / Mitte / Rotation, Spieler festlegen oder ausschließen</li>
+        <li>Vorschlag <b>vormerken</b> – nichts wird automatisch aufgestellt</li>
+      </ul>
+    </div>
+    <div class="tab">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 6h10M10 12h10M10 18h10M4 5h1v3M4 8h2"/></svg>Meldeliste</h3>
+      <ul>
+        <li>Herren und H30 (am Computer nebeneinander)</li>
+        <li>„spielt nicht“, <b>Einladen</b> per WhatsApp</li>
+        <li><b>Spieler hinzufügen</b>, wer nicht gemeldet ist</li>
+      </ul>
+    </div>
+  </div>
+  <div class="devrow" style="margin-top:3mm">
+    <div class="phone"><div class="line" style="width:60%;background:#C9D2DA"></div><div class="line"></div><div class="line" style="width:75%"></div><div class="line"></div><div class="line" style="width:50%"></div><div class="bar"><span></span><span></span><span class="on"></span><span></span></div></div>
+    <div class="devtext" style="width:38mm"><b>Handy</b><br>Leiste unten, bleibt beim Scrollen stehen.</div>
+    <div class="laptop"><div class="side"><span class="on"></span><span></span><span></span><span></span></div><div class="col"></div><div class="col"></div></div>
+    <div class="devtext"><b>Computer</b><br>Leiste links, Inhalt in zwei Spalten nebeneinander.</div>
+  </div>
+</section>
+
+<div class="card" style="margin-bottom:4mm">
+  <h2><span class="num">4</span> Spielseite – die Aufstellung eines Spiels <span class="where">Spiele → Spiel antippen</span></h2>
+  <div class="grid" style="gap:5mm">
+    <ul>
+      <li>Oben: <span class="pill o">Meldeliste ansehen</span> und <span class="pill">Spieltag simulieren</span> (öffnet die Simulation mit diesem Tag)</li>
+      <li><b>Aufstellung</b>: Einzel nach Meldeliste (1–4), darunter <b>Nur Doppel (D)</b> und <b>Ersatz (E)</b></li>
+      <li><b>Mannschaftsführer am Spieltag</b> eintragen, wenn du selbst nicht spielst</li>
+      <li>Rote Hinweise: Absagen, Nicht-Deutsche, nicht mehr spielberechtigt</li>
+      <li><b>Veröffentlichen</b> – erst dann sehen die Spieler es und bekommen eine Mail</li>
+    </ul>
+    <ul>
+      <li><b>Spielberechtigt</b>, nach Antwort sortiert: können, vielleicht, …</li>
+      <li>Je Spieler: <span class="pill" style="background:var(--brand);color:#fff">Aufstellen</span> <span class="pill o">Nur Doppel</span> <span class="pill o">Ersatz</span> <span class="pill d">Vormerken</span></li>
+      <li><b>Am selben Tag</b>: wer bei anderen Teams steht, ist hier gesperrt</li>
+      <li>Am Computer: Aufstellung links, Spielerliste rechts</li>
+    </ul>
+  </div>
+</div>
+
+<p class="sec-title">So geht's</p>
+<div class="flows">
+  <div class="flow"><h3>Aufstellung machen</h3><p>Spiele <span class="arrow">→</span> Spiel antippen <span class="arrow">→</span> Aufstellen / Nur Doppel / Ersatz <span class="arrow">→</span> Veröffentlichen</p></div>
+  <div class="flow"><h3>Vorschlag holen</h3><p>Spielseite <span class="arrow">→</span> Spieltag simulieren <span class="arrow">→</span> Simulieren <span class="arrow">→</span> eigenes Team vormerken</p></div>
+  <div class="flow"><h3>Antworten einsammeln</h3><p>Wer kann? <span class="arrow">→</span> fehlende Antworten sehen <span class="arrow">→</span> WhatsApp-Erinnerung schicken</p></div>
+</div>
+
+<footer>
+  <span>Absage eines Spielers: Du bekommst eine Mail, der Ersatz wird gefragt (bei „Nur Doppel“ nicht).</span>
+  <span>TC Sonnenbrunnen</span>
+</footer>
+</body>
+</html>
