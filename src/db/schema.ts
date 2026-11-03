@@ -173,7 +173,7 @@ export const matches = pgTable("matches", {
   // Bumped by the WTB import whenever date, time or hall change — used as the calendar event's SEQUENCE.
   scheduleVersion: smallint("schedule_version").notNull().default(0),
   // Spieltags-Mannschaftsführer: a lined-up player who stands in when the team's Mannschaftsführer doesn't play.
-  // Display and alerts only — lining up and publishing stay with teams.captainPlayerId.
+  // Display and alerts only — lining up and publishing stay with the Mannschaftsführer (teams.captainPlayerId).
   matchCaptainPlayerId: integer("match_captain_player_id").references(() => players.id),
 });
 

@@ -32,11 +32,10 @@ export default async function MeldelistePage({
 
   // Only the Mannschaftsführer and this match's Spieltags-Mannschaftsführer — the list carries WTB ID numbers.
   const isCaptain = teamList.some((t) => t.captainPlayerId === player.id);
-  const ownTeam = teamList.some((t) => t.id === match.team.id && t.captainPlayerId === player.id);
   if (!isCaptain && matchCaptains.get(matchId)?.playerId !== player.id) notFound();
 
-  // The team's own Mannschaftsführer sees the lineup as planned; everyone else only what is published.
-  const entries = ((await getLineups({ publishedOnly: !ownTeam })).get(matchId) ?? []).filter((e) => e.response !== "nein");
+  // Mannschaftsführer (who may line up every team) see the lineup as planned; everyone else only what is published.
+  const entries = ((await getLineups({ publishedOnly: !isCaptain })).get(matchId) ?? []).filter((e) => e.response !== "nein");
   const list = roster.filter((r) => r.ageClass === match.team.ageClass);
   const stammIds = new Set(entries.filter((e) => e.role === "stamm").map((e) => e.playerId));
   const doppelIds = new Set(entries.filter((e) => e.role === "doppel").map((e) => e.playerId));
@@ -50,11 +49,11 @@ export default async function MeldelistePage({
   return (
     <main className="max-w-md mx-auto w-full px-4 py-6 flex-1">
       <Link
-        href={ownTeam ? `/spieler/${token}/mannschaftsfuehrer/spiel/${matchId}` : `/spieler/${token}/punktspiele#spiel-${matchId}`}
+        href={isCaptain ? `/spieler/${token}/mannschaftsfuehrer/spiel/${matchId}` : `/spieler/${token}/punktspiele#spiel-${matchId}`}
         className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]"
       >
         <ArrowLeftIcon className="h-3.5 w-3.5" />
-        {ownTeam ? "Zur Aufstellung" : "Zu den Winterspielen"}
+        {isCaptain ? "Zur Aufstellung" : "Zu den Winterspielen"}
       </Link>
 
       <header className="my-4">

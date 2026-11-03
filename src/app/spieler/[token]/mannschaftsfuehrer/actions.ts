@@ -6,7 +6,7 @@ import { after } from "next/server";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { players, teams } from "@/db/schema";
-import { getAllMatches, getTeams, type AgeClass } from "@/lib/matches";
+import { getAllMatches, type AgeClass } from "@/lib/matches";
 import { getRoster, rosterByPlayer, activeRows } from "@/lib/roster";
 import { getAvailability, openDaysByPlayer } from "@/lib/availability";
 import { getLineups } from "@/lib/lineups";
@@ -165,8 +165,6 @@ export type SimTeamView = {
   team: string;
   ageClass: AgeClass;
   heading: string;
-  /** The viewer's own team — they can mark the proposal there. */
-  own: boolean;
   playersNeeded: number;
   stamm: (SimPlayerView & { fixed: boolean })[];
   ersatz: (SimPlayerView & { fixed: boolean })[];
@@ -223,12 +221,11 @@ export async function simulateLineups(token: string, req: SimulationRequest): Pr
   const notes = String(req.notes ?? "").trim().slice(0, 500);
   const date = String(req.date ?? "");
 
-  const [allMatches, roster, answers, lineupsByMatch, teamList] = await Promise.all([
+  const [allMatches, roster, answers, lineupsByMatch] = await Promise.all([
     getAllMatches(),
     getRoster(),
     getAvailability(),
     getLineups(),
-    getTeams(),
   ]);
   if (date < formatDateForFile(new Date()) || !allMatches.some((m) => m.matchDate === date)) {
     return { ok: false, error: "An dem Tag gibt es kein anstehendes Spiel." };
@@ -262,8 +259,6 @@ export async function simulateLineups(token: string, req: SimulationRequest): Pr
       : null;
     return { playerId: id, name: p?.name ?? `Spieler ${id}`, lists: p?.lists ?? "", note };
   };
-  const myTeams = new Set(teamList.filter((t) => t.captainPlayerId === captain.id).map((t) => t.id));
-
   return {
     ok: true,
     teams: result.day.teams.map((t) => {
@@ -274,7 +269,6 @@ export async function simulateLineups(token: string, req: SimulationRequest): Pr
         team: m.team.name,
         ageClass: m.team.ageClass,
         heading: `${sim.time} ${m.isHome ? "vs" : "@"} ${m.opponent}`,
-        own: myTeams.has(m.team.id),
         playersNeeded: m.playersNeeded,
         stamm: t.stamm.map((id) => ({ ...view(id), fixed: sim.fixedStamm.includes(id) })),
         ersatz: t.ersatz.map((id) => ({ ...view(id), fixed: sim.fixedErsatz.includes(id) })),
