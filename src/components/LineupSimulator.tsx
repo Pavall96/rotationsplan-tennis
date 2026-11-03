@@ -27,7 +27,7 @@ const FOCI = [
 
 type Choice = "pin" | "out";
 
-/** Claude proposes the lineups of a whole Spieltag; the captain can mark their own team's part of it. */
+/** Claude proposes the lineups of a whole Spieltag; the captain can mark each team's part of it. */
 export function LineupSimulator({
   token,
   days,
@@ -355,7 +355,7 @@ function TeamProposal({ token, team, blocked }: { token: string; team: SimTeamVi
         </>
       )}
       {team.begruendung && <p className="mt-1.5 text-xs text-[var(--color-ink-muted)]">{team.begruendung}</p>}
-      {team.own && toMark.length > 0 && !blocked && !state && (
+      {toMark.length > 0 && !blocked && !state && (
         <button
           type="button"
           disabled={pending}

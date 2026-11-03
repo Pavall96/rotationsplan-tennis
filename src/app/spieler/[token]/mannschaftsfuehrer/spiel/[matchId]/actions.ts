@@ -18,19 +18,21 @@ import { refreshMatchPreview } from "@/lib/scouting-store";
 
 type Result = { error?: string } | void;
 
-/** The match, if the token belongs to that team's Mannschaftsführer and the match is still ahead. */
+/**
+ * The match, if the token belongs to a Mannschaftsführer and the match is still ahead. Any Mannschaftsführer may line
+ * up any team — they coordinate among themselves; the team's own captain still gets the Absagen.
+ */
 async function captainMatch(token: string, matchId: number): Promise<{ match: MatchView; all: MatchView[] } | null> {
   const [captain] = await getDb()
-    .select({ teamId: teams.id })
+    .select({ id: players.id })
     .from(players)
     .innerJoin(teams, eq(teams.captainPlayerId, players.id))
-    .innerJoin(matches, eq(matches.teamId, teams.id))
-    .where(and(eq(players.token, token), eq(matches.id, matchId), sql`${matches.startsAt} > now()`))
+    .where(eq(players.token, token))
     .limit(1);
   if (!captain) return null;
   const all = await getAllMatches();
   const match = all.find((m) => m.id === matchId);
-  return match ? { match, all } : null;
+  return match && match.startsAt > new Date() ? { match, all } : null;
 }
 
 function refresh() {
@@ -53,7 +55,7 @@ export async function addToLineup(formData: FormData): Promise<Result> {
   if (role !== "stamm" && role !== "doppel" && role !== "ersatz") return { error: "Ungültige Rolle." };
 
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann aufstellen." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können aufstellen." };
   const { match, all } = ctx;
 
   const db = getDb();
@@ -102,7 +104,7 @@ export async function removeFromLineup(formData: FormData): Promise<Result> {
   const playerId = Number(formData.get("playerId"));
 
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann aufstellen." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können aufstellen." };
   const { match } = ctx;
 
   const [removed] = await getDb()
@@ -151,7 +153,7 @@ export async function markPlayer(formData: FormData): Promise<Result> {
   const playerId = Number(formData.get("playerId"));
 
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann vormerken." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können vormerken." };
   const { match, all } = ctx;
 
   const [player] = await getDb().select().from(players).where(eq(players.id, playerId)).limit(1);
@@ -175,7 +177,7 @@ export async function markProposal(
   playerIds: number[],
 ): Promise<{ marked: number; skipped: string[] } | { error: string }> {
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann vormerken." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können vormerken." };
   const { match, all } = ctx;
 
   const [lineupsByMatch, rows] = await Promise.all([
@@ -205,7 +207,7 @@ export async function unmarkPlayer(formData: FormData): Promise<Result> {
   const playerId = Number(formData.get("playerId"));
 
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann Vormerkungen entfernen." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können Vormerkungen entfernen." };
 
   await unmarkStatement(matchId, playerId);
   refresh();
@@ -213,7 +215,7 @@ export async function unmarkPlayer(formData: FormData): Promise<Result> {
 
 /**
  * Sets the Spieltags-Mannschaftsführer (a lined-up player who stands in for the team's Mannschaftsführer), or clears
- * it with an empty playerId. They only see more and hear about Absagen — lining up stays with the team's captain.
+ * it with an empty playerId. They only see more and hear about Absagen — lining up stays with the Mannschaftsführer.
  */
 export async function setMatchCaptain(formData: FormData): Promise<Result> {
   const token = String(formData.get("token") ?? "");
@@ -222,7 +224,7 @@ export async function setMatchCaptain(formData: FormData): Promise<Result> {
   const playerId = raw ? Number(raw) : null;
 
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann das ändern." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können das ändern." };
   const { match } = ctx;
 
   const db = getDb();
@@ -283,7 +285,7 @@ export type PublishPreview = {
  */
 export async function publishLineup(token: string, matchId: number, send: boolean): Promise<PublishPreview | { error: string }> {
   const ctx = await captainMatch(token, matchId);
-  if (!ctx) return { error: "Nur der Mannschaftsführer dieses Teams kann veröffentlichen." };
+  if (!ctx) return { error: "Nur Mannschaftsführer können veröffentlichen." };
   const { match } = ctx;
 
   const [lineupsByMatch, roster] = await Promise.all([getLineups(), getRoster()]);

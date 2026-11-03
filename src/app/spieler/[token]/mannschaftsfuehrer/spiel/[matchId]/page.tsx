@@ -1,18 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayerByToken } from "@/lib/queries";
-import { getAllMatches, getTeams, type MatchView } from "@/lib/matches";
+import { getAllMatches, getTeams } from "@/lib/matches";
 import { getRoster, rosterByPlayer } from "@/lib/roster";
 import { getLineups, lineupContext, singlesOrder, type LineupEntry } from "@/lib/lineups";
 import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
-import {
-  lineupCheck,
-  isNonGerman,
-  tooManyNonGermans,
-  AGE_CLASS_LABEL,
-  type LineupCheck,
-  type PlayerRoster,
-} from "@/lib/eligibility";
+import { lineupCheck, isNonGerman, tooManyNonGermans, AGE_CLASS_LABEL, type LineupCheck } from "@/lib/eligibility";
 import { getMarks, sameDayClaims, appearances, canMark, type Claim, type Appearance } from "@/lib/marks";
 import { getMatchCaptains } from "@/lib/match-captain";
 import { coordinationText, sameDayText, whatsappUrl } from "@/lib/invite";
@@ -93,21 +86,10 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const match = allMatches.find((m) => m.id === matchId);
   const team = teamList.find((t) => t.id === match?.team.id);
   if (!match || !team) notFound();
-  if (team.captainPlayerId !== captain.id) {
-    // Other teams' captains may look but not change anything — the server actions check ownership on their own.
-    if (!teamList.some((t) => t.captainPlayerId === captain.id)) notFound();
-    return (
-      <OtherTeamLineup
-        token={token}
-        match={match}
-        captainName={team.captainName}
-        lineup={lineupsByMatch.get(matchId) ?? []}
-        rosters={rosterByPlayer(roster)}
-        marked={(marksByMatch.get(matchId) ?? []).filter((m) => m.playsMatches).map((m) => m.name)}
-        matchCaptainId={matchCaptains.get(matchId)?.playerId ?? null}
-      />
-    );
-  }
+  // Every Mannschaftsführer may line up every team; the team's own captain is still the one who gets the Absagen.
+  if (!teamList.some((t) => t.captainPlayerId === captain.id)) notFound();
+  const ownTeam = team.captainPlayerId === captain.id;
+  const teamCaptainLabel = ownTeam ? playerLabel(captain) : (team.captainName ?? "kein Mannschaftsführer");
 
   const rosters = rosterByPlayer(roster);
   const people = new Map<number, Omit<Candidate, "status" | "check" | "markable" | "claims" | "appearances"> & { playsMatches: boolean }>();
@@ -221,7 +203,8 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
     );
   }
   const matchCaptainOptions = [...stamm, ...doppel, ...ersatz].filter(
-    (e) => e.playerId !== captain.id && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
+    (e) =>
+      e.playerId !== (team.captainPlayerId ?? captain.id) && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
   );
 
   const sameDay: SameDayMatch[] = allMatches
@@ -264,6 +247,13 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         <p className="text-sm text-[var(--color-ink-muted)]">
           {day} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
+        {!ownTeam && (
+          <p className="mt-2 rounded-lg bg-[var(--color-tabs-bg)] px-2.5 py-2 text-xs text-[var(--color-ink-muted)]">
+            {team.captainName
+              ? `Mannschaftsführer ist ${team.captainName} – du kannst trotzdem aufstellen und veröffentlichen. Absagen gehen an ${team.captainName}.`
+              : "Für dieses Team ist kein Mannschaftsführer eingetragen – du kannst trotzdem aufstellen und veröffentlichen."}
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href={`/spieler/${token}/punktspiele/meldeliste/${matchId}`}
@@ -383,8 +373,9 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               <div className="mb-3 rounded-[10px] border border-[var(--color-border)] px-3 py-2.5">
                 <p className="text-xs font-semibold">Mannschaftsführer am Spieltag</p>
                 <p className="mb-2 text-[11px] text-[var(--color-ink-muted)]">
-                  Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste und
-                  bekommt die Absagen – aufstellen und veröffentlichen kannst weiterhin nur du.
+                  {ownTeam ? "Spielst du selbst nicht mit?" : `Spielt ${teamCaptainLabel} nicht mit?`} Dann trag jemanden
+                  aus der Aufstellung ein. Er sieht die Meldeliste und bekommt die Absagen – aufstellen und
+                  veröffentlichen können weiterhin nur die Mannschaftsführer.
                 </p>
                 <ActionForm action={setMatchCaptain} hidden={hidden} className="flex flex-wrap items-center gap-2">
                   <select
@@ -394,7 +385,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                     aria-label="Mannschaftsführer am Spieltag"
                     className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-2.5 py-2 text-base"
                   >
-                    <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
+                    <option value="">{`${teamCaptainLabel} (Mannschaftsführer)`}</option>
                     {matchCaptainOptions.map((e) => (
                       <option key={e.playerId} value={e.playerId}>
                         {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : e.role === "doppel" ? " (nur Doppel)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
@@ -520,122 +511,6 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
           </section>
         </div>
       </div>
-    </CaptainShell>
-  );
-}
-
-/** Read-only lineup of a team the viewer doesn't captain: who's lined up, in which order, and who answered what. */
-function OtherTeamLineup({
-  token,
-  match,
-  captainName,
-  lineup,
-  rosters,
-  marked,
-  matchCaptainId,
-}: {
-  token: string;
-  match: MatchView;
-  captainName: string | null;
-  lineup: LineupEntry[];
-  rosters: Map<number, PlayerRoster>;
-  marked: string[];
-  matchCaptainId: number | null;
-}) {
-  const lists = (playerId: number) => {
-    const r = rosters.get(playerId) ?? {};
-    return [r.herren && `H ${r.herren.position}`, r.h30 && `H30 ${r.h30.position}`].filter(Boolean).join(" · ");
-  };
-  const withMeta = (e: LineupEntry) => ({
-    ...e,
-    position: rosters.get(e.playerId)?.[match.team.ageClass]?.position ?? null,
-  });
-  const stamm = singlesOrder(lineup.filter((e) => e.role === "stamm").map(withMeta));
-  const doppel = singlesOrder(lineup.filter((e) => e.role === "doppel").map(withMeta));
-  const ersatz = singlesOrder(lineup.filter((e) => e.role === "ersatz").map(withMeta));
-  const declined = stamm.filter((e) => e.response === "nein").length;
-  const published = Boolean(match.lineupPublishedAt);
-  const row = (label: string, e: LineupEntry) => {
-    const response = e.response ? RESPONSE_LABEL[e.response] : null;
-    return (
-      <li key={e.playerId} className="flex items-center gap-2 rounded-[10px] bg-[var(--color-tabs-bg)] px-3 py-2">
-        <span className="w-4 shrink-0 text-xs font-bold text-[var(--color-ink-muted)]">{label}</span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{e.name}</span>
-          <span className="text-[11px] text-[var(--color-ink-faint)]">
-            {lists(e.playerId)}
-            {e.playerId === matchCaptainId && <span className="font-semibold text-[var(--color-brand)]"> · MF am Spieltag</span>}
-            {published && !e.published ? (
-              <span className="font-semibold text-[var(--color-h30)]"> · noch nicht veröffentlicht</span>
-            ) : response ? (
-              <span className={`font-semibold ${response.color}`}> · {response.text}</span>
-            ) : null}
-          </span>
-        </span>
-      </li>
-    );
-  };
-
-  return (
-    <CaptainShell token={token} active="spiele">
-      <Link
-        href={`/spieler/${token}/mannschaftsfuehrer`}
-        className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]"
-      >
-        <ArrowLeftIcon className="h-3.5 w-3.5" />
-        Zum Mannschaftsführer-Bereich
-      </Link>
-
-      <header className="my-4">
-        <TeamChip name={match.team.name} ageClass={match.team.ageClass} />
-        <h1 className="mt-2 font-display text-2xl font-bold leading-tight">
-          {match.isHome ? "gegen" : "bei"} {match.opponent}
-        </h1>
-        <p className="text-sm text-[var(--color-ink-muted)]">
-          {formatDayShort(match.startsAt)} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
-        </p>
-        <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-          {captainName ? `Mannschaftsführer: ${captainName}` : "Kein Mannschaftsführer eingetragen"}
-        </p>
-        <p className="mt-2 rounded-lg bg-[var(--color-tabs-bg)] px-2.5 py-2 text-xs text-[var(--color-ink-muted)]">
-          Nur zum Ansehen – ändern kann nur der Mannschaftsführer dieses Teams.
-        </p>
-      </header>
-
-      <section className="mb-6 max-w-xl rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="font-display font-bold">Aufstellung</h2>
-          <span className="text-xs font-semibold text-[var(--color-ink-muted)]">
-            {stamm.length - declined} von {match.playersNeeded}
-          </span>
-        </div>
-        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-          {published
-            ? "Veröffentlicht – die Spieler sehen sie auf ihrer Seite."
-            : "Noch nicht veröffentlicht – kann sich noch ändern."}
-        </p>
-        <ol className="mb-3 space-y-1.5">
-          {stamm.map((e, i) => row(`${i + 1}`, e))}
-          {stamm.length === 0 && <li className="text-sm text-[var(--color-ink-muted)]">Noch niemand aufgestellt.</li>}
-        </ol>
-        {doppel.length > 0 && (
-          <>
-            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Nur Doppel</p>
-            <ul className="mb-3 space-y-1.5">{doppel.map((e) => row("D", e))}</ul>
-          </>
-        )}
-        {ersatz.length > 0 && (
-          <>
-            <p className="mb-1 text-xs font-semibold text-[var(--color-ink-muted)]">Ersatz</p>
-            <ul className="mb-3 space-y-1.5">{ersatz.map((e) => row("E", e))}</ul>
-          </>
-        )}
-        {marked.length > 0 && (
-          <p className="text-xs text-[var(--color-h30)]">
-            <span className="font-semibold">Vorgemerkt:</span> {marked.join(", ")}
-          </p>
-        )}
-      </section>
     </CaptainShell>
   );
 }
