@@ -595,8 +595,10 @@ function OtherTeamLineup({
           {formatDayShort(match.startsAt)} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
         <p className="mt-1 text-xs text-[var(--color-ink-muted)]">
-          {captainName ? `Mannschaftsführer: ${captainName}` : "Kein Mannschaftsführer eingetragen"} · nur ansehen,
-          ändern kann nur er
+          {captainName ? `Mannschaftsführer: ${captainName}` : "Kein Mannschaftsführer eingetragen"}
+        </p>
+        <p className="mt-2 rounded-lg bg-[var(--color-tabs-bg)] px-2.5 py-2 text-xs text-[var(--color-ink-muted)]">
+          Nur zum Ansehen – ändern kann nur der Mannschaftsführer dieses Teams.
         </p>
       </header>
 
