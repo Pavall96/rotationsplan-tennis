@@ -142,51 +142,60 @@ export default async function CaptainPage({
           </section>
 
           {otherMatches.length > 0 && (
-            <details className="mb-6 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)]">
-              <summary className="cursor-pointer list-none px-3.5 py-2.5">
-                <span className="flex items-center justify-between gap-2 text-sm font-semibold">
-                  Andere Teams
-                  <span className="shrink-0 whitespace-nowrap text-xs font-normal text-[var(--color-ink-muted)]">
-                    zum Mitlesen ▾
-                  </span>
-                </span>
-                <span className="mt-0.5 block text-xs text-[var(--color-ink-muted)]">
-                  Wer dort steht, ist am selben Tag für dich gesperrt.
-                </span>
-              </summary>
-              <div className="border-t border-[var(--color-border)]">
+            <section className="mb-6">
+              <h2 className="mb-1 font-display font-bold">Andere Teams</h2>
+              <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+                Aufstellungen der anderen Mannschaften, auch noch nicht veröffentlichte – antippen für Details. Wer dort
+                steht, ist am selben Tag für dich gesperrt.
+              </p>
+              <div className="overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] lg:grid lg:grid-cols-2">
                 {otherMatches.map((m) => {
-                  const stamm = (lineupsByMatch.get(m.id) ?? []).filter((e) => e.role === "stamm");
-                  const doppel = (lineupsByMatch.get(m.id) ?? []).filter((e) => e.role === "doppel");
+                  const entries = lineupsByMatch.get(m.id) ?? [];
+                  const stamm = entries.filter((e) => e.role === "stamm");
+                  const lined = stamm.filter((e) => e.response !== "nein");
+                  const doppel = entries.filter((e) => e.role === "doppel");
+                  const ersatz = entries.filter((e) => e.role === "ersatz");
+                  const captainName = teamList.find((t) => t.id === m.team.id)?.captainName;
                   return (
-                    <div key={m.id} className="border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
-                          <span className="truncate text-sm">
-                            {formatDayShort(m.startsAt)} {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+                    <Link
+                      key={m.id}
+                      href={`/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}`}
+                      className="flex items-center gap-2 border-b border-[var(--color-border)] px-3.5 py-2.5 last:border-b-0 lg:odd:border-r"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
+                            <span className="truncate text-sm">
+                              {formatDayShort(m.startsAt)} {formatTime(m.startsAt)} {m.isHome ? "vs" : "@"} {m.opponent}
+                            </span>
+                          </span>
+                          <span
+                            className={`shrink-0 text-[11px] font-semibold ${
+                              m.lineupPublishedAt ? "text-[var(--color-ja)]" : "text-[var(--color-ink-muted)]"
+                            }`}
+                          >
+                            {lined.length}/{m.playersNeeded}
+                            {m.lineupPublishedAt ? " · veröffentlicht" : ""}
                           </span>
                         </span>
-                        <span
-                          className={`shrink-0 text-[11px] font-semibold ${
-                            m.lineupPublishedAt ? "text-[var(--color-ja)]" : "text-[var(--color-ink-muted)]"
-                          }`}
-                        >
-                          {stamm.length}/{m.playersNeeded}
-                          {m.lineupPublishedAt ? " · veröffentlicht" : ""}
-                        </span>
-                      </span>
-                      {stamm.length > 0 && (
                         <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-muted)]">
-                          {stamm.map((e) => e.name).join(", ")}
+                          {stamm.length > 0
+                            ? stamm.map((e) => (e.response === "nein" ? `${e.name} (abgesagt)` : e.name)).join(", ")
+                            : "Noch niemand aufgestellt"}
                           {doppel.length > 0 && ` · Doppel: ${doppel.map((e) => e.name).join(", ")}`}
+                          {ersatz.length > 0 && ` · Ersatz: ${ersatz.map((e) => e.name).join(", ")}`}
                         </span>
-                      )}
-                    </div>
+                        {captainName && (
+                          <span className="block truncate text-[11px] text-[var(--color-ink-faint)]">MF: {captainName}</span>
+                        )}
+                      </span>
+                      <ChevronRightIcon className="h-4 w-4 shrink-0 text-[var(--color-ink-faint)]" />
+                    </Link>
                   );
                 })}
               </div>
-            </details>
+            </section>
           )}
         </>
       )}
@@ -206,7 +215,10 @@ export default async function CaptainPage({
             roster={active}
             rosters={activeRosters}
             answers={answers}
-            lineupHref={(m) => (myTeamIds.has(m.team.id) ? `/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}` : null)}
+            lineupLink={(m) => ({
+              href: `/spieler/${token}/mannschaftsfuehrer/spiel/${m.id}`,
+              label: myTeamIds.has(m.team.id) ? "Aufstellen" : "Ansehen",
+            })}
           />
         </section>
       )}
