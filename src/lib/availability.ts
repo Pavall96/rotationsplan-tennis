@@ -84,9 +84,12 @@ export function dayCrowd(
 export type DayVotes = {
   ja: { playerId: number; name: string }[];
   vielleicht: { playerId: number; name: string }[];
-  /** Counts only — who can't is for the Mannschaftsführer. */
+  /** Counts only for the players — who can't is for the Mannschaftsführer (see `neinPlayers`). */
   nein: number;
   open: number;
+  /** Names of the others, for the Mannschaftsführer and the Spieltags-Mannschaftsführer. */
+  neinPlayers: string[];
+  openPlayers: string[];
 };
 
 /** Everyone asked about one Spieltag, sorted into their answers (ids kept so the page can mark who is lined up). */
@@ -97,17 +100,24 @@ export function dayVotes(
   activeRoster: RosterRow[],
 ): DayVotes {
   const names = new Map(activeRoster.map((r) => [r.playerId, r.name]));
-  const votes: DayVotes = { ja: [], vielleicht: [], nein: 0, open: 0 };
+  const votes: DayVotes = { ja: [], vielleicht: [], nein: 0, open: 0, neinPlayers: [], openPlayers: [] };
   for (const [playerId, roster] of rosterByPlayer(activeRoster)) {
     if (!pollDaysForPlayer(roster, allMatches, "0000-00-00").some((d) => d.date === date)) continue;
     const status = answers.get(availabilityKey(playerId, date));
     const entry = { playerId, name: names.get(playerId)! };
     if (status === "ja") votes.ja.push(entry);
     else if (status === "vielleicht") votes.vielleicht.push(entry);
-    else if (status === "nein") votes.nein++;
-    else votes.open++;
+    else if (status === "nein") {
+      votes.nein++;
+      votes.neinPlayers.push(entry.name);
+    } else {
+      votes.open++;
+      votes.openPlayers.push(entry.name);
+    }
   }
   votes.ja.sort((a, b) => a.name.localeCompare(b.name, "de"));
   votes.vielleicht.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  votes.neinPlayers.sort((a, b) => a.localeCompare(b, "de"));
+  votes.openPlayers.sort((a, b) => a.localeCompare(b, "de"));
   return votes;
 }

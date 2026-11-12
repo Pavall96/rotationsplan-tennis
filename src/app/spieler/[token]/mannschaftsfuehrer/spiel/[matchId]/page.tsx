@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayerByToken } from "@/lib/queries";
 import { getAllMatches, getTeams, type MatchView } from "@/lib/matches";
-import { getRoster, rosterByPlayer } from "@/lib/roster";
+import { activeRows, getRoster, rosterByPlayer } from "@/lib/roster";
 import { getLineups, lineupContext, singlesOrder, type LineupEntry } from "@/lib/lineups";
-import { getAvailability, availabilityKey, type AvailabilityStatus } from "@/lib/availability";
+import { getAvailability, availabilityKey, dayVotes, type AvailabilityStatus, type DayVotes } from "@/lib/availability";
 import {
   lineupCheck,
   isNonGerman,
@@ -93,9 +93,11 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const match = allMatches.find((m) => m.id === matchId);
   const team = teamList.find((t) => t.id === match?.team.id);
   if (!match || !team) notFound();
+  // The Spieltags-Mannschaftsführer sees everything about the match, but changes nothing (the actions check ownership).
+  const isDayCaptain = matchCaptains.get(matchId)?.playerId === captain.id && team.captainPlayerId !== captain.id;
   if (team.captainPlayerId !== captain.id) {
     // Other teams' captains may look but not change anything — the server actions check ownership on their own.
-    if (!teamList.some((t) => t.captainPlayerId === captain.id)) notFound();
+    if (!isDayCaptain && !teamList.some((t) => t.captainPlayerId === captain.id)) notFound();
     return (
       <OtherTeamLineup
         token={token}
@@ -105,6 +107,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         rosters={rosterByPlayer(roster)}
         marked={(marksByMatch.get(matchId) ?? []).filter((m) => m.playsMatches).map((m) => m.name)}
         matchCaptainId={matchCaptains.get(matchId)?.playerId ?? null}
+        dayCaptainVotes={isDayCaptain ? dayVotes(match.matchDate, allMatches, answers, activeRows(roster)) : null}
       />
     );
   }
@@ -383,8 +386,9 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
               <div className="mb-3 rounded-[10px] border border-[var(--color-border)] px-3 py-2.5">
                 <p className="text-xs font-semibold">Mannschaftsführer am Spieltag</p>
                 <p className="mb-2 text-[11px] text-[var(--color-ink-muted)]">
-                  Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste und
-                  bekommt die Absagen – aufstellen und veröffentlichen kannst weiterhin nur du.
+                  Spielst du selbst nicht mit? Dann trag jemanden aus der Aufstellung ein. Er sieht die Meldeliste, die
+                  Aufstellung (auch den Entwurf) und alle Abstimmungen und bekommt die Absagen – aufstellen und
+                  veröffentlichen kannst weiterhin nur du.
                 </p>
                 <ActionForm action={setMatchCaptain} hidden={hidden} className="flex flex-wrap items-center gap-2">
                   <select
@@ -524,6 +528,17 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   );
 }
 
+/** Captain tabs around the page — the Spieltags-Mannschaftsführer isn't a captain, so they get a plain page. */
+function LineupFrame({ token, plain, children }: { token: string; plain: boolean; children: React.ReactNode }) {
+  return plain ? (
+    <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">{children}</main>
+  ) : (
+    <CaptainShell token={token} active="spiele">
+      {children}
+    </CaptainShell>
+  );
+}
+
 /** Read-only lineup of a team the viewer doesn't captain: who's lined up, in which order, and who answered what. */
 function OtherTeamLineup({
   token,
@@ -533,6 +548,7 @@ function OtherTeamLineup({
   rosters,
   marked,
   matchCaptainId,
+  dayCaptainVotes,
 }: {
   token: string;
   match: MatchView;
@@ -541,6 +557,8 @@ function OtherTeamLineup({
   rosters: Map<number, PlayerRoster>;
   marked: string[];
   matchCaptainId: number | null;
+  /** Set when the viewer is this match's Spieltags-Mannschaftsführer: adds the full Abstimmung and drops the captain tabs. */
+  dayCaptainVotes: DayVotes | null;
 }) {
   const lists = (playerId: number) => {
     const r = rosters.get(playerId) ?? {};
@@ -577,13 +595,13 @@ function OtherTeamLineup({
   };
 
   return (
-    <CaptainShell token={token} active="spiele">
+    <LineupFrame token={token} plain={Boolean(dayCaptainVotes)}>
       <Link
-        href={`/spieler/${token}/mannschaftsfuehrer`}
+        href={dayCaptainVotes ? `/spieler/${token}/punktspiele#spiel-${match.id}` : `/spieler/${token}/mannschaftsfuehrer`}
         className="inline-flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]"
       >
         <ArrowLeftIcon className="h-3.5 w-3.5" />
-        Zum Mannschaftsführer-Bereich
+        {dayCaptainVotes ? "Zu den Winterspielen" : "Zum Mannschaftsführer-Bereich"}
       </Link>
 
       <header className="my-4">
@@ -598,7 +616,9 @@ function OtherTeamLineup({
           {captainName ? `Mannschaftsführer: ${captainName}` : "Kein Mannschaftsführer eingetragen"}
         </p>
         <p className="mt-2 rounded-lg bg-[var(--color-tabs-bg)] px-2.5 py-2 text-xs text-[var(--color-ink-muted)]">
-          Nur zum Ansehen – ändern kann nur der Mannschaftsführer dieses Teams.
+          {dayCaptainVotes
+            ? "Du bist an diesem Tag Mannschaftsführer. Du siehst alles, aufstellen und veröffentlichen kann nur der Mannschaftsführer des Teams."
+            : "Nur zum Ansehen – ändern kann nur der Mannschaftsführer dieses Teams."}
         </p>
       </header>
 
@@ -636,7 +656,41 @@ function OtherTeamLineup({
           </p>
         )}
       </section>
-    </CaptainShell>
+
+      {dayCaptainVotes && (
+        <section className="mb-6 max-w-xl rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+          <h2 className="mb-2 font-display font-bold">Abstimmung für diesen Tag</h2>
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-semibold text-[var(--color-ja)]">Können ({dayCaptainVotes.ja.length}):</span>{" "}
+              {dayCaptainVotes.ja.map((p) => p.name).join(", ") || "niemand"}
+            </p>
+            <p>
+              <span className="font-semibold text-[var(--color-vielleicht)]">
+                Vielleicht ({dayCaptainVotes.vielleicht.length}):
+              </span>{" "}
+              {dayCaptainVotes.vielleicht.map((p) => p.name).join(", ") || "niemand"}
+            </p>
+            <p>
+              <span className="font-semibold text-[var(--color-ink-muted)]">
+                Noch keine Antwort ({dayCaptainVotes.open}):
+              </span>{" "}
+              {dayCaptainVotes.openPlayers.join(", ") || "niemand"}
+            </p>
+            <p>
+              <span className="font-semibold text-[var(--color-nein)]">Können nicht ({dayCaptainVotes.nein}):</span>{" "}
+              {dayCaptainVotes.neinPlayers.join(", ") || "niemand"}
+            </p>
+          </div>
+          <Link
+            href={`/spieler/${token}/punktspiele/meldeliste/${match.id}`}
+            className="mt-3 inline-block text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
+          >
+            Meldeliste ansehen ›
+          </Link>
+        </section>
+      )}
+    </LineupFrame>
   );
 }
 

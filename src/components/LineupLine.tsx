@@ -93,6 +93,14 @@ export function LineupLine({
           <span className="font-semibold">Mannschaftsführer am Spieltag:</span> {iAmDayCaptain ? "du" : dayCaptain.name}
         </p>
       )}
+      {iAmDayCaptain && (
+        <Link
+          href={`/spieler/${viewer.token}/mannschaftsfuehrer/spiel/${match.id}`}
+          className="mt-1 mr-3 inline-block text-xs font-semibold text-[var(--color-brand)] underline underline-offset-2"
+        >
+          Aufstellung &amp; Abstimmung ansehen ›
+        </Link>
+      )}
       {(iAmDayCaptain || showMeldeliste) && (
         <Link
           href={`/spieler/${viewer.token}/punktspiele/meldeliste/${match.id}`}
