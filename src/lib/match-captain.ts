@@ -32,3 +32,16 @@ export function activeMatchCaptain(
   const entry = entries.find((e) => e.playerId === captain.playerId);
   return entry && entry.response !== "nein" ? captain : null;
 }
+
+/** Who leads the team on a match day: the Spieltags-MF if they're playing, otherwise the team's Mannschaftsführer. */
+export function matchDayCaptain(
+  match: { id: number; team: { id: number } },
+  teams: { id: number; captainPlayerId: number | null; captainName: string | null }[],
+  matchCaptains: Map<number, MatchCaptain>,
+  entries: Pick<LineupEntry, "playerId" | "response">[],
+): MatchCaptain | null {
+  const day = activeMatchCaptain(matchCaptains.get(match.id), entries);
+  if (day) return day;
+  const team = teams.find((t) => t.id === match.team.id);
+  return team?.captainPlayerId && team.captainName ? { playerId: team.captainPlayerId, name: team.captainName } : null;
+}

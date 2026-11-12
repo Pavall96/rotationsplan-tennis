@@ -34,6 +34,8 @@ export function MatchCard({
   match,
   showDate = false,
   opponent,
+  captain,
+  viewerId,
   children,
 }: {
   match: MatchView;
@@ -41,8 +43,13 @@ export function MatchCard({
   showDate?: boolean;
   /** Opponent overview, shown above the venue block. */
   opponent?: React.ReactNode;
+  /** Who leads the team on this match day (Spieltags-MF if set and playing, else the team's MF). Names only with a personal link. */
+  captain?: { playerId: number; name: string } | null;
+  /** The viewing player; only the match's Mannschaftsführer gets the home-game reminder. */
+  viewerId?: number;
   children?: React.ReactNode;
 }) {
+  const iAmCaptain = captain != null && captain.playerId === viewerId;
   const { venue } = match;
 
   return (
@@ -64,10 +71,16 @@ export function MatchCard({
         {formatTime(match.startsAt)} Uhr
       </p>
 
-      {match.isHome && (
+      {captain && (
+        <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
+          Mannschaftsführer: <span className="font-semibold text-[var(--color-ink)]">{iAmCaptain ? "du" : captain.name}</span>
+        </p>
+      )}
+
+      {match.isHome && iAmCaptain && (
         <p className="mb-3 rounded-[14px] bg-[var(--color-ja-bg)] px-3 py-2.5 text-sm text-[var(--color-ja)]">
-          <span className="font-semibold">Nicht vergessen:</span> Bälle mitbringen und nach dem Spiel den Spielbericht
-          ausfüllen.
+          <span className="font-semibold">Heimspiel – nicht vergessen:</span> Bälle mitbringen und den
+          Spielberichtsbogen einpacken. Nach dem Spiel den Spielbericht ausfüllen.
         </p>
       )}
 

@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getAllMatches, getTeams, groupByDay } from "@/lib/matches";
+import { getAllMatches, getTeams, groupByDay, type MatchView } from "@/lib/matches";
 import { getRidesByMatch } from "@/lib/rides";
-import { getLineups } from "@/lib/lineups";
-import { getMatchCaptains } from "@/lib/match-captain";
+import { getLineups, plays } from "@/lib/lineups";
+import { getMatchCaptains, matchDayCaptain } from "@/lib/match-captain";
 import { nextMatchIds, type OpponentView } from "@/lib/scouting";
 import { getOpponentViews } from "@/lib/scouting-store";
 import { formatDateForFile, formatDayShort } from "@/lib/format";
-import { MatchCard, teamChipClasses } from "@/components/MatchCard";
+import { MatchCard, TeamChip, teamChipClasses } from "@/components/MatchCard";
 import { RideSection } from "@/components/RideSection";
 import { LineupLine } from "@/components/LineupLine";
 import { OpponentSection } from "@/components/OpponentSection";
@@ -40,6 +40,13 @@ export async function MatchList({
   const opponentViews: Map<number, OpponentView> = viewer
     ? await getOpponentViews([...nextMatchIds(allMatches, today)])
     : new Map();
+
+  const captainFor = (m: MatchView) =>
+    viewer ? matchDayCaptain(m, teamList, matchCaptains, lineupsByMatch.get(m.id) ?? []) : null;
+  // Played days, newest first: who was in the lineup (without those who cancelled) and who led the team.
+  const played = viewer
+    ? groupByDay(allMatches.filter((m) => m.matchDate < today && m.lineupPublishedAt && (!selected || m.team.id === selected.id))).reverse()
+    : [];
 
   return (
     <>
@@ -92,6 +99,8 @@ export async function MatchList({
                   <MatchCard
                     key={m.id}
                     match={m}
+                    captain={captainFor(m)}
+                    viewerId={viewer?.playerId}
                     opponent={
                       opponentViews.has(m.id) ? (
                         <OpponentSection view={opponentViews.get(m.id)!} ageClass={m.team.ageClass} />
@@ -116,6 +125,44 @@ export async function MatchList({
             </section>
           );
         })}
+        {played.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
+              Schon gespielt
+            </h2>
+            <div className="space-y-3">
+              {played.flatMap(({ date, matches: ms }) =>
+                ms.map((m) => {
+                  const entries = (lineupsByMatch.get(m.id) ?? []).filter((e) => plays(e.role) && e.response !== "nein");
+                  const captain = captainFor(m);
+                  return (
+                    <div
+                      key={m.id}
+                      className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm"
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="font-semibold">{formatDayShort(date)}</span>
+                        <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
+                      </div>
+                      <p className="text-xs text-[var(--color-ink-muted)]">
+                        {m.isHome ? "gegen" : "bei"} {m.opponent}
+                      </p>
+                      <p className="mt-1.5">
+                        <span className="font-semibold">Gespielt:</span>{" "}
+                        {entries.length > 0 ? entries.map((e) => e.name).join(", ") : "–"}
+                      </p>
+                      {captain && (
+                        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
+                          Mannschaftsführer: {captain.playerId === viewer?.playerId ? "du" : captain.name}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }),
+              )}
+            </div>
+          </section>
+        )}
         {days.length === 0 && <p className="text-sm text-[var(--color-ink-muted)]">Noch keine Spiele eingetragen.</p>}
       </div>
     </>
