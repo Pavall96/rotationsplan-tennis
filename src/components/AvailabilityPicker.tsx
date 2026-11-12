@@ -3,7 +3,7 @@ import { ActionForm } from "@/components/ActionForm";
 import { TeamChip } from "@/components/MatchCard";
 import { CheckIcon, XIcon } from "@/components/icons";
 import { formatDayShort, formatTime } from "@/lib/format";
-import { availabilityKey, type AvailabilityStatus, type PollDay } from "@/lib/availability";
+import { availabilityKey, type AvailabilityStatus, type DayCrowd, type PollDay } from "@/lib/availability";
 
 const OPTIONS: { status: AvailabilityStatus; label: string; on: string; off: string }[] = [
   {
@@ -32,11 +32,14 @@ export function AvailabilityPicker({
   playerId,
   days,
   answers,
+  crowd,
 }: {
   token: string;
   playerId: number;
   days: PollDay[];
   answers: Map<string, AvailabilityStatus>;
+  /** What the others answered, per Spieltag; omitted: nothing shown. */
+  crowd?: Map<string, DayCrowd>;
 }) {
   if (days.length === 0) return null;
   const answered = days.filter((d) => answers.has(availabilityKey(playerId, d.date))).length;
@@ -85,10 +88,30 @@ export function AvailabilityPicker({
                   </button>
                 ))}
               </ActionForm>
+              <CrowdLine crowd={crowd?.get(day.date)} />
             </li>
           );
         })}
       </ul>
     </section>
+  );
+}
+
+function CrowdLine({ crowd }: { crowd: DayCrowd | undefined }) {
+  if (!crowd) return null;
+  return (
+    <div className="mt-2 space-y-0.5 text-xs text-[var(--color-ink-muted)]">
+      <p>
+        <span className="font-semibold text-[var(--color-ja)]">Können ({crowd.ja.length}):</span>{" "}
+        {crowd.ja.length > 0 ? crowd.ja.join(", ") : "noch niemand"}
+      </p>
+      {crowd.vielleicht.length > 0 && (
+        <p>
+          <span className="font-semibold text-[var(--color-vielleicht)]">Vielleicht ({crowd.vielleicht.length}):</span>{" "}
+          {crowd.vielleicht.join(", ")}
+        </p>
+      )}
+      {crowd.open > 0 && <p>Noch offen: {crowd.open}</p>}
+    </div>
   );
 }

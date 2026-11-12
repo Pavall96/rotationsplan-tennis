@@ -4,8 +4,8 @@ import { getPlayerByToken } from "@/lib/queries";
 import { MatchList } from "@/components/MatchList";
 import { AvailabilityPicker } from "@/components/AvailabilityPicker";
 import { getAllMatches } from "@/lib/matches";
-import { getPlayerRoster } from "@/lib/roster";
-import { getAvailability, pollDaysForPlayer } from "@/lib/availability";
+import { activeRows, getPlayerRoster, getRoster } from "@/lib/roster";
+import { dayCrowd, getAvailability, pollDaysForPlayer } from "@/lib/availability";
 import { RememberMyPage } from "@/components/MyPageLink";
 import { ArrowLeftIcon } from "@/components/icons";
 
@@ -16,10 +16,11 @@ export default async function MyMatchesPage({ params, searchParams }: PageProps<
   const { team } = await searchParams;
   const player = await getPlayerByToken(token);
   if (!player) notFound();
-  const [allMatches, roster, answers] = await Promise.all([
+  const [allMatches, roster, answers, rosterRows] = await Promise.all([
     getAllMatches(),
     getPlayerRoster(player.id),
     getAvailability(),
+    getRoster(),
   ]);
 
   return (
@@ -43,6 +44,7 @@ export default async function MyMatchesPage({ params, searchParams }: PageProps<
         playerId={player.id}
         days={player.playsMatches ? pollDaysForPlayer(roster, allMatches) : []}
         answers={answers}
+        crowd={dayCrowd(allMatches, answers, activeRows(rosterRows))}
       />
 
       <MatchList

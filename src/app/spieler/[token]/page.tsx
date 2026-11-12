@@ -14,8 +14,8 @@ import { FirstVisitGuide } from "@/components/FirstVisitGuide";
 import { RememberMyPage } from "@/components/MyPageLink";
 import { ArrowLeftIcon, CalendarIcon, ChevronRightIcon, PinIcon } from "@/components/icons";
 import { getTeams, getAllMatches } from "@/lib/matches";
-import { getPlayerRoster } from "@/lib/roster";
-import { getAvailability, pollDaysForPlayer } from "@/lib/availability";
+import { activeRows, getPlayerRoster, getRoster } from "@/lib/roster";
+import { dayCrowd, getAvailability, pollDaysForPlayer } from "@/lib/availability";
 import { AvailabilityPicker } from "@/components/AvailabilityPicker";
 import { getLineups } from "@/lib/lineups";
 import { getMatchCaptains, matchDayCaptain } from "@/lib/match-captain";
@@ -34,7 +34,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
   const player = await getPlayerByToken(token);
   if (!player) notFound();
 
-  const [schedule, teamList, allMatches, roster, answers, lineupsByMatch, matchCaptains] = await Promise.all([
+  const [schedule, teamList, allMatches, roster, answers, lineupsByMatch, matchCaptains, rosterRows] = await Promise.all([
     getFullSchedule(),
     getTeams(),
     getAllMatches(),
@@ -42,6 +42,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
     getAvailability(),
     getLineups({ publishedOnly: true }),
     getMatchCaptains(),
+    getRoster(),
   ]);
   const myMatches = allMatches.filter(
     (m) =>
@@ -168,7 +169,13 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
         </section>
       )}
 
-      <AvailabilityPicker token={token} playerId={player.id} days={pollDays} answers={answers} />
+      <AvailabilityPicker
+        token={token}
+        playerId={player.id}
+        days={pollDays}
+        answers={answers}
+        crowd={dayCrowd(allMatches, answers, activeRows(rosterRows))}
+      />
 
       {trains ? (
         <>

@@ -3,6 +3,7 @@ import { availability } from "@/db/schema";
 import { canBeAsked, type PlayerRoster } from "@/lib/eligibility";
 import { formatDateForFile } from "@/lib/format";
 import type { MatchView } from "@/lib/matches";
+import { rosterByPlayer, type RosterRow } from "@/lib/roster";
 
 export type AvailabilityStatus = "ja" | "vielleicht" | "nein";
 export const AVAILABILITY_LABEL: Record<AvailabilityStatus, string> = {
@@ -48,4 +49,34 @@ export function openDaysByPlayer(
     if (days.length > 0) open.set(playerId, days);
   }
   return open;
+}
+
+/** Who said what for one Spieltag. "Kann nicht" is deliberately not listed by name — only the Mannschaftsführer see it. */
+export type DayCrowd = { ja: string[]; vielleicht: string[]; open: number };
+
+/** Per Spieltag: the names of those who can / maybe can, and how many asked players haven't answered yet. */
+export function dayCrowd(
+  allMatches: MatchView[],
+  answers: Map<string, AvailabilityStatus>,
+  activeRoster: RosterRow[],
+  today = formatDateForFile(new Date()),
+): Map<string, DayCrowd> {
+  const names = new Map(activeRoster.map((r) => [r.playerId, r.name]));
+  const crowd = new Map<string, DayCrowd>();
+  for (const [playerId, roster] of rosterByPlayer(activeRoster)) {
+    for (const day of pollDaysForPlayer(roster, allMatches, today)) {
+      const entry = crowd.get(day.date) ?? { ja: [], vielleicht: [], open: 0 };
+      const status = answers.get(availabilityKey(playerId, day.date));
+      const name = names.get(playerId)!;
+      if (status === "ja") entry.ja.push(name);
+      else if (status === "vielleicht") entry.vielleicht.push(name);
+      else if (!status) entry.open++;
+      crowd.set(day.date, entry);
+    }
+  }
+  for (const e of crowd.values()) {
+    e.ja.sort((a, b) => a.localeCompare(b, "de"));
+    e.vielleicht.sort((a, b) => a.localeCompare(b, "de"));
+  }
+  return crowd;
 }
