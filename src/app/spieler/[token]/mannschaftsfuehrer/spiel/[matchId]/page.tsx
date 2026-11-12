@@ -16,7 +16,7 @@ import {
 import { getMarks, sameDayClaims, appearances, canMark, type Claim, type Appearance } from "@/lib/marks";
 import { getMatchCaptains } from "@/lib/match-captain";
 import { coordinationText, sameDayText, whatsappUrl } from "@/lib/invite";
-import { formatDayShort, formatTime, playerLabel } from "@/lib/format";
+import { formatDayShort, formatTime } from "@/lib/format";
 import { addToLineup, removeFromLineup, markPlayer, unmarkPlayer, setMatchCaptain } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -94,10 +94,12 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
   const team = teamList.find((t) => t.id === match?.team.id);
   if (!match || !team) notFound();
   // The Spieltags-Mannschaftsführer sees everything about the match, but changes nothing (the actions check ownership).
-  const isDayCaptain = matchCaptains.get(matchId)?.playerId === captain.id && team.captainPlayerId !== captain.id;
-  if (team.captainPlayerId !== captain.id) {
-    // Other teams' captains may look but not change anything — the server actions check ownership on their own.
-    if (!isDayCaptain && !teamList.some((t) => t.captainPlayerId === captain.id)) notFound();
+  // Every team's Mannschaftsführer may line up any team (they stand in for each other); the actions check this too.
+  const isCaptain = teamList.some((t) => t.captainPlayerId === captain.id);
+  const isDayCaptain = !isCaptain && matchCaptains.get(matchId)?.playerId === captain.id;
+  const standingIn = isCaptain && team.captainPlayerId !== captain.id;
+  if (!isCaptain) {
+    if (!isDayCaptain) notFound();
     return (
       <OtherTeamLineup
         token={token}
@@ -107,7 +109,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         rosters={rosterByPlayer(roster)}
         marked={(marksByMatch.get(matchId) ?? []).filter((m) => m.playsMatches).map((m) => m.name)}
         matchCaptainId={matchCaptains.get(matchId)?.playerId ?? null}
-        dayCaptainVotes={isDayCaptain ? dayVotes(match.matchDate, allMatches, answers, activeRows(roster)) : null}
+        dayCaptainVotes={dayVotes(match.matchDate, allMatches, answers, activeRows(roster))}
       />
     );
   }
@@ -224,7 +226,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
     );
   }
   const matchCaptainOptions = [...stamm, ...doppel, ...ersatz].filter(
-    (e) => e.playerId !== captain.id && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
+    (e) => e.playerId !== team.captainPlayerId && (e.response !== "nein" || e.playerId === matchCaptain?.playerId),
   );
 
   const sameDay: SameDayMatch[] = allMatches
@@ -267,6 +269,12 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
         <p className="text-sm text-[var(--color-ink-muted)]">
           {day} · {formatTime(match.startsAt)} Uhr{match.venue ? ` · ${match.venue.name}` : ""}
         </p>
+        {standingIn && (
+          <p className="mt-2 rounded-lg bg-[var(--color-h30-bg)] px-2.5 py-2 text-xs text-[var(--color-h30)]">
+            Du stellst hier für {match.team.name} auf – der Mannschaftsführer ist {team.captainName ?? "nicht eingetragen"}.
+            Sprecht euch kurz ab, damit ihr euch nicht in die Quere kommt.
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href={`/spieler/${token}/punktspiele/meldeliste/${matchId}`}
@@ -398,7 +406,7 @@ export default async function LineupPage({ params }: PageProps<"/spieler/[token]
                     aria-label="Mannschaftsführer am Spieltag"
                     className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border-strong)] bg-[var(--color-card)] px-2.5 py-2 text-base"
                   >
-                    <option value="">{`${playerLabel(captain)} (Mannschaftsführer)`}</option>
+                    <option value="">{`${team.captainName ?? "Mannschaftsführer"} (Mannschaftsführer)`}</option>
                     {matchCaptainOptions.map((e) => (
                       <option key={e.playerId} value={e.playerId}>
                         {`${e.name}${e.role === "ersatz" ? " (Ersatz)" : e.role === "doppel" ? " (nur Doppel)" : ""}${e.response === "nein" ? " – abgesagt" : ""}`}
