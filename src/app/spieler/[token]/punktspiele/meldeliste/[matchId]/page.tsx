@@ -32,7 +32,8 @@ export default async function MeldelistePage({
 
   // Only the Mannschaftsführer and this match's Spieltags-Mannschaftsführer — the list carries WTB ID numbers.
   const isCaptain = teamList.some((t) => t.captainPlayerId === player.id);
-  const ownTeam = teamList.some((t) => t.id === match.team.id && t.captainPlayerId === player.id);
+  // Every Mannschaftsführer may line up any team, so all of them see the lineup as planned.
+  const ownTeam = isCaptain;
   if (!isCaptain && matchCaptains.get(matchId)?.playerId !== player.id) notFound();
 
   // The team's own Mannschaftsführer sees the lineup as planned; everyone else only what is published.

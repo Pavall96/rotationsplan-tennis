@@ -145,8 +145,9 @@ export default async function CaptainPage({
             <section className="mb-6">
               <h2 className="mb-1 font-display font-bold">Andere Teams</h2>
               <p className="mb-3 text-xs text-[var(--color-ink-muted)]">
-                Aufstellungen der anderen Mannschaften, auch noch nicht veröffentlichte – antippen für Details. Wer dort
-                steht, ist am selben Tag für dich gesperrt.
+                Aufstellungen der anderen Mannschaften, auch noch nicht veröffentlichte. Fehlt deren Mannschaftsführer,
+                kannst du hier einspringen und aufstellen – einfach antippen. Wer dort steht, ist am selben Tag für
+                dich gesperrt.
               </p>
               <div className="overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-card)] lg:grid lg:grid-cols-2">
                 {otherMatches.map((m) => {
