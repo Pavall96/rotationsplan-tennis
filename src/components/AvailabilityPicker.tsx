@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { setAvailability } from "@/app/spieler/[token]/punktspiele/actions";
 import { ActionForm } from "@/components/ActionForm";
 import { TeamChip } from "@/components/MatchCard";
@@ -62,7 +63,12 @@ export function AvailabilityPicker({
           return (
             <li key={day.date} className="py-3 first:pt-0 last:pb-0">
               <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-sm font-semibold">{formatDayShort(day.date)}</span>
+                <Link
+                  href={`/spieler/${token}/punktspiele/tag/${day.date}`}
+                  className="mr-1 text-sm font-semibold underline decoration-[var(--color-border-strong)] underline-offset-4"
+                >
+                  {formatDayShort(day.date)} ›
+                </Link>
                 {day.matches.map((m) => (
                   <span key={m.id} className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink-muted)]">
                     <TeamChip name={m.team.name} ageClass={m.team.ageClass} />

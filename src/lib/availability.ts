@@ -80,3 +80,34 @@ export function dayCrowd(
   }
   return crowd;
 }
+
+export type DayVotes = {
+  ja: { playerId: number; name: string }[];
+  vielleicht: { playerId: number; name: string }[];
+  /** Counts only — who can't is for the Mannschaftsführer. */
+  nein: number;
+  open: number;
+};
+
+/** Everyone asked about one Spieltag, sorted into their answers (ids kept so the page can mark who is lined up). */
+export function dayVotes(
+  date: string,
+  allMatches: MatchView[],
+  answers: Map<string, AvailabilityStatus>,
+  activeRoster: RosterRow[],
+): DayVotes {
+  const names = new Map(activeRoster.map((r) => [r.playerId, r.name]));
+  const votes: DayVotes = { ja: [], vielleicht: [], nein: 0, open: 0 };
+  for (const [playerId, roster] of rosterByPlayer(activeRoster)) {
+    if (!pollDaysForPlayer(roster, allMatches, "0000-00-00").some((d) => d.date === date)) continue;
+    const status = answers.get(availabilityKey(playerId, date));
+    const entry = { playerId, name: names.get(playerId)! };
+    if (status === "ja") votes.ja.push(entry);
+    else if (status === "vielleicht") votes.vielleicht.push(entry);
+    else if (status === "nein") votes.nein++;
+    else votes.open++;
+  }
+  votes.ja.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  votes.vielleicht.sort((a, b) => a.name.localeCompare(b.name, "de"));
+  return votes;
+}

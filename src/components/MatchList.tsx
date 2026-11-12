@@ -87,7 +87,13 @@ export async function MatchList({
           return (
             <section key={date}>
               <h2 className="mb-2 flex items-baseline justify-between text-xs font-bold uppercase tracking-wide text-[var(--color-ink-muted)]">
-                <span>{formatDayShort(date)}</span>
+                {viewer ? (
+                  <Link href={`${basePath}/tag/${date}`} className="underline underline-offset-4">
+                    {formatDayShort(date)} – wer spielt? ›
+                  </Link>
+                ) : (
+                  <span>{formatDayShort(date)}</span>
+                )}
                 {!selected && dayMatches.length > 1 && (
                   <span className="normal-case tracking-normal font-semibold text-[var(--color-nein)]">
                     {dayMatches.length} Spiele an diesem Tag
@@ -141,7 +147,9 @@ export async function MatchList({
                       className="rounded-[14px] border border-[var(--color-border)] bg-[var(--color-card)] px-[14px] py-3 text-sm"
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="font-semibold">{formatDayShort(date)}</span>
+                        <Link href={`${basePath}/tag/${date}`} className="font-semibold underline underline-offset-4">
+                          {formatDayShort(date)} ›
+                        </Link>
                         <TeamChip name={m.team.name} ageClass={m.team.ageClass} />
                       </div>
                       <p className="text-xs text-[var(--color-ink-muted)]">
