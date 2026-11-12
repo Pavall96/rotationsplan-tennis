@@ -18,7 +18,7 @@ import { getPlayerRoster } from "@/lib/roster";
 import { getAvailability, pollDaysForPlayer } from "@/lib/availability";
 import { AvailabilityPicker } from "@/components/AvailabilityPicker";
 import { getLineups } from "@/lib/lineups";
-import { getMatchCaptains } from "@/lib/match-captain";
+import { getMatchCaptains, matchDayCaptain } from "@/lib/match-captain";
 import { MatchCard } from "@/components/MatchCard";
 import { LineupLine } from "@/components/LineupLine";
 import { FreeSlotCard } from "@/components/FreeSlotCard";
@@ -141,7 +141,13 @@ export default async function PlayerPage({ params, searchParams }: PageProps<"/s
           </h2>
           <div className="space-y-3">
             {myMatches.map((m) => (
-              <MatchCard key={m.id} match={m} showDate>
+              <MatchCard
+                key={m.id}
+                match={m}
+                showDate
+                captain={matchDayCaptain(m, teamList, matchCaptains, lineupsByMatch.get(m.id) ?? [])}
+                viewerId={player.id}
+              >
                 <LineupLine
                   match={m}
                   entries={lineupsByMatch.get(m.id) ?? []}
